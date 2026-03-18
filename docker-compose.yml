@@ -13,12 +13,22 @@ services:
       - "8443:8443"
     volumes:
       - ./config/development/saml-authsources.php:/var/www/simplesamlphp/config/authsources.php
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8080/simplesaml/saml2/idp/metadata.php"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
   dynamodb:
     image: amazon/dynamodb-local
     init: true
     restart: on-failure
     env_file: ./config/development/dynamodb.env
     command: "-Xmx512m -jar DynamoDBLocal.jar -port 8080 -sharedDb"
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8080/"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
   kms:
     image: nsmithuk/local-kms
     init: true
@@ -26,6 +36,11 @@ services:
     env_file: ./config/development/kms.env
     volumes:
       - ./config/development/kms-seed.yaml:/init/seed.yaml
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
   confidant:
     image: lyft/confidant
     init: true
@@ -36,9 +51,12 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - dynamodb
-      - kms
-      - saml-idp
+      dynamodb:
+        condition: service_healthy
+      kms:
+        condition: service_healthy
+      saml-idp:
+        condition: service_healthy
     env_file: ./config/development/confidant.env
     volumes:
       - ./config/development/logging.conf:/etc/confidant/logging.conf
