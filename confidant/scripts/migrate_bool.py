@@ -1,8 +1,7 @@
 import logging
 import time
 import sys
-
-from flask_script import Command, Option
+import click
 from botocore.exceptions import ClientError
 from pynamodb.exceptions import UpdateError
 from pynamodb.expressions.operand import Path
@@ -27,7 +26,7 @@ class GenericCredential(Model):
         region = settings.AWS_DEFAULT_REGION
         connect_timeout_seconds = settings.PYNAMO_CONNECT_TIMEOUT_SECONDS
         read_timeout_seconds = settings.PYNAMO_READ_TIMEOUT_SECONDS
-        max_pool_connection = settings.PYNAMO_CONNECTION_POOL_SIZE
+        max_pool_connections = settings.PYNAMO_CONNECTION_POOL_SIZE
     id = UnicodeAttribute(hash_key=True)
     enabled = BooleanAttribute(default=True)
 
@@ -236,78 +235,34 @@ def migrate_boolean_attributes(model_class,
     return num_items_with_actions, num_update_failures
 
 
-class MigrateBooleanAttribute(Command):
-
-    option_list = (
-        Option(
-            '--RCU',
-            action="store",
-            dest="RCU",
-            type=int,
-            default=10,
-            help='Read Capacity Units to be used for scan method.'
-        ),
-        Option(
-            '--page-size',
-            action="store",
-            dest="page_size",
-            type=int,
-            default=None,
-            help='Page size used in the scan.'
-        ),
-        Option(
-            '--limit',
-            action="store",
-            dest="limit",
-            type=int,
-            default=None,
-            help='Limit the number of results returned in the scan.'
-        ),
-        Option(
-            '--back-off',
-            action="store",
-            dest="back_off",
-            type=int,
-            default=1,
-            help='Number of seconds to sleep when exceeding capacity.'
-        ),
-        Option(
-            '--update-rate',
-            action="store",
-            dest="update_rate",
-            type=float,
-            default=1.0,
-            help='An upper limit on the rate of items update per second.'
-        ),
-        Option(
-            '--scan-without-rcu',
-            action="store_true",
-            dest="scan_without_rcu",
-            default=False,
-            help='For development purposes, allow scanning without read '
-                 'capacity units'
+@click.command()
+@click.option('--RCU', type=int, default=10, help='Read Capacity Units to be used for scan method.')
+@click.option('--page-size', type=int, default=None, help='Page size used in the scan.')
+@click.option('--limit', type=int, default=None, help='Limit the number of results returned in the scan.')
+@click.option('--back-off', type=int, default=1, help='Number of seconds to sleep when exceeding capacity.')
+@click.option('--update-rate', type=float, default=1.0, help='An upper limit on the rate of items update per second.')
+@click.option('--scan-without-rcu', is_flag=True, default=False, help='For development purposes, allow scanning without read capacity units')
+def migrate_boolean_attribute(rcu, page_size, limit, back_off, update_rate, scan_without_rcu):
+    """
+    Migrates boolean attributes per GitHub issue 404.
+    """
+    attributes = ['enabled']
+    logger.info(
+        'RCU: {}, Page Size: {}, Limit: {}, Back off: {}, '
+        'Max update rate: {}, Attributes: {}'.format(
+            rcu, page_size, limit, back_off, update_rate,
+            attributes
         )
     )
-
-    def run(self, RCU, page_size, limit, back_off, update_rate,
-            scan_without_rcu):
-        attributes = ['enabled']
-        logger.info(
-            'RCU: {}, Page Size: {}, Limit: {}, Back off: {}, '
-            'Max update rate: {}, Attributes: {}'.format(
-                RCU, page_size, limit, back_off, update_rate,
-                attributes
-            )
-        )
-        model = GenericCredential
-        res = migrate_boolean_attributes(
-            model,
-            attributes,
-            read_capacity_to_consume_per_second=RCU,
-            page_size=page_size,
-            limit=limit,
-            number_of_secs_to_back_off=back_off,
-            max_items_updated_per_second=update_rate,
-            allow_scan_without_rcu=scan_without_rcu
-        )
-        logger.info(res)
+    model = GenericCredential
+    res = migrate_boolean_attributes(
+        model,
+        attributes,
+        read_capacity_to_consume_per_second=rcu,
+        page_size=page_size,
+        limit=limit,
+        number_of_secs_to_back_off=back_off,
+        max_items_updated_per_second=update_rate,
+        allow_scan_without_rcu=scan_without_rcu
+    )
+    logger.info(res)

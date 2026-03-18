@@ -6,49 +6,32 @@
     "url": "git://github.com/lyft/confidant.git"
   },
   "dependencies": {
-    "@uirouter/angularjs": "~1.0.23",
-    "angular": "~1.8.0",
-    "angular-animate": "~1.7.9",
-    "angular-cookies": "~1.7.9",
-    "angular-resource": "~1.7.9",
-    "angular-route": "~1.7.9",
-    "angular-sanitize": "~1.7.9",
-    "angular-touch": "~1.7.9",
-    "angular-ui-bootstrap": "~0.14.2",
-    "angular-xeditable": "~0.1.9",
-    "bootstrap": "3.4.1",
-    "es5-shim": "~4.1.13",
-    "grunt-cli": "^1.5.0",
-    "json3": "~3.3.2",
-    "lodash": "~4.17.15",
-    "spin.js": "~2.3.2"
+    "@uirouter/angularjs": "*",
+    "angular": "*",
+    "angular-animate": "*",
+    "angular-cookies": "*",
+    "angular-resource": "*",
+    "angular-route": "*",
+    "angular-sanitize": "*",
+    "angular-touch": "*",
+    "angular-ui-bootstrap": "*",
+    "angular-xeditable": "*",
+    "bootstrap": "*",
+    "es5-shim": "*",
+    "json3": "*",
+    "lodash": "*",
+    "spin.js": "*"
   },
   "devDependencies": {
-    "grunt": "^1.0.0",
-    "grunt-concurrent": "^3.0.0",
-    "grunt-contrib-clean": "^2.0.0",
-    "grunt-contrib-concat": "^2.1.0",
-    "grunt-contrib-copy": "^1.0.0",
-    "grunt-contrib-cssmin": "^5.0.0",
-    "grunt-contrib-htmlmin": "^3.1.0",
-    "grunt-contrib-jshint": "^3.2.0",
-    "grunt-contrib-symlink": "^1.0.0",
-    "grunt-contrib-uglify": "^5.2.0",
-    "grunt-contrib-watch": "^1.1.0",
-    "grunt-filerev": "^0.2.1",
-    "grunt-filerev-replace": "~0.1.3",
-    "grunt-injector": "^1.1.0",
-    "grunt-newer": "^1.3.0",
-    "grunt-ng-annotate": "^4.0.0",
-    "grunt-usemin": "^2.1.1",
-    "jshint-stylish": "^0.2.0",
-    "load-grunt-tasks": "^0.4.0",
-    "time-grunt": "^0.3.1"
-  },
-  "engines": {
-    "node": ">=0.10.0"
+    "vite": "*",
+    "@vitejs/plugin-legacy": "*"
   },
   "scripts": {
-    "test": "grunt test"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

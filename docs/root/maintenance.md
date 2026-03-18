@@ -15,19 +15,20 @@ dynamodb table, so that end-users can no longer access them through the API.
 Confidant includes a maintenance script to archive credentials:
 
 ```bash
-$ python manage.py archive_credentials --help
-usage: manage.py archive_credentials [-?] [--days DAYS] [--force] [--ids IDS]
+$ pipenv run confidant-admin archive_credentials --help
+Usage: confidant-admin archive_credentials [OPTIONS]
 
-Command to permanently archive credentials to an archive dynamodb table.
+  Command to permanently archive credentials to an archive dynamodb table.
 
-optional arguments:
-  -?, --help   show this help message and exit
-  --days DAYS  Permanently archive disabled credentials last modified greater
-               than this many days (mutually exclusive with --ids)
-  --force      By default, this script runs in dry-run mode, this option
-               forces the run and makes the changes indicated by the dry run
-  --ids IDS    Archive a comma separated list of credential IDs. (mutually
-               exclusive with --days)
+Options:
+  --days INTEGER  Permanently archive disabled credentials last modified
+                  greater than this many days (mutually exclusive with --ids)
+  --force         By default, this script runs in dry-run mode, this option
+                  forces the run and makes the changes indicated by the dry
+                  run
+  --ids TEXT      Archive a comma separated list of credential IDs. (mutually
+                  exclusive with --days)
+  --help          Show this message and exit.
 ```
 
 To use this, you must have the ``DYNAMODB_TABLE_ARCHIVE`` configuration set,
@@ -47,20 +48,20 @@ If you've permanently archived a credential, and realise you want it back,
 maintenance script:
 
 ```bash
-$ python manage.py restore_credentials --help
-usage: manage.py restore_credentials [-?] [--force] [--ids IDS] [--all]
+$ pipenv run confidant-admin restore_credentials --help
+Usage: confidant-admin restore_credentials [OPTIONS]
 
-Command to restore credentials from the permanent archive dynamodb table back
-into the primary storage table.
+  Command to restore credentials from the permanent archive dynamodb table
+  back into the primary storage table.
 
-optional arguments:
-  -?, --help  show this help message and exit
+Options:
   --force     By default, this script runs in dry-run mode, this option forces
               the run and makes the changes indicated by the dry run
-  --ids IDS   Restore a comma separated list of credential IDs. (mutually
-              exclusive with --days)
+  --ids TEXT  Restore a comma separated list of credential IDs. (mutually
+              exclusive with --all)
   --all       Restore all credentials from the permanent archive dynamodb
               table back into the primary store table.
+  --help      Show this message and exit.
 ```
 
 The script will skip any records that already exist in the primary table.

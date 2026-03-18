@@ -3,10 +3,11 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 from typing import Dict, List
 from unittest.mock import MagicMock
+from click.testing import CliRunner
 
 from confidant.models.service import Service
 from confidant.models.credential import Credential, CredentialArchive
-from confidant.scripts.archive import ArchiveCredentials
+from confidant.scripts.archive import archive_credentials
 from confidant.services import credentialmanager
 
 
@@ -247,14 +248,17 @@ def test_run_no_archive_table(mocker: MockerFixture):
         'confidant.scripts.archive.settings.DYNAMODB_TABLE_ARCHIVE',
         None,
     )
-    ac = ArchiveCredentials()
-    assert ac.run(days=10, force=True, ids=None) == 1
+    runner = CliRunner()
+    result = runner.invoke(archive_credentials, ['--days', '10', '--force'])
+    assert result.exit_code == 1
 
 
 def test_run_bad_args(mocker: MockerFixture):
-    ac = ArchiveCredentials()
-    assert ac.run(days=None, force=True, ids=None) == 1
-    assert ac.run(days=10, force=True, ids='1234') == 1
+    runner = CliRunner()
+    result = runner.invoke(archive_credentials, ['--force'])
+    assert result.exit_code == 1
+    result = runner.invoke(archive_credentials, ['--days', '10', '--ids', '1234', '--force'])
+    assert result.exit_code == 1
 
 
 def test_run_days_new_enabled_credential(
@@ -266,8 +270,8 @@ def test_run_days_new_enabled_credential(
         'confidant.scripts.archive.Credential.data_type_date_index.query',
         return_value=credentials['credentials']
     )
-    ac = ArchiveCredentials()
-    ac.run(days=10, force=True, ids=None)
+    runner = CliRunner()
+    runner.invoke(archive_credentials, ['--days', '10', '--force'])
     archive_mock.assert_called_with(
         [],
         force=True,
@@ -283,8 +287,8 @@ def test_run_days_old_disabled_credentials(
         'confidant.scripts.archive.Credential.data_type_date_index.query',
         return_value=old_disabled_credentials['credentials']
     )
-    ac = ArchiveCredentials()
-    ac.run(days=10, force=True, ids=None)
+    runner = CliRunner()
+    runner.invoke(archive_credentials, ['--days', '10', '--force'])
 
     archive_mock.assert_called_with(
         old_disabled_credentials['credentials'],
@@ -306,8 +310,8 @@ def test_run_ids_new_enabled_credentials(
         cred in credentials['credentials']
     ]
     ids = ','.join(cred_ids)
-    ac = ArchiveCredentials()
-    ac.run(days=None, force=True, ids=ids)
+    runner = CliRunner()
+    runner.invoke(archive_credentials, ['--ids', ids, '--force'])
 
     archive_mock.assert_called_with(
         [],
@@ -329,8 +333,8 @@ def test_run_ids_old_disabled_credentials(
         cred in old_disabled_credentials['credentials']
     ]
     ids = ','.join(cred_ids)
-    ac = ArchiveCredentials()
-    ac.run(days=None, force=True, ids=ids)
+    runner = CliRunner()
+    runner.invoke(archive_credentials, ['--ids', ids, '--force'])
 
     archive_mock.assert_called_with(
         old_disabled_credentials['credentials'],

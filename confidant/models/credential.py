@@ -64,7 +64,7 @@ class Credential(CredentialBase):
         region = settings.AWS_DEFAULT_REGION
         connect_timeout_seconds = settings.PYNAMO_CONNECT_TIMEOUT_SECONDS
         read_timeout_seconds = settings.PYNAMO_READ_TIMEOUT_SECONDS
-        max_pool_connection = settings.PYNAMO_CONNECTION_POOL_SIZE
+        max_pool_connections = settings.PYNAMO_CONNECTION_POOL_SIZE
 
     data_type_date_index = DataTypeDateIndex()
 
@@ -238,7 +238,7 @@ class CredentialArchive(CredentialBase):
         region = settings.AWS_DEFAULT_REGION
         connect_timeout_seconds = settings.PYNAMO_CONNECT_TIMEOUT_SECONDS
         read_timeout_seconds = settings.PYNAMO_READ_TIMEOUT_SECONDS
-        max_pool_connection = settings.PYNAMO_CONNECTION_POOL_SIZE
+        max_pool_connections = settings.PYNAMO_CONNECTION_POOL_SIZE
 
     archive_date = UTCDateTimeAttribute(default=datetime.now)
     data_type_date_index = ArchiveDataTypeDateIndex()
