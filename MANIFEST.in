@@ -1,4 +1,4 @@
 include VERSION
 recursive-include confidant/dist *
-include requirements.txt
-include requirements.in
+include Pipfile
+include Pipfile.lock

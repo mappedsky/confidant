@@ -3,9 +3,15 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 from typing import Dict, List
 from unittest.mock import MagicMock
+from click.testing import CliRunner
 
 from confidant.models.credential import Credential, CredentialArchive
-from confidant.scripts.restore import RestoreCredentials
+from confidant.scripts.restore import (
+    restore_credentials,
+    credential_exists,
+    save_credentials,
+    restore_logic
+)
 
 
 @pytest.fixture
@@ -20,12 +26,12 @@ def old_date() -> datetime:
 
 @pytest.fixture()
 def save_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch('confidant.scripts.restore.RestoreCredentials.save')
+    return mocker.patch('confidant.scripts.restore.save_credentials')
 
 
 @pytest.fixture()
 def restore_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch('confidant.scripts.restore.RestoreCredentials.restore')
+    return mocker.patch('confidant.scripts.restore.restore_logic')
 
 
 @pytest.fixture
@@ -106,24 +112,23 @@ def old_disabled_credentials(
 
 
 def test_save(mocker: MockerFixture, credentials: Dict[str, List[Credential]]):
-    rc = RestoreCredentials()
     save_mock = mocker.patch('pynamodb.models.BatchWrite.save')
     mocker.patch('pynamodb.models.BatchWrite.commit')
     mocker.patch(
-        'confidant.scripts.restore.RestoreCredentials.credential_exists',
+        'confidant.scripts.restore.credential_exists',
         return_value=True,
     )
-    rc.save(credentials['credentials'], force=True)
+    save_credentials(credentials['credentials'], force=True)
     assert save_mock.called is False
 
     mocker.patch(
-        'confidant.scripts.restore.RestoreCredentials.credential_exists',
+        'confidant.scripts.restore.credential_exists',
         return_value=False,
     )
-    rc.save(credentials['credentials'], force=False)
+    save_credentials(credentials['credentials'], force=False)
     assert save_mock.called is False
 
-    rc.save(credentials['credentials'], force=True)
+    save_credentials(credentials['credentials'], force=True)
     assert save_mock.called is True
 
 
@@ -136,8 +141,7 @@ def test_restore_credentials(
         'confidant.scripts.restore.CredentialArchive.batch_get',
         return_value=old_disabled_credentials['archive_revisions']
     )
-    rc = RestoreCredentials()
-    rc.restore(old_disabled_credentials['archive_credentials'], force=True)
+    restore_logic(old_disabled_credentials['archive_credentials'], force=True)
 
     save_mock.assert_called_with(
         old_disabled_credentials['credentials'] + old_disabled_credentials['revisions'],  # noqa:E501
@@ -154,8 +158,7 @@ def test_restore_old_disabled_unmapped_credential_no_force(
         'confidant.scripts.restore.CredentialArchive.batch_get',
         return_value=old_disabled_credentials['archive_revisions']
     )
-    rc = RestoreCredentials()
-    rc.restore(old_disabled_credentials['archive_credentials'], force=False)
+    restore_logic(old_disabled_credentials['archive_credentials'], force=False)
 
     save_mock.assert_called_with(
         old_disabled_credentials['credentials'] + old_disabled_credentials['revisions'],  # noqa:E501
@@ -168,14 +171,17 @@ def test_run_no_archive_table(mocker: MockerFixture):
         'confidant.scripts.restore.settings.DYNAMODB_TABLE_ARCHIVE',
         None,
     )
-    rc = RestoreCredentials()
-    assert rc.run(_all=True, force=True, ids=None) == 1
+    runner = CliRunner()
+    result = runner.invoke(restore_credentials, ['--all', '--force'])
+    assert result.exit_code == 1
 
 
 def test_run_bad_args(mocker: MockerFixture):
-    rc = RestoreCredentials()
-    assert rc.run(_all=False, force=True, ids=None) == 1
-    assert rc.run(_all=True, force=True, ids='1234') == 1
+    runner = CliRunner()
+    result = runner.invoke(restore_credentials, ['--force'])
+    assert result.exit_code == 1
+    result = runner.invoke(restore_credentials, ['--all', '--ids', '1234', '--force'])
+    assert result.exit_code == 1
 
 
 def test_run_all(
@@ -187,8 +193,8 @@ def test_run_all(
         'confidant.scripts.restore.CredentialArchive.data_type_date_index.query',  # noqa:E501
         return_value=credentials['archive_credentials']
     )
-    rc = RestoreCredentials()
-    rc.run(_all=True, force=True, ids=None)
+    runner = CliRunner()
+    runner.invoke(restore_credentials, ['--all', '--force'])
     restore_mock.assert_called_with(
         credentials['archive_credentials'],
         force=True,
@@ -209,8 +215,8 @@ def test_run_ids(
         cred in credentials['archive_credentials']
     ]
     ids = ','.join(cred_ids)
-    rc = RestoreCredentials()
-    rc.run(_all=False, force=True, ids=ids)
+    runner = CliRunner()
+    runner.invoke(restore_credentials, ['--ids', ids, '--force'])
 
     restore_mock.assert_called_with(
         credentials['archive_credentials'],

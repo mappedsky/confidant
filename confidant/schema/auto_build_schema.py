@@ -3,11 +3,10 @@ from marshmallow import post_load, Schema
 
 class StrictSchema(Schema):
     """
-    Simple subclass of Schema that sets the strict setting to true. This means
-    validation errors will raise an exception.
+    Simple subclass of Schema. In Marshmallow 3, schemas are strict by default.
     """
     class Meta:
-        strict = True
+        pass
 
 
 class AutobuildSchema(StrictSchema):

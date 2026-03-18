@@ -32,7 +32,7 @@ class Service(Model):
         region = settings.AWS_DEFAULT_REGION
         connect_timeout_seconds = settings.PYNAMO_CONNECT_TIMEOUT_SECONDS
         read_timeout_seconds = settings.PYNAMO_READ_TIMEOUT_SECONDS
-        max_pool_connection = settings.PYNAMO_CONNECTION_POOL_SIZE
+        max_pool_connections = settings.PYNAMO_CONNECTION_POOL_SIZE
 
     id = UnicodeAttribute(hash_key=True)
     data_type = UnicodeAttribute()

@@ -3,7 +3,7 @@
 
 If you just want to checkout Confidant and aren't looking to deploy it into
 production, it's possible to get started without any external dependencies.
-Check out the [test and development quickstart](contributing.html#development-guide)
+Check out the [test and development quickstart](contributing.md#development-guide)
 for this.
 
 Note that you should _never_ run with this quickstart configuration in production.
@@ -40,41 +40,13 @@ cd confidant
 docker build -t lyft/confidant .
 ```
 
-## pip installation
-
-Warning: this is still a work in progress and it may not be working right now.
-We'll remove this warning when we have pip installation fully working.
-
-1. Using Ubuntu or Debian (please help with non-Ubuntu/Debian install
-   instructions!)
-1. Using gunicorn as the wsgi server
-1. venv location: /srv/confidant/venv
-
-### Make a virtualenv and install pip requirements
-
-```bash
-sudo apt-get install -y python python-pip python-virtualenv python-dev build-essential libffi-dev libxml2-dev libxmlsec1-dev
-cd /srv/confidant
-virtualenv venv
-source venv/bin/activate
-pip install -U pip
-pip install confidant
-deactivate
-```
-
-Note that the pip package includes the minified, generated frontend artifacts,
-in the dist directory. This can be configured via the STATIC_FOLDER setting.
-
-## Manual installation
+## Local installation (Manual)
 
 Assumptions:
 
-1. Using Ubuntu or Debian (please help with non-Ubuntu/Debian install
-   instructions!)
-1. Using gunicorn as the wsgi server
-1. Installation location: /srv/confidant/venv
-1. venv location: /srv/confidant/venv
-1. node\_modules location: /srv/confidant/node\_modules
+1. Using Python 3.10+
+1. Using Bun for frontend builds
+1. Using pipenv for dependency management
 
 ### Clone Confidant
 
@@ -83,27 +55,21 @@ cd /srv
 git clone https://github.com/lyft/confidant
 ```
 
-### Make a virtualenv and install pip requirements
+### Install Python dependencies
 
 ```bash
-sudo apt-get install -y python python-pip python-virtualenv python-dev build-essential libffi-dev libxml2-dev libxmlsec1-dev
 cd /srv/confidant
-virtualenv venv
-source venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-deactivate
+pip install pipenv
+pipenv install
 ```
 
 ### Build the frontend
 
 ```bash
 cd /srv/confidant
-sudo apt-get install -y npm nodejs nodejs-legacy git git-core
-gem install compass
-npm install grunt-cli
-npm install
-node_modules/grunt-cli/bin/grunt build
+# Install bun (see https://bun.sh)
+bun install
+bun run build
 ```
 
 ### Run confidant
@@ -115,8 +81,7 @@ running confidant.
 ```bash
 source my_config
 cd /srv/confidant
-source venv/bin/activate
-gunicorn confidant.wsgi:app --workers=2 -k gevent
+pipenv run gunicorn confidant.wsgi:app --workers=2 -k gevent
 ```
 
 That's it. See the configuration documentation about how to configure and run.

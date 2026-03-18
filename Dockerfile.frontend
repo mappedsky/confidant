@@ -1,0 +1,9 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+
+COPY package.json ./
+# We will use bun to install, but first we need to convert or just let bun handle it.
+# Bun can install from package.json directly.
+
+CMD ["bun", "install"]
