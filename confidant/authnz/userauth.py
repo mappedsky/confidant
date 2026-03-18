@@ -1,4 +1,5 @@
 import abc
+import hmac
 import logging
 import datetime
 import random
@@ -9,7 +10,6 @@ from six.moves.urllib.parse import urlparse
 import flask
 from flask import current_app, request, session
 from flask import abort, jsonify, redirect
-from werkzeug.security import safe_str_cmp
 
 # google auth imports
 from authomatic import Authomatic
@@ -96,7 +96,7 @@ class AbstractUserAuthenticator(object):
         token = request.headers.get('X-XSRF-TOKEN', '')
         if not token:
             return False
-        return safe_str_cmp(token, session.get(cookie_name, ''))
+        return hmac.compare_digest(token, session.get(cookie_name, ''))
 
     def set_expiration(self):
         if settings.PERMANENT_SESSION_LIFETIME:

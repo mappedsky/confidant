@@ -1,20 +1,19 @@
-import attr
-from marshmallow import fields
-
-from confidant.schema.auto_build_schema import AutobuildSchema
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
 
 
-@attr.s
-class CertificateAuthorityResponse(object):
-    ca = attr.ib()
-    certificate = attr.ib()
-    certificate_chain = attr.ib()
-    tags = attr.ib()
+class CertificateAuthorityResponse(BaseModel):
+    ca: str
+    certificate: str
+    certificate_chain: str
+    tags: Dict[str, str] = Field(default_factory=dict)
+
+    class Config:
+        from_attributes = True
 
 
-@attr.s
-class CertificateAuthoritiesResponse(object):
-    cas = attr.ib()
+class CertificateAuthoritiesResponse(BaseModel):
+    cas: List[CertificateAuthorityResponse]
 
     @classmethod
     def from_cas(cls, cas):
@@ -30,48 +29,38 @@ class CertificateAuthoritiesResponse(object):
         )
 
 
-class CertificateAuthorityResponseSchema(AutobuildSchema):
+class CertificateResponse(BaseModel):
+    certificate: str
+    certificate_chain: str
+    key: Optional[str] = None
 
-    _class_to_load = CertificateAuthorityResponse
-
-    ca = fields.Str(required=True)
-    certificate = fields.Str(required=True)
-    certificate_chain = fields.Str(required=True)
-    tags = fields.Dict(keys=fields.Str(), values=fields.Str())
-
-
-class CertificateAuthoritiesResponseSchema(AutobuildSchema):
-
-    _class_to_load = CertificateAuthoritiesResponse
-
-    cas = fields.Nested(CertificateAuthorityResponseSchema, many=True)
+    class Config:
+        from_attributes = True
 
 
-@attr.s
-class CertificateResponse(object):
-    certificate = attr.ib()
-    certificate_chain = attr.ib()
-    key = attr.ib(default=None)
+class SchemaWrapper:
+    def __init__(self, model_cls, exclude=None):
+        self.model_cls = model_cls
+        self.exclude = exclude
+
+    def dumps(self, obj):
+        if isinstance(obj, self.model_cls):
+            return obj.model_dump_json(exclude=self.exclude)
+        return self.model_cls.model_validate(obj).model_dump_json(
+            exclude=self.exclude
+        )
 
 
-class CertificateResponseSchema(AutobuildSchema):
+certificate_response_schema = SchemaWrapper(
+    CertificateResponse,
+    exclude={'key'}
+)
+certificate_authority_response_schema = SchemaWrapper(CertificateAuthorityResponse)
+certificate_authorities_response_schema = SchemaWrapper(CertificateAuthoritiesResponse)
+certificate_expanded_response_schema = SchemaWrapper(CertificateResponse)
 
-    _class_to_load = CertificateResponse
-
-    certificate = fields.Str(required=True)
-    certificate_chain = fields.Str(required=True)
-
-
-class CertificateExpandedResponseSchema(AutobuildSchema):
-
-    _class_to_load = CertificateResponse
-
-    certificate = fields.Str(required=True)
-    certificate_chain = fields.Str(required=True)
-    key = fields.Str()
-
-
-certificate_response_schema = CertificateResponseSchema()
-certificate_authority_response_schema = CertificateAuthorityResponseSchema()
-certificate_authorities_response_schema = CertificateAuthoritiesResponseSchema()
-certificate_expanded_response_schema = CertificateExpandedResponseSchema()
+# For backward compatibility
+CertificateAuthorityResponseSchema = SchemaWrapper
+CertificateAuthoritiesResponseSchema = SchemaWrapper
+CertificateResponseSchema = SchemaWrapper
+CertificateExpandedResponseSchema = SchemaWrapper

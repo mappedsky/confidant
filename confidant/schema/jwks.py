@@ -1,49 +1,46 @@
-import attr
-from marshmallow import fields
-
-from confidant.schema.auto_build_schema import AutobuildSchema
+from typing import List
+from pydantic import BaseModel
 
 
-@attr.s
-class JWTResponse(object):
-    token = attr.ib()
+class JWTResponse(BaseModel):
+    token: str
+
+    class Config:
+        from_attributes = True
 
 
-class JWTResponseSchema(AutobuildSchema):
+class JWKSResponse(BaseModel):
+    kty: str
+    kid: str
+    n: str
+    e: str
+    alg: str
 
-    _class_to_load = JWTResponse
-    token = fields.Str(required=True)
-
-
-@attr.s
-class JWKSListResponse(object):
-    keys = attr.ib()
-
-
-@attr.s
-class JWKSResponse(object):
-    kty = attr.ib()
-    kid = attr.ib()
-    n = attr.ib()
-    e = attr.ib()
+    class Config:
+        from_attributes = True
 
 
-class JWKSResponseSchema(AutobuildSchema):
+class JWKSListResponse(BaseModel):
+    keys: List[JWKSResponse]
 
-    _class_to_load = JWKSResponse
-
-    kty = fields.Str(required=True)
-    kid = fields.Str(required=True)
-    n = fields.Str(required=True)
-    e = fields.Str(required=True)
-    alg = fields.Str(required=True)
+    class Config:
+        from_attributes = True
 
 
-class JWKSListResponseSchema(AutobuildSchema):
+class SchemaWrapper:
+    def __init__(self, model_cls):
+        self.model_cls = model_cls
 
-    _class_to_load = JWKSListResponse
-    keys = fields.List(fields.Nested(JWKSResponseSchema))
+    def dumps(self, obj):
+        if isinstance(obj, self.model_cls):
+            return obj.model_dump_json()
+        return self.model_cls.model_validate(obj).model_dump_json()
 
 
-jwt_response_schema = JWTResponseSchema()
-jwks_list_response_schema = JWKSListResponseSchema()
+jwt_response_schema = SchemaWrapper(JWTResponse)
+jwks_list_response_schema = SchemaWrapper(JWKSListResponse)
+
+# For backward compatibility
+JWTResponseSchema = SchemaWrapper
+JWKSResponseSchema = SchemaWrapper
+JWKSListResponseSchema = SchemaWrapper
