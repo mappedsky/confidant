@@ -147,10 +147,6 @@
                 return $filter('filter')($scope.$parent.credentialList, {'id': id})[0];
             };
 
-            $scope.getBlindCredentialByID = function(id) {
-                return $filter('filter')($scope.$parent.blindCredentialList, {'id': id})[0];
-            };
-
             $scope.deleteCredentialPair = function($$hashKey) {
                 var filtered = $filter('filter')($scope.credential.credentialPairs, {'$$hashKey': $$hashKey});
                 if (filtered.length) {

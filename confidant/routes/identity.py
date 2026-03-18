@@ -109,10 +109,6 @@ def get_client_config():
                 action='create',
             ),
         },
-        'blind_credentials': {
-            'list': True,
-            'create': True,
-        },
         'services': {
             'list': acl_module_check(resource_type='service', action='list'),
             'create': acl_module_check(

@@ -79,25 +79,11 @@
                 return name;
             };
 
-            $scope.getBlindCredentialName = function(credId) {
-                var name = '';
-                if (!$scope.$parent.blindCredentialList) {
-                    return name;
-                }
-                name = _.result(_.find($scope.$parent.blindCredentialList, function(cred) {
-                    return cred.id.indexOf(credId) === 0;
-                }), 'name');
-                return name;
-            };
-
             $scope.getResourceValue = function(key, value) {
                 if (key === 'credentials') {
                     return $scope.getCredentialName(value);
-                } else if (key === 'blind_credentials') {
-                    return $scope.getBlindCredentialName(value);
-                } else {
-                    return value;
                 }
+                return value;
             };
 
             $scope.shouldDisplayList = function(value) {

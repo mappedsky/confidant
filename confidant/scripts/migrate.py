@@ -4,7 +4,6 @@ import click
 import json
 import six
 
-from confidant.models.blind_credential import BlindCredential
 from confidant.models.service import Service
 
 from pynamodb.attributes import Attribute, UnicodeAttribute
@@ -86,39 +85,12 @@ class NewUnicodeSetAttribute(SetMixin, Attribute):
             return set([self.element_deserialize(val) for val in value])
 
 
-class GeneralCredentialModel(Model):
-    class Meta(BlindCredential.Meta):
-        pass
-
-    id = UnicodeAttribute(hash_key=True)
-    credential_keys = NewUnicodeSetAttribute(default=set([]), null=True)
-
-
 class GeneralServiceModel(Model):
     class Meta(Service.Meta):
         pass
 
     id = UnicodeAttribute(hash_key=True)
     credentials = NewUnicodeSetAttribute(default=set(), null=True)
-    blind_credentials = NewUnicodeSetAttribute(default=set(), null=True)
-
-
-@click.command()
-def migrate_blind_cred_set_attribute():
-    """
-    Migrate UnicodeSetAttribute in BlindCredential
-    """
-    total = 0
-    fail = 0
-    logger.info('Migrating UnicodeSetAttribute in BlindCredential')
-    for cred in BlindCredential.data_type_date_index.query(
-            'blind-credential'):
-        cred.save()
-        new_cred = GeneralCredentialModel.get(cred.id)
-        if is_old_unicode_set(new_cred.credential_keys):
-            fail += 1
-        total += 1
-    logger.info("Fail: {}, Total: {}".format(fail, total))
 
 
 @click.command()
@@ -133,8 +105,7 @@ def migrate_service_set_attribute():
             'service'):
         service.save()
         new_service = GeneralServiceModel.get(service.id)
-        if (is_old_unicode_set(new_service.credentials) or
-                is_old_unicode_set(new_service.blind_credentials)):
+        if is_old_unicode_set(new_service.credentials):
             fail += 1
         total += 1
     logger.info("Fail: {}, Total: {}".format(fail, total))

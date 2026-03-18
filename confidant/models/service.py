@@ -40,15 +40,12 @@ class Service(Model):
     revision = NumberAttribute()
     enabled = BooleanAttribute(default=True)
     credentials = NonNullUnicodeSetAttribute(default=set)
-    blind_credentials = NonNullUnicodeSetAttribute(default=set)
     account = UnicodeAttribute(null=True)
     modified_date = UTCDateTimeAttribute(default=datetime.now)
     modified_by = UnicodeAttribute()
 
     def equals(self, other_service):
         if set(self.credentials) != set(other_service.credentials):
-            return False
-        if set(self.blind_credentials) != set(other_service.blind_credentials):
             return False
         if self.account != other_service.account:
             return False
@@ -70,11 +67,6 @@ class Service(Model):
             diff['credentials'] = self._diff_list(
                 old.credentials,
                 new.credentials,
-            )
-        if set(old.blind_credentials) != set(new.blind_credentials):
-            diff['blind_credentials'] = self._diff_list(
-                old.blind_credentials,
-                new.blind_credentials,
             )
         if old.account != new.account:
             diff['account'] = {'added': new.account, 'removed': old.account}

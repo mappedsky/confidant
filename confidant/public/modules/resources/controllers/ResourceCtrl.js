@@ -3,11 +3,8 @@
 
     angular.module('confidant.resources.controllers.ResourceCtrl', [
         'ui.router',
-        'ngResource',
-        'xeditable',
         'confidant.resources.services'
     ])
-
 
     .controller('resources.ResourceCtrl', [
         '$scope',
@@ -16,13 +13,14 @@
         '$location',
         '$log',
         'credentials.CredentialListService',
-        'blindcredentials.BlindCredentialListService',
         'services.ServiceListService',
-        function ($scope, $stateParams, $q, $location, $log, CredentialListService, BlindCredentialListService, ServiceListService) {
-            $scope.$log = $log;
+        function ($scope, $stateParams, $q, $location, $log, CredentialListService, ServiceListService) {
+            $scope.credentialList = [];
+            $scope.serviceList = [];
             $scope.typeFilter = 'credentials';
-            $scope.showDisabled = false;
-            $scope.globalPermissions = $scope.clientconfig.generated.permissions;
+            if ($stateParams.typeFilter) {
+                $scope.typeFilter = $stateParams.typeFilter;
+            }
 
             $scope.getCredentialList = CredentialListService.getCredentialList;
             $scope.$watch('getCredentialList()', function(newCredentialList, oldCredentialList) {
@@ -31,14 +29,6 @@
                 }
             });
             $scope.$emit('updateCredentialList');
-
-            $scope.getBlindCredentialList = BlindCredentialListService.getBlindCredentialList;
-            $scope.$watch('getBlindCredentialList()', function(newBlindCredentialList, oldBlindCredentialList) {
-                if(newBlindCredentialList !== oldBlindCredentialList) {
-                    $scope.blindCredentialList = newBlindCredentialList;
-                }
-            });
-            $scope.$emit('updateBlindCredentialList');
 
             $scope.getServiceList = ServiceListService.getServiceList;
             $scope.$watch('getServiceList()', function(newServiceList, oldServiceList) {

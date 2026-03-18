@@ -17,9 +17,8 @@
         '$location',
         '$filter',
         'credentials.list',
-        'blindcredentials.list',
         'history.ResourceArchiveService',
-        function ($scope, $log, $timeout, $location, $filter, CredentialList, BlindCredentialList, ResourceArchiveService) {
+        function ($scope, $log, $timeout, $location, $filter, CredentialList, ResourceArchiveService) {
             $scope.typeFilter = 'credentials';
 
             CredentialList.get().$promise.then(function(credentialList) {
@@ -28,18 +27,8 @@
                 $scope.credentialList = [];
             });
 
-            BlindCredentialList.get().$promise.then(function(blindCredentialList) {
-                $scope.blindCredentialList = blindCredentialList.blind_credentials;
-            }, function() {
-                $scope.blindCredentialList = [];
-            });
-
             $scope.getCredentialByID = function(id) {
                 return $filter('filter')($scope.credentialList, {'id': id})[0];
-            };
-
-            $scope.getBlindCredentialByID = function(id) {
-                return $filter('filter')($scope.blindCredentialList, {'id': id})[0];
             };
 
             // Reformat archive credential IDs for display. Archive credential IDs
@@ -87,7 +76,6 @@
             // can avoid the timeout.
             ResourceArchiveService.setLimit($scope.clientconfig.generated.history_page_limit);
             ResourceArchiveService.initResourceArchive('credentials');
-            ResourceArchiveService.initResourceArchive('blind_credentials');
             ResourceArchiveService.initResourceArchive('services');
 
         }])

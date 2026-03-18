@@ -8,13 +8,11 @@ def test_equals(mocker: MockerFixture):
     service1 = Service(
         id='test',
         credentials=['abc', 'def'],
-        blind_credentials=['123', '456'],
         account='test-account',
     )
     service2 = Service(
         id='test',
         credentials=['abc', 'def'],
-        blind_credentials=['123', '456'],
         account='test-account',
     )
     assert service1.equals(service2) is True
@@ -24,13 +22,11 @@ def test_not_equals(mocker: MockerFixture):
     service1 = Service(
         id='test',
         credentials=['abc', 'def'],
-        blind_credentials=['123', '456'],
         account='test-account',
     )
     service2 = Service(
         id='test',
         credentials=['def'],
-        blind_credentials=['123', '456'],
         account='test-account',
     )
     assert service1.equals(service2) is False
@@ -44,7 +40,6 @@ def test_diff(mocker: MockerFixture):
         id='test',
         revision=1,
         credentials=['abc', 'def'],
-        blind_credentials=['123', '456'],
         account='test-account',
         modified_by=modified_by,
         modified_date=modified_date_old,
@@ -53,7 +48,6 @@ def test_diff(mocker: MockerFixture):
         id='test',
         revision=1,
         credentials=['def'],
-        blind_credentials=['123', '456', '789'],
         account='test-account2',
         modified_by=modified_by,
         modified_date=modified_date_new,
@@ -66,9 +60,6 @@ def test_diff(mocker: MockerFixture):
     expected_diff = {
         'credentials': {
             'removed': ['abc'],
-        },
-        'blind_credentials': {
-            'added': ['789'],
         },
         'account': {
             'removed': 'test-account',

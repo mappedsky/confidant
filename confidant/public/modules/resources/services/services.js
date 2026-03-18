@@ -11,7 +11,6 @@
      */
     angular.module('confidant.resources.services', [
         // Keep this list sorted alphabetically!
-        'confidant.resources.services.blindcredentials',
         'confidant.resources.services.confidantservices',
         'confidant.resources.services.credentials',
         'confidant.resources.services.roles'

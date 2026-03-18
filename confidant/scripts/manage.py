@@ -9,7 +9,6 @@ from confidant.scripts.utils import create_dynamodb_tables
 from confidant.scripts.bootstrap import generate_secrets_bootstrap
 from confidant.scripts.bootstrap import decrypt_secrets_bootstrap
 from confidant.scripts.migrate import (
-    migrate_blind_cred_set_attribute,
     migrate_service_set_attribute,
 )
 from confidant.scripts.migrate_bool import migrate_boolean_attribute
@@ -31,7 +30,6 @@ manager.command("revoke_all_kms_auth_grants")(revoke_all_kms_auth_grants)
 manager.command("generate_secrets_bootstrap")(generate_secrets_bootstrap)
 manager.command("decrypt_secrets_bootstrap")(decrypt_secrets_bootstrap)
 manager.command("create_dynamodb_tables")(create_dynamodb_tables)
-manager.command("migrate_blind_cred_set_attribute")(migrate_blind_cred_set_attribute)
 manager.command("migrate_service_set_attribute")(migrate_service_set_attribute)
 manager.command("migrate_boolean_attribute")(migrate_boolean_attribute)
 manager.command("archive_credentials")(archive_credentials)

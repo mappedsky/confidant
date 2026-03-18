@@ -111,7 +111,6 @@ def get_service_list():
              "modified_by": "rlane@example.com",
              "account": null,
              "credentials": [],
-             "blind_credentials": [],
              "permissions": {}
            },
            ...
@@ -224,7 +223,6 @@ def get_service(id):
            },
            ...
          ],
-         "blind_credentials": [],
          "permissions": {
            "metadata": true,
            "get": true,
@@ -303,19 +301,12 @@ def get_service(id):
                 logger.exception('KeyError occurred in getting credentials')
                 return jsonify({'error': 'Decryption error.'}), 500
 
-        with stats.timer('get_service_by_id.db_get_blind_credentials'):
-            blind_credentials = credentialmanager.get_blind_credentials(
-                service.blind_credentials,
-            )
-
         with stats.timer('get_service_by_id.acl_check_update_service'):
             # TODO: this check can be expensive, so we're gating
             # only to user auth. We should probably add an argument that
             # opts in for permission hints, rather than always checking them
             if authnz.user_is_user_type('user'):
-                combined_cred_ids = (
-                    list(service.credentials) + list(service.blind_credentials)
-                )
+                combined_cred_ids = list(service.credentials)
                 permissions['update'] = acl_module_check(
                     resource_type='service',
                     action='update',
@@ -329,7 +320,6 @@ def get_service(id):
             service_response = ServiceResponse.from_service_expanded(
                 service,
                 credentials=credentials,
-                blind_credentials=blind_credentials,
                 metadata_only=metadata_only,
             )
             service_response.permissions = permissions
@@ -374,7 +364,6 @@ def get_archive_service_revisions(id):
              "modified_by": "rlane@example.com",
              "account": null,
              "credentials": [],
-             "blind_credentials": [],
              "permissions": {}
            },
            ...
@@ -452,7 +441,6 @@ def get_archive_service_list():
              "modified_by": "rlane@example.com",
              "account": null,
              "credentials": [],
-             "blind_credentials": [],
              "permissions": {}
            },
            ...
@@ -518,8 +506,6 @@ def map_service_credentials(id):
     :type id: str
     :<json List[string] credentials: A list of credential IDs to map to this
       service.
-    :<json List[string] blind_credentials: A list of blind_credential IDs to
-      map to this service.
     :<json boolean enabled: Whether or not this service is enabled.
       (default: true)
     :<json string account: An AWS account to scope this service to.
@@ -558,7 +544,6 @@ def map_service_credentials(id):
            },
            ...
          ],
-         "blind_credentials": [],
          "permissions": {}
            "metadata": True,
            "get": True,
@@ -601,22 +586,20 @@ def map_service_credentials(id):
 
     data = request.get_json()
     credentials = data.get('credentials', [])
-    blind_credentials = data.get('blind_credentials', [])
-    combined_credentials = credentials + blind_credentials
     if _service:
-        new_credentials = set(combined_credentials).difference(
-            _service.credentials.union(_service.blind_credentials)
+        new_credentials = set(credentials).difference(
+            _service.credentials
         )
     else:
         # new service created, all credentials are new
-        new_credentials = set(combined_credentials)
+        new_credentials = set(credentials)
 
     if not acl_module_check(
           resource_type='service',
           action='update',
           resource_id=id,
           kwargs={
-              'credential_ids': combined_credentials,
+              'credential_ids': credentials,
               'new_credential_ids': new_credentials,
           }
     ):
@@ -628,7 +611,6 @@ def map_service_credentials(id):
 
     conflicts = credentialmanager.pair_key_conflicts_for_credentials(
         credentials,
-        blind_credentials,
     )
     if conflicts:
         ret = {
@@ -651,9 +633,6 @@ def map_service_credentials(id):
             msg = 'Failed to add grants for {0}.'.format(id)
             logger.error(msg)
     credentials = credentialmanager.get_credentials(data.get('credentials'))
-    blind_credentials = credentialmanager.get_blind_credentials(
-        data.get('blind_credentials'),
-    )
     # Use the IDs from the fetched IDs, to ensure we filter any archived
     # credential IDs.
     filtered_credential_ids = [cred.id for cred in credentials]
@@ -664,7 +643,6 @@ def map_service_credentials(id):
             id='{0}-{1}'.format(id, revision),
             data_type='archive-service',
             credentials=filtered_credential_ids,
-            blind_credentials=data.get('blind_credentials'),
             account=data.get('account'),
             enabled=data.get('enabled'),
             revision=revision,
@@ -679,7 +657,6 @@ def map_service_credentials(id):
             id=id,
             data_type='service',
             credentials=filtered_credential_ids,
-            blind_credentials=data.get('blind_credentials'),
             account=data.get('account'),
             enabled=data.get('enabled'),
             revision=revision,
@@ -700,7 +677,6 @@ def map_service_credentials(id):
     service_response = ServiceResponse.from_service_expanded(
         service,
         credentials=credentials,
-        blind_credentials=blind_credentials,
     )
     service_response.permissions = permissions
     return service_expanded_response_schema.dumps(service_response)
@@ -795,10 +771,9 @@ def revert_service_to_revision(id, to_revision):
     if revert_service.data_type != 'archive-service':
         msg = 'id provided is not a service.'
         return jsonify({'error': msg}), 400
-    if revert_service.credentials or revert_service.blind_credentials:
+    if revert_service.credentials:
         conflicts = credentialmanager.pair_key_conflicts_for_credentials(
             revert_service.credentials,
-            revert_service.blind_credentials,
         )
         if conflicts:
             ret = {
@@ -808,9 +783,6 @@ def revert_service_to_revision(id, to_revision):
             return jsonify(ret), 400
     credentials = credentialmanager.get_credentials(
         revert_service.credentials,
-    )
-    blind_credentials = credentialmanager.get_blind_credentials(
-        revert_service.blind_credentials,
     )
     # Use the IDs from the fetched IDs, to ensure we filter any archived
     # credential IDs.
@@ -826,7 +798,6 @@ def revert_service_to_revision(id, to_revision):
             id='{0}-{1}'.format(id, new_revision),
             data_type='archive-service',
             credentials=revert_service.credentials,
-            blind_credentials=revert_service.blind_credentials,
             account=revert_service.account,
             enabled=revert_service.enabled,
             revision=new_revision,
@@ -841,7 +812,6 @@ def revert_service_to_revision(id, to_revision):
             id=id,
             data_type='service',
             credentials=revert_service.credentials,
-            blind_credentials=revert_service.blind_credentials,
             account=revert_service.account,
             enabled=revert_service.enabled,
             revision=new_revision,
@@ -861,7 +831,6 @@ def revert_service_to_revision(id, to_revision):
         ServiceResponse.from_service_expanded(
             service,
             credentials=credentials,
-            blind_credentials=blind_credentials,
         )
     )
 
@@ -908,10 +877,9 @@ def diff_service(id, old_revision, new_revision):
              "abcd12345bf4f1cafe8e722d3860404"
            ],
            "removed": [
-             "aaaa33335bf4f1cafe8e722d3860404"
+           "aaaa33335bf4f1cafe8e722d3860404"
            ]
          },
-         "blind_credentials": {},
          "modified_date": {
            "added": "2019-12-16T23:16:11.413299+00:00",
            "removed": "2019-11-16T23:16:11.413299+00:00"

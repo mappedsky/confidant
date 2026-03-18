@@ -13,18 +13,12 @@
         '$log',
         '$q',
         'credentials.archiveList',
-        'blindcredentials.archiveList',
         'services.archiveList',
-        function($log, $q, CredentialArchive, BlindCredentialArchive, ServiceArchive) {
+        function($log, $q, CredentialArchive, ServiceArchive) {
             var _this = this;
             this.resourceArchive = {
                 'credentials': {
                     'service': CredentialArchive,
-                    'archive': [],
-                    'next_page': null
-                },
-                'blind_credentials': {
-                    'service': BlindCredentialArchive,
                     'archive': [],
                     'next_page': null
                 },

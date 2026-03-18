@@ -16,7 +16,6 @@ def services_list(mocker: MockerFixture) -> List[Service]:
             id='something-production-iad',
             data_type='service',
             credentials=set(),
-            blind_credentials=set(),
             enabled=True,
             revision=1,
             modified_by='user'
@@ -25,7 +24,6 @@ def services_list(mocker: MockerFixture) -> List[Service]:
             id='another-production-iad',
             data_type='service',
             credentials=set(),
-            blind_credentials=set(),
             enabled=True,
             revision=1,
             modified_by='user'

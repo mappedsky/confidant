@@ -23,7 +23,7 @@
         })
 
         .state('history.credential-history', {
-            url: '/credentials/:credentialId',
+            url: '/credentials/:credentialId-:credentialRevision',
             views: {
                 'details': {
                     controller: 'history.CredentialHistoryCtrl',
@@ -31,20 +31,7 @@
                 }
             },
             data: {
-                viewLocation: 'history',
-            }
-        })
-
-        .state('history.blind-credential-history', {
-            url: '/blind_credentials/:blindCredentialId',
-            views: {
-                'details': {
-                    controller: 'history.BlindCredentialHistoryCtrl',
-                    templateUrl: '/modules/history/views/blind-credential-history.html'
-                }
-            },
-            data: {
-                viewLocation: 'history',
+                viewLocation: 'history'
             }
         })
 
