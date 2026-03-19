@@ -30,6 +30,7 @@
         $transitions.onBefore({}, function() {
           $scope.user = userinfo.get();
           return clientconfig.get().$promise.then(function(clientConfig) {
+              $log.debug('Loaded clientConfig:', clientConfig);
               $scope.clientconfig = clientConfig;
               $http.defaults.xsrfCookieName = clientConfig.generated.xsrf_cookie_name;
           });

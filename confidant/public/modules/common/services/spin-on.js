@@ -62,7 +62,7 @@
                 top: '50%', // Top position relative to parent
                 left: 'calc(100% - 25px)' // Left position relative to parent
             }, options || {}),
-            spinner = new $window.Spinner(opts);
+            spinner = new window.Spinner(opts);
 
             return {
                 /**

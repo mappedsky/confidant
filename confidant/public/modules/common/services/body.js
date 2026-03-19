@@ -7,7 +7,7 @@
      * Simple wrapper around $(document.body).
      */
     .service('$body', ['$document', function($document) {
-        return $document.find('body');
+        return window.jQuery('body');
     }])
     ;
 }(window.angular));
