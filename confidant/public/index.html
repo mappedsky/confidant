@@ -28,8 +28,8 @@
 
     <div id="page-navigation" class="container-fluid has-margin-bottom" role="navigation" ng-controller="common.NavCtrl">
       <ul class="nav nav-tabs has-margin-bottom">
-        <li role="presentation" ng-class="{ 'active': viewLocation === 'resources' }"><a href="#/resources">Resources <span class="glyphicon glyphicon-lock"></span></a></li>
-        <li role="presentation" ng-class="{ 'active': viewLocation === 'history' }"><a href="#/history">History <span class="glyphicon glyphicon-time"></span></a></li>
+        <li role="presentation" ng-class="{ 'active': viewLocation === 'resources' }"><a ui-sref="resources" ng-class="{ 'active': viewLocation === 'resources' }">Resources <span class="glyphicon glyphicon-lock"></span></a></li>
+        <li role="presentation" ng-class="{ 'active': viewLocation === 'history' }"><a ui-sref="history" ng-class="{ 'active': viewLocation === 'history' }">History <span class="glyphicon glyphicon-time"></span></a></li>
       </ul>
     </div>
     <div ui-view="main" class="container-fluid container-body"></div>
