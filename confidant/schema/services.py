@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from confidant.schema.blind_credentials import BlindCredentialResponse
 from confidant.schema.credentials import CredentialResponse
 from confidant.utils.dynamodb import encode_last_evaluated_key
 
@@ -15,9 +14,6 @@ class ServiceResponse(BaseModel):
     modified_date: datetime
     modified_by: str
     credentials: List[Union[str, CredentialResponse]] = Field(default_factory=list)
-    blind_credentials: List[Union[str, BlindCredentialResponse]] = Field(
-        default_factory=list
-    )
     permissions: Dict[str, bool] = Field(default_factory=dict)
 
     class Config:
@@ -28,7 +24,6 @@ class ServiceResponse(BaseModel):
         cls,
         service,
         include_credentials=False,
-        include_blind_credentials=False,
     ):
         data = {
             'id': service.id,
@@ -43,8 +38,6 @@ class ServiceResponse(BaseModel):
 
         if include_credentials:
             data['credentials'] = service.credentials
-        if include_blind_credentials:
-            data['blind_credentials'] = service.blind_credentials
         return cls(**data)
 
     @classmethod
@@ -52,7 +45,6 @@ class ServiceResponse(BaseModel):
         cls,
         service,
         credentials,
-        blind_credentials,
         metadata_only=True,
     ):
         data = {
@@ -75,15 +67,6 @@ class ServiceResponse(BaseModel):
             )
             for credential in credentials
         ]
-        data['blind_credentials'] = [
-            BlindCredentialResponse.from_blind_credential(
-                blind_credential,
-                include_credential_keys=True,
-                include_credential_pairs=include_sensitive,
-                include_data_key=include_sensitive,
-            )
-            for blind_credential in blind_credentials
-        ]
         return cls(**data)
 
 
@@ -97,13 +80,11 @@ class ServicesResponse(BaseModel):
         services,
         next_page=None,
         include_credentials=False,
-        include_blind_credentials=False,
     ):
         services_list = [
             ServiceResponse.from_service(
                 service,
                 include_credentials=include_credentials,
-                include_blind_credentials=include_blind_credentials,
             )
             for service in services
         ]
@@ -124,14 +105,12 @@ class RevisionsResponse(BaseModel):
         cls,
         services,
         include_credentials=False,
-        include_blind_credentials=False,
         next_page=None,
     ):
         revisions_list = [
             ServiceResponse.from_service(
                 service,
                 include_credentials=include_credentials,
-                include_blind_credentials=include_blind_credentials,
             )
             for service in services
         ]

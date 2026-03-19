@@ -46,9 +46,6 @@
                     if (!$scope.service.credentials) {
                         $scope.service.credentials = [];
                     }
-                    if (!$scope.service.blind_credentials) {
-                        $scope.service.blind_credentials = [];
-                    }
                     serviceCopy = angular.copy($scope.service);
                 });
                 if ($scope.showGrants) {
@@ -63,7 +60,6 @@
                 $scope.service = {
                     id: '',
                     credentials: [],
-                    blind_credentials: [],
                     enabled: true,
                     account: null
                 };
@@ -74,10 +70,6 @@
 
             $scope.getCredentialByID = function(id) {
                 return $filter('filter')($scope.$parent.credentialList, {'id': id})[0];
-            };
-
-            $scope.getBlindCredentialByID = function(id) {
-                return $filter('filter')($scope.$parent.blindCredentialList, {'id': id})[0];
             };
 
             $scope.filterCredentials = function(credential) {
@@ -94,16 +86,6 @@
                 return credential.enabled === true || found;
             };
 
-            $scope.filterBlindCredentialOptions = function(blind_credential) {
-                var found = false;
-                angular.forEach($scope.service.blind_credentials, function(item) {
-                    if (blind_credential.id === item.id) {
-                        found = true;
-                    }
-                });
-                return blind_credential.enabled === true || found;
-            };
-
             $scope.deleteCredential = function($$hashKey) {
                 var filtered = $filter('filter')($scope.service.credentials, {'$$hashKey': $$hashKey});
                 if (filtered.length) {
@@ -111,23 +93,8 @@
                 }
             };
 
-            $scope.deleteBlindCredential = function($$hashKey) {
-                var filtered = $filter('filter')($scope.service.blind_credentials, {'$$hashKey': $$hashKey});
-                if (filtered.length) {
-                    filtered[0].isDeleted = true;
-                }
-            };
-
             $scope.addCredential = function() {
                 $scope.service.credentials.push({
-                    id: '',
-                    name: '',
-                    isNew: true
-                });
-            };
-
-            $scope.addBlindCredential = function() {
-                $scope.service.blind_credentials.push({
                     id: '',
                     name: '',
                     isNew: true
@@ -142,15 +109,6 @@
                     }
                     if (credential.isNew) {
                         $scope.service.credentials.splice(i, 1);
-                    }
-                }
-                for (i = $scope.service.blind_credentials.length; i--;) {
-                    var blind_credential = $scope.service.blind_credentials[i];
-                    if (blind_credential.isDeleted) {
-                        delete blind_credential.isDeleted;
-                    }
-                    if (blind_credential.isNew) {
-                        $scope.service.blind_credentials.splice(i, 1);
                     }
                 }
                 $scope.credentialPairConflicts = null;
@@ -206,7 +164,6 @@
                 _service.account = $scope.service.account;
                 _service.enabled = $scope.service.enabled;
                 _service.credentials = [];
-                _service.blind_credentials = [];
                 $scope.credentialPairConflicts = null;
                 $scope.saveError = '';
                 // Ensure credentials are unique and flatten credentiaList into a list of ids.
@@ -221,18 +178,6 @@
                         return $scope.saveError;
                     }
                     _service.credentials.push(credential.id);
-                }
-                for (i = $scope.service.blind_credentials.length; i--;) {
-                    var blind_credential = $scope.service.blind_credentials[i];
-                    if (blind_credential.isDeleted) {
-                        $scope.service.blind_credentials.splice(i, 1);
-                        continue;
-                    }
-                    if (_service.blind_credentials.indexOf(blind_credential.id) > -1) {
-                        $scope.saveError = 'Credentials must be unique.';
-                        return $scope.saveError;
-                    }
-                    _service.blind_credentials.push(blind_credential.id);
                 }
                 if (angular.equals(serviceCopy, $scope.service)) {
                     $scope.saveError = 'No changes made.';

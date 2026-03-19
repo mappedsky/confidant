@@ -7,15 +7,14 @@ from flask_sslify import SSLify
 
 from confidant import settings
 from confidant.routes import (
-    blind_credentials,
     certificates,
     credentials,
     identity,
+    jwks,
     saml,
     services,
     static_files,
-    jwks,
-)
+    )
 
 if not settings.get('DEBUG'):
     boto3.set_stream_logger(level=logging.CRITICAL)
@@ -55,9 +54,8 @@ def create_app():
 
     app.secret_key = settings.SESSION_SECRET
 
-    app.register_blueprint(blind_credentials.blueprint)
-    app.register_blueprint(credentials.blueprint)
     app.register_blueprint(certificates.blueprint)
+    app.register_blueprint(credentials.blueprint)
     app.register_blueprint(identity.blueprint)
     app.register_blueprint(saml.blueprint)
     app.register_blueprint(services.blueprint)

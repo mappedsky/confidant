@@ -3,7 +3,6 @@ import re
 import logging
 
 from confidant import settings
-from confidant.models.blind_credential import BlindCredential
 from confidant.models.credential import Credential, CredentialArchive
 from confidant.models.service import Service
 from confidant.utils import stats
@@ -19,13 +18,7 @@ def get_credentials(credential_ids):
         return [cred for cred in Credential.batch_get(_credential_ids)]
 
 
-def get_blind_credentials(credential_ids, metadata_only=False):
-    with stats.timer('service_batch_get_blind_credentials'):
-        _credential_ids = copy.deepcopy(credential_ids)
-        return [cred for cred in BlindCredential.batch_get(_credential_ids)]
-
-
-def pair_key_conflicts_for_credentials(credential_ids, blind_credential_ids):
+def pair_key_conflicts_for_credentials(credential_ids):
     conflicts = {}
     pair_keys = {}
     # If we don't care about conflicts, return immediately
@@ -34,7 +27,6 @@ def pair_key_conflicts_for_credentials(credential_ids, blind_credential_ids):
     # For all credentials, get their credential pairs and track which
     # credentials have which keys
     credentials = get_credentials(credential_ids)
-    credentials.extend(get_blind_credentials(blind_credential_ids))
     for credential in credentials:
         for key in credential.credential_keys:
             data = {
@@ -49,12 +41,9 @@ def pair_key_conflicts_for_credentials(credential_ids, blind_credential_ids):
     # one credential add it to the conflict dict.
     for key, data in pair_keys.items():
         if len(data) > 1:
-            blind_ids = [k['id'] for k in data
-                         if k['data_type'] == 'blind-credential']
             ids = [k['id'] for k in data if k['data_type'] == 'credential']
             conflicts[key] = {
                 'credentials': ids,
-                'blind_credentials': blind_ids
             }
     return conflicts
 
@@ -91,17 +80,6 @@ def get_latest_credential_revision(id, revision):
         _id = '{0}-{1}'.format(id, i)
         try:
             Credential.get(_id)
-        except DoesNotExist:
-            return i
-        i = i + 1
-
-
-def get_latest_blind_credential_revision(id, revision):
-    i = revision + 1
-    while True:
-        _id = '{0}-{1}'.format(id, i)
-        try:
-            BlindCredential.get(_id)
         except DoesNotExist:
             return i
         i = i + 1

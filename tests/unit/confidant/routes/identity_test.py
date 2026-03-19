@@ -69,10 +69,6 @@ def test_get_client_config(mocker: MockerFixture):
                     'list': True,
                     'create': False,
                 },
-                'blind_credentials': {
-                    'list': True,
-                    'create': True,
-                },
                 'services': {
                     'list': False,
                     'create': True,

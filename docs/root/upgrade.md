@@ -26,7 +26,6 @@ cd /srv/confidant
 source venv/bin/activate
 
 # Encrypt the data
-python manage.py migrate_blind_cred_set_attribute
 python manage.py migrate_service_set_attribute
 ```
 
@@ -35,7 +34,7 @@ script until all objects are fully migrated.
 
 2.0.0 ships with the ability to enable a maintenance mode, which you may want
 to enable when upgrading to 2.0.0. Putting Confidant into maintenance mode
-will disallow any writes via the API, ensuring that blind credentials with the
+will disallow any writes via the API, ensuring that objects with the
 new data format aren't written until you've run the maintenance script. This
 is useful to allow you to downgrade to an older version, if necessary. See the
 [maintenance mode settings docs](configuration.html#maintenance-mode-settings)

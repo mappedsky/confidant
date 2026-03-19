@@ -19,15 +19,6 @@ def test_get_revision_ids_for_credential():
     ]
 
 
-def test_get_latest_blind_credential_revision(mocker: MockerFixture):
-    get = mocker.patch(
-        'confidant.models.blind_credential.BlindCredential.get'
-    )
-    get.side_effect = DoesNotExist()
-    res = credentialmanager.get_latest_blind_credential_revision('123', 1)
-    assert res == 2
-
-
 def test_get_latest_credential_revision(mocker: MockerFixture):
     get = mocker.patch(
         'confidant.models.credential.Credential.get'

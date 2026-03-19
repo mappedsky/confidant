@@ -470,7 +470,7 @@ Confidant exposes some data to its clients via a flask endpoint. It's possible
 to expose additional custom data to clients through the server's configuration:
 
 ```bash
-export CLIENT_CONFIG='{"blind_keys":{"us-east-1":"alias/blindkey-useast1","us-west-2":"alias/blindkey-uswest2"},"blind_cipher_type":"fernet","blind_cipher_version":"2","blind_store_credential_keys":true}'
+export CLIENT_CONFIG='{"cipher_type":"fernet","cipher_version":"2","store_credential_keys":true}'
 ```
 
 The native client, or custom clients can use this data to help configure

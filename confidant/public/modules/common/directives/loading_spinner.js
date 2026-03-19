@@ -43,14 +43,14 @@
                                 if (loadingClass) {
                                     $body.addClass(loadingClass);
                                 }
-                                $element.show();
+                                $element.css('display', 'block');
                                 activelyShowing = true;
                             },
                             function() {
                                 if (loadingClass) {
                                     $body.removeClass(loadingClass);
                                 }
-                                $element.hide();
+                                $element.css('display', 'none');
                                 activelyShowing = false;
                             },
                             {

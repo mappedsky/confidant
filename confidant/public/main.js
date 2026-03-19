@@ -1,17 +1,13 @@
+// Import globals first to ensure they are available for other modules
+import './globals.js';
+
 // Import CSS
-import '/components/bootstrap/dist/css/bootstrap.css';
-import '/components/angular-xeditable/dist/css/xeditable.css';
-import '/components/angular/angular-csp.css';
-import '/styles/main.css';
+import 'bootstrap/dist/css/bootstrap.css';
+import 'angular-xeditable/dist/css/xeditable.css';
+import 'angular/angular-csp.css';
+import './styles/main.css';
 
 // Import JS dependencies
-import _ from 'lodash';
-window._ = _;
-import $ from 'jquery';
-window.$ = $;
-window.jQuery = $;
-import angular from 'angular';
-window.angular = angular;
 import 'bootstrap';
 import 'angular-resource';
 import 'angular-cookies';
@@ -39,7 +35,6 @@ import './modules/common/services/http.js';
 import './modules/common/services/services.js';
 import './modules/common/services/spin-on.js';
 import './modules/common/services/userinfo.js';
-import './modules/history/controllers/BlindCredentialHistoryCtrl.js';
 import './modules/history/controllers/CredentialHistoryCtrl.js';
 import './modules/history/controllers/ResourceHistoryCtrl.js';
 import './modules/history/controllers/ServiceHistoryCtrl.js';
@@ -47,13 +42,11 @@ import './modules/history/controllers/controllers.js';
 import './modules/history/history.js';
 import './modules/history/services/archive.js';
 import './modules/history/services/services.js';
-import './modules/resources/controllers/BlindCredentialDetailsCtrl.js';
 import './modules/resources/controllers/CredentialDetailsCtrl.js';
 import './modules/resources/controllers/ResourceCtrl.js';
 import './modules/resources/controllers/ServiceDetailsCtrl.js';
 import './modules/resources/controllers/controllers.js';
 import './modules/resources/resources.js';
-import './modules/resources/services/blindcredentials.js';
 import './modules/resources/services/confidantservices.js';
 import './modules/resources/services/credentials.js';
 import './modules/resources/services/roles.js';

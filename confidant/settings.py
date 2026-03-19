@@ -413,18 +413,7 @@ CUSTOM_FRONTEND_DIRECTORY = str_env('CUSTOM_FRONTEND_DIRECTORY')
 
 # Custom configuration to bootstrap confidant clients. This
 # configuration is in JSON format and can contain anything you'd like to pass
-# to the clients. Here's an example for passing default configuration for blind
-# secrets to the opinionated CLI client:
-#
-# {
-#   "blind_keys": {
-#      "us-east-1": "alias/blindkey-useast1",
-#      "us-west-2": "alias/blindkey-uswest2"
-#    },
-#    "blind_cipher_type": "fernet",
-#    "blind_cipher_version": "2",
-#    "blind_store_credential_keys": true
-# }
+# to the clients.
 CLIENT_CONFIG = json.loads(str_env('CLIENT_CONFIG', '{}'))
 
 # Maintenance mode
