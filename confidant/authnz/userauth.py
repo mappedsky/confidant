@@ -69,7 +69,7 @@ class AbstractUserAuthenticator(object):
                     'max_expiration unset on session, when expiration is set.'
                 )
                 return True
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
             if now > session['expiration']:
                 return True
             elif now > session['max_expiration']:
@@ -101,7 +101,7 @@ class AbstractUserAuthenticator(object):
     def set_expiration(self):
         if settings.PERMANENT_SESSION_LIFETIME:
             session.permanent = True
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
             lifetime = settings.PERMANENT_SESSION_LIFETIME
             expiration = now + datetime.timedelta(seconds=lifetime)
             session['expiration'] = expiration

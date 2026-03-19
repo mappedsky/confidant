@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pytest_mock.plugin import MockerFixture
 
 from confidant.models.credential import Credential, CredentialArchive
@@ -161,7 +161,7 @@ def test_next_rotation_date_never_rotated(mocker: MockerFixture):
         [],
     )
     cred = Credential(tags=['FINANCIALLY_SENSITIVE'])
-    assert cred.next_rotation_date <= datetime.utcnow()
+    assert cred.next_rotation_date <= datetime.now(timezone.utc)
 
 
 def test_next_rotation_date_last_rotation_present(mocker: MockerFixture):

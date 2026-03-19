@@ -348,10 +348,10 @@ class ACMPrivateCertificateAuthority(CertificateAuthorityBase):
                 x509.random_serial_number(),
             )
             .not_valid_before(
-                datetime.datetime.utcnow(),
+                datetime.datetime.now(datetime.timezone.utc),
             )
             .not_valid_after(
-                datetime.datetime.utcnow()
+                datetime.datetime.now(datetime.timezone.utc)
                 + datetime.timedelta(days=_validity),
             )
         )

@@ -43,7 +43,7 @@ class CredentialBase(Model):
     name = UnicodeAttribute()
     credential_pairs = UnicodeAttribute()
     enabled = BooleanAttribute(default=True)
-    data_key = BinaryAttribute()
+    data_key = BinaryAttribute(legacy_encoding=False)
     # TODO: add cipher_type
     cipher_version = NumberAttribute(null=True)
     metadata = JSONAttribute(default=dict, null=True)

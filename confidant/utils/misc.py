@@ -52,10 +52,8 @@ def get_boolean(val, default=False):
 def utcnow():
     """
     Returns the current time with tzinfo='UTC'.
-    datetime.utcnow() currently does not populate tzinfo
     """
-    now = datetime.utcnow()
-    return now.replace(tzinfo=pytz.utc)
+    return datetime.now(pytz.utc)
 
 
 def prevent_xss_decorator(func):
