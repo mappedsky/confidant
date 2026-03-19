@@ -20,6 +20,7 @@ export default defineConfig({
       '/v1': 'http://confidant:80',
       '/healthcheck': 'http://confidant:80',
       '/loggedout': 'http://confidant:80',
+      '/custom': 'http://confidant:80',
     },
   },
   resolve: {

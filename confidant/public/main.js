@@ -1,3 +1,6 @@
+// Import globals first to ensure they are available for other modules
+import './globals.js';
+
 // Import CSS
 import '/components/bootstrap/dist/css/bootstrap.css';
 import '/components/angular-xeditable/dist/css/xeditable.css';
@@ -5,13 +8,6 @@ import '/components/angular/angular-csp.css';
 import '/styles/main.css';
 
 // Import JS dependencies
-import _ from 'lodash';
-window._ = _;
-import $ from 'jquery';
-window.$ = $;
-window.jQuery = $;
-import angular from 'angular';
-window.angular = angular;
 import 'bootstrap';
 import 'angular-resource';
 import 'angular-cookies';
