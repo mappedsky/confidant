@@ -172,16 +172,16 @@ a {
   color: #F4F5F5;
 }
 
-.nav-pills > li.active > a, .nav-pills > li > a {
+.nav-pills > li.active > a, .nav-pills > li > a, .nav-tabs > li.active > a, .nav-tabs > li > a {
   color: #424554;
 }
 
-.nav-pills > li.active > a, .nav-pills > li.active > a:focus {
+.nav-pills > li.active > a, .nav-pills > li.active > a:focus, .nav-tabs > li.active > a, .nav-tabs > li.active > a:focus {
   color: #F4F5F5;
   background-color: #8f91ff;
 }
 
-.nav-pills > li.active > a, .nav-pills > li.active > a:hover {
+.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover {
   color: #F4F5F5;
   background-color: #8f91ff;
 }
