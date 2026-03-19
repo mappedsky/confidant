@@ -6,5 +6,8 @@ import { Spinner } from 'spin.js';
 window._ = _;
 window.$ = $;
 window.jQuery = $;
-window.angular = angular;
 window.Spinner = Spinner;
+
+if (!window.angular) {
+    window.angular = angular;
+}

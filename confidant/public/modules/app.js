@@ -32,7 +32,11 @@
           return clientconfig.get().$promise.then(function(clientConfig) {
               $log.debug('Loaded clientConfig:', clientConfig);
               $scope.clientconfig = clientConfig;
-              $http.defaults.xsrfCookieName = clientConfig.generated.xsrf_cookie_name;
+              if (clientConfig.generated && clientConfig.generated.xsrf_cookie_name) {
+                  $http.defaults.xsrfCookieName = clientConfig.generated.xsrf_cookie_name;
+              } else {
+                  $log.warn('xsrf_cookie_name not found in clientConfig.generated');
+              }
           });
         });
 

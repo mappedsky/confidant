@@ -32,7 +32,7 @@
              * @return {Boolean} Whether to broadcast events for this request.
              */
             function shouldNotify(config) {
-                return _.isUndefined(config.notify) || !!config.notify;
+                return window._.isUndefined(config.notify) || !!config.notify;
             }
 
             /**

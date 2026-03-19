@@ -44,7 +44,7 @@
          *                  spinner {Spinner} The actual spinner instance.
          */
         return function($element, optStartCallback, optEndCallback, options) {
-            var opts = _.assign({
+            var opts = window._.assign({
                 lines: 13, // The number of lines to draw
                 length: 4, // The length of each line
                 width: 2, // The line thickness
