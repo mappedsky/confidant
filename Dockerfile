@@ -1,7 +1,7 @@
 # Frontend Build Stage
-FROM oven/bun:latest as frontend-build
+FROM oven/bun:latest AS frontend-build
 WORKDIR /app
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY vite.config.js ./
 COPY confidant/public ./confidant/public

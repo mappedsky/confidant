@@ -19,6 +19,7 @@
     "bootstrap": "*",
     "es5-shim": "*",
     "json3": "*",
+    "jquery": "*",
     "lodash": "*",
     "spin.js": "*"
   },
