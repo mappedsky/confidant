@@ -2,10 +2,10 @@
 import './globals.js';
 
 // Import CSS
-import '/components/bootstrap/dist/css/bootstrap.css';
-import '/components/angular-xeditable/dist/css/xeditable.css';
-import '/components/angular/angular-csp.css';
-import '/styles/main.css';
+import 'bootstrap/dist/css/bootstrap.css';
+import 'angular-xeditable/dist/css/xeditable.css';
+import 'angular/angular-csp.css';
+import './styles/main.css';
 
 // Import JS dependencies
 import 'bootstrap';

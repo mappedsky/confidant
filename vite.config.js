@@ -27,6 +27,7 @@ export default defineConfig({
     alias: {
       // Compatibility with the old /components/ path
       '/components': resolve(__dirname, 'node_modules'),
+      '/bower_components': resolve(__dirname, 'node_modules'),
       // Add other aliases if needed
     },
   },
