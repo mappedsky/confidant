@@ -73,12 +73,8 @@ pytest-env = "*"
 pytest-gevent = "*"
 pytz = "*"
 types-pytz = "*"
-pyjwt = "*"
-jwcrypto = "*"
 cerberus = "*"
-cachetools = "*"
 mypy = "*"
-fakeredis = "*"
 
 [dev-packages]
 
