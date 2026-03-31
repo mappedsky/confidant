@@ -6,8 +6,10 @@ on:
     branches-ignore:
       - gh-pages
 
-# Explicitly grant the `secrets.GITHUB_TOKEN` no permissions.
-permissions: {}
+# Explicitly grant the `secrets.GITHUB_TOKEN` only the read access needed by
+# checkout and the read-only test jobs.
+permissions:
+  contents: read
 
 jobs:
   pre-commit:
