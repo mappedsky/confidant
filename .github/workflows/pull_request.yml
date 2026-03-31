@@ -1,4 +1,10 @@
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    branches-ignore:
+      - gh-pages
 
 # Explicitly grant the `secrets.GITHUB_TOKEN` no permissions.
 permissions: {}
