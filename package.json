@@ -6,26 +6,18 @@
     "url": "git://github.com/lyft/confidant.git"
   },
   "dependencies": {
-    "@uirouter/angularjs": "*",
-    "angular": "*",
-    "angular-animate": "*",
-    "angular-cookies": "*",
-    "angular-resource": "*",
-    "angular-route": "*",
-    "angular-sanitize": "*",
-    "angular-touch": "*",
-    "angular-ui-bootstrap": "*",
-    "angular-xeditable": "*",
-    "bootstrap": "*",
-    "es5-shim": "*",
-    "json3": "*",
-    "jquery": "*",
-    "lodash": "*",
-    "spin.js": "*"
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.1.6",
+    "@mui/material": "^6.1.6",
+    "@mui/x-data-grid": "^7.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0"
   },
   "devDependencies": {
-    "vite": "*",
-    "@vitejs/plugin-legacy": "*"
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
   },
   "scripts": {
     "dev": "vite",

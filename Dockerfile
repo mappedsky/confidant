@@ -9,7 +9,7 @@ RUN bun run build
 
 # Backend and Final Stage
 FROM ubuntu:jammy
-LABEL maintainer="rlane@lyft.com"
+LABEL maintainer="rlane@ryandlane.com"
 
 WORKDIR /srv/confidant
 

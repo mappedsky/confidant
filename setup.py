@@ -69,10 +69,10 @@ setup(
         'fakeredis',
     ],
     author="Ryan Lane",
-    author_email="rlane@lyft.com",
-    description="DEPRECATED: A secret management system and client.",
+    author_email="rlane@ryandlane.com",
+    description="A secret management system and client.",
     license="apache2",
-    url="https://github.com/lyft/confidant",
+    url="https://github.com/mappedsky/confidant",
     entry_points={
         'console_scripts': [
             'confidant-admin = confidant.scripts.manage:main',
