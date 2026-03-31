@@ -6,14 +6,20 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import {
+  DataGrid,
+  GridToolbar,
+  GridColDef,
+  GridRowParams,
+} from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
+import { ServiceSummary } from '../types/api';
 
-const columns = [
+const columns: GridColDef<ServiceSummary>[] = [
   { field: 'id', headerName: 'Service ID', flex: 1, minWidth: 220 },
   {
     field: 'enabled',
@@ -36,7 +42,7 @@ const columns = [
     field: 'modified_date',
     headerName: 'Modified',
     width: 180,
-    valueFormatter: (value) => value ? new Date(value).toLocaleString() : '—',
+    valueFormatter: (value) => (value ? new Date(value as string).toLocaleString() : '—'),
   },
   { field: 'modified_by', headerName: 'Modified By', flex: 1, minWidth: 160 },
   {
@@ -98,11 +104,11 @@ const dataGridSx = {
 export default function ServiceListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState<ServiceSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const permissions = clientConfig?.generated?.permissions ?? {};
+  const permissions = clientConfig?.generated?.permissions;
 
   useEffect(() => {
     api.getServices()
@@ -117,7 +123,7 @@ export default function ServiceListPage() {
         <Typography variant="h5" fontWeight={600}>
           Services
         </Typography>
-        {permissions.services?.create && (
+        {permissions?.services?.create && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -137,7 +143,9 @@ export default function ServiceListPage() {
         loading={loading}
         autoHeight
         density="compact"
-        onRowClick={(params) => navigate(`/services/${params.row.id}`)}
+        onRowClick={(params: GridRowParams<ServiceSummary>) =>
+          navigate(`/services/${params.row.id}`)
+        }
         slots={{ toolbar: GridToolbar }}
         slotProps={{ toolbar: { showQuickFilter: true } }}
         initialState={{

@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 
-export function createAppTheme(mode) {
+export function createAppTheme(mode: 'light' | 'dark') {
   const isDark = mode === 'dark';
 
   // Light mode link/accent: #3d40b8 — ~8:1 on white (AAA)

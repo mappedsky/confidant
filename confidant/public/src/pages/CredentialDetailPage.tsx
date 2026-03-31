@@ -29,11 +29,16 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import KeyValueTable, { KeyValueRow } from '../components/KeyValueTable';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
-import KeyValueTable from '../components/KeyValueTable';
+import {
+  CredentialDetail,
+  CredentialServicesResponse,
+  ConflictMap,
+} from '../types/api';
 
-function SectionLabel({ children }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
       {children}
@@ -41,7 +46,14 @@ function SectionLabel({ children }) {
   );
 }
 
-function ReadOnlyField({ label, value, sx: sxProp, valueSx }) {
+interface ReadOnlyFieldProps {
+  label: string;
+  value?: string | null;
+  sx?: React.ComponentProps<typeof Box>['sx'];
+  valueSx?: React.ComponentProps<typeof Typography>['sx'];
+}
+
+function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps) {
   return (
     <Box sx={sxProp}>
       <Typography variant="caption" color="text.secondary" display="block" mb={0.25}>
@@ -52,78 +64,89 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }) {
   );
 }
 
+type CredentialDetailParams = { id?: string };
+
 export default function CredentialDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<CredentialDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
 
-  const permissions = clientConfig?.generated?.permissions ?? {};
+  const permissions = clientConfig?.generated?.permissions;
   const definedTags = clientConfig?.generated?.defined_tags ?? [];
 
-  const [credential, setCredential] = useState(null);
-  const [credentialServices, setCredentialServices] = useState([]);
+  const [credential, setCredential] = useState<CredentialDetail | null>(null);
+  const [credentialServices, setCredentialServices] = useState<
+    CredentialServicesResponse['services']
+  >([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(isNew);
-  const [error, setError] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [conflicts, setConflicts] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
   const [showValues, setShowValues] = useState(false);
   const [decrypted, setDecrypted] = useState(false);
 
   const [formName, setFormName] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
-  const [formPairs, setFormPairs] = useState([{ key: '', value: '' }]);
-  const [formMetadata, setFormMetadata] = useState([]);
-  const [formTags, setFormTags] = useState([]);
+  const [formPairs, setFormPairs] = useState<KeyValueRow[]>([{ key: '', value: '' }]);
+  const [formMetadata, setFormMetadata] = useState<KeyValueRow[]>([]);
+  const [formTags, setFormTags] = useState<string[]>([]);
   const [formDocumentation, setFormDocumentation] = useState('');
 
-  const populateForm = useCallback((cred) => {
+  const populateForm = useCallback((cred: CredentialDetail) => {
     setFormName(cred.name ?? '');
     setFormEnabled(cred.enabled ?? true);
-    const pairs = Object.entries(cred.credential_pairs ?? {}).map(([k, v]) => ({ key: k, value: v }));
+    const pairs = Object.entries(cred.credential_pairs ?? {}).map(([key, value]) => ({
+      key,
+      value,
+    }));
     if (pairs.length) {
       setFormPairs(pairs);
     } else if ((cred.credential_keys ?? []).length) {
-      // metadata_only=true: key names are present but values are not yet decrypted
-      setFormPairs(cred.credential_keys.map((k) => ({ key: k, value: '' })));
+      setFormPairs(cred.credential_keys.map((key) => ({ key, value: '' })));
     } else {
       setFormPairs([{ key: '', value: '' }]);
     }
-    setFormMetadata(Object.entries(cred.metadata ?? {}).map(([k, v]) => ({ key: k, value: v })));
+    setFormMetadata(
+      Object.entries(cred.metadata ?? {}).map(([key, value]) => ({ key, value })),
+    );
     setFormTags(cred.tags ?? []);
     setFormDocumentation(cred.documentation ?? '');
   }, []);
 
   useEffect(() => {
     if (isNew) {
-      setCredential({ name: '', enabled: true, credential_pairs: {}, metadata: {}, tags: [], documentation: '' });
+      setLoading(false);
       return;
     }
     setLoading(true);
-    Promise.all([
-      api.getCredential(id, true),
-      api.getCredentialServices(id),
-    ])
+    Promise.all([api.getCredential(id, true), api.getCredentialServices(id)])
       .then(([cred, svcData]) => {
         setCredential(cred);
         populateForm(cred);
         setCredentialServices(svcData.services ?? []);
       })
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id, isNew, populateForm]);
 
   const handleToggleShow = async () => {
-    if (showValues) { setShowValues(false); return; }
-    if (!decrypted) {
+    if (showValues) {
+      setShowValues(false);
+      return;
+    }
+    if (!decrypted && id) {
       try {
         const full = await api.getCredential(id, false);
         setCredential(full);
         populateForm(full);
         setDecrypted(true);
-      } catch (err) { setError(err.message); return; }
+      } catch (err) {
+        setError((err as Error).message);
+        return;
+      }
     }
     setShowValues(true);
   };
@@ -135,7 +158,10 @@ export default function CredentialDetailPage() {
         setCredential(full);
         populateForm(full);
         setDecrypted(true);
-      } catch (err) { setError(err.message); return; }
+      } catch (err) {
+        setError((err as Error).message);
+        return;
+      }
     }
     setSaveError(null);
     setConflicts(null);
@@ -143,18 +169,25 @@ export default function CredentialDetailPage() {
   };
 
   const handleCancel = () => {
-    if (isNew) { navigate('/credentials'); return; }
-    populateForm(credential);
+    if (isNew) {
+      navigate('/credentials');
+      return;
+    }
+    if (credential) {
+      populateForm(credential);
+    }
     setSaveError(null);
     setConflicts(null);
     setEditing(false);
   };
 
-  const handleGenerate = async (idx) => {
+  const handleGenerate = async (idx: number) => {
     try {
       const { value } = await api.generateValue();
-      setFormPairs((prev) => prev.map((r, i) => i === idx ? { ...r, value } : r));
-    } catch (err) { setSaveError(err.message); }
+      setFormPairs((prev) => prev.map((r, i) => (i === idx ? { ...r, value } : r)));
+    } catch (err) {
+      setSaveError((err as Error).message);
+    }
   };
 
   const handleSave = async () => {
@@ -176,39 +209,60 @@ export default function CredentialDetailPage() {
       name: formName,
       enabled: formEnabled,
       documentation: formDocumentation,
-      credential_pairs: Object.fromEntries(formPairs.filter((p) => p.key).map((p) => [p.key, p.value])),
-      metadata: Object.fromEntries(formMetadata.filter((m) => m.key).map((m) => [m.key, m.value])),
+      credential_pairs: Object.fromEntries(
+        formPairs
+          .filter((p) => p.key)
+          .map((p) => [p.key, p.value]),
+      ),
+      metadata: Object.fromEntries(
+        formMetadata
+          .filter((m) => m.key)
+          .map((m) => [m.key, m.value]),
+      ),
       tags: [...new Set(formTags.filter(Boolean))],
     };
 
     setSaving(true);
     try {
-      let saved;
+      let saved: CredentialDetail;
       if (isNew) {
         saved = await api.createCredential(payload);
         navigate(`/credentials/${saved.id}`, { replace: true });
-      } else {
+      } else if (id) {
         saved = await api.updateCredential(id, payload);
         setCredential(saved);
         populateForm(saved);
         setEditing(false);
+      } else {
+        throw new Error('Missing credential ID');
       }
-    } catch (err) {
-      setSaveError(err.message);
-      if (err.data?.conflicts) setConflicts(err.data.conflicts);
+    } catch (err: unknown) {
+      const error = err as { message: string; data?: { conflicts?: ConflictMap } };
+      setSaveError(error.message);
+      if (error.data?.conflicts) {
+        setConflicts(error.data.conflicts);
+      }
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress /></Box>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/credentials')} sx={{ mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/credentials')}
+          sx={{ mb: 2 }}
+        >
           Back to Credentials
         </Button>
         <Alert severity="error">{error}</Alert>
@@ -216,19 +270,26 @@ export default function CredentialDetailPage() {
     );
   }
 
-  const canEdit = isNew ? permissions.credentials?.create : credential?.permissions?.update;
-  const daysTillRotation = credential?.next_rotation_date
-    ? Math.round((new Date(credential.next_rotation_date).getTime() - Date.now()) / 86400000)
-    : null;
+  const canEdit = isNew ? permissions?.credentials?.create : credential?.permissions?.update;
+  const daysTillRotation =
+    credential?.next_rotation_date
+      ? Math.round(
+          (new Date(credential.next_rotation_date).getTime() - Date.now()) / 86400000,
+        )
+      : null;
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/credentials')} sx={{ mb: 2 }}>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/credentials')}
+        sx={{ mb: 2 }}
+      >
         Back to Credentials
       </Button>
 
       <Typography variant="h5" fontWeight={600} mb={3}>
-        {isNew ? 'New Credential' : (credential?.name || id)}
+        {isNew ? 'New Credential' : credential?.name || id}
       </Typography>
 
       {saveError && (
@@ -242,12 +303,18 @@ export default function CredentialDetailPage() {
                   <Typography variant="body2"><strong>{key}</strong></Typography>
                   {info.credentials?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
-                      Credential: <Link component={RouterLink} to={`/credentials/${cid}`}>{cid}</Link>
+                      Credential:{' '}
+                      <Link component={RouterLink} to={`/credentials/${cid}`}>
+                        {cid}
+                      </Link>
                     </Typography>
                   ))}
                   {info.services?.map((sid) => (
                     <Typography key={sid} variant="body2" ml={2}>
-                      Service: <Link component={RouterLink} to={`/services/${sid}`}>{sid}</Link>
+                      Service:{' '}
+                      <Link component={RouterLink} to={`/services/${sid}`}>
+                        {sid}
+                      </Link>
                     </Typography>
                   ))}
                 </Box>
@@ -263,8 +330,6 @@ export default function CredentialDetailPage() {
       <Card elevation={1}>
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={3}>
-
-            {/* Name */}
             {editing ? (
               <TextField
                 label="Credential Name"
@@ -278,11 +343,15 @@ export default function CredentialDetailPage() {
               <ReadOnlyField label="Credential Name" value={credential?.name} />
             )}
 
-            {/* Enabled — existing credentials only */}
             {!isNew && (
               editing ? (
                 <FormControlLabel
-                  control={<Checkbox checked={formEnabled} onChange={(e) => setFormEnabled(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={formEnabled}
+                      onChange={(e) => setFormEnabled(e.target.checked)}
+                    />
+                  }
                   label="Enabled"
                 />
               ) : (
@@ -298,15 +367,24 @@ export default function CredentialDetailPage() {
               )
             )}
 
-            {/* Credential Pairs */}
             <Box>
               <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
                 <SectionLabel>Credential Pairs</SectionLabel>
                 <LockIcon sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: '2px' }} />
                 {!editing && (
-                  <Tooltip title={showValues ? 'Hide values' : 'Show decrypted values (may affect rotation schedule)'}>
+                  <Tooltip
+                    title={
+                      showValues
+                        ? 'Hide values'
+                        : 'Show decrypted values (may affect rotation schedule)'
+                    }
+                  >
                     <IconButton size="small" onClick={handleToggleShow} sx={{ ml: 0.5 }}>
-                      {showValues ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                      {showValues ? (
+                        <VisibilityOffIcon fontSize="small" />
+                      ) : (
+                        <VisibilityIcon fontSize="small" />
+                      )}
                     </IconButton>
                   </Tooltip>
                 )}
@@ -321,7 +399,6 @@ export default function CredentialDetailPage() {
               />
             </Box>
 
-            {/* Metadata */}
             <Box>
               <SectionLabel>Credential Metadata</SectionLabel>
               <KeyValueTable
@@ -332,7 +409,6 @@ export default function CredentialDetailPage() {
               />
             </Box>
 
-            {/* Tags */}
             {(editing || formTags.length > 0 || definedTags.length > 0) && (
               <Box>
                 <SectionLabel>Tags</SectionLabel>
@@ -345,19 +421,37 @@ export default function CredentialDetailPage() {
                           <Select
                             label="Tag"
                             value={tag}
-                            onChange={(e) => setFormTags((prev) => prev.map((t, i) => i === idx ? e.target.value : t))}
+                            onChange={(event) =>
+                              setFormTags((prev) =>
+                                prev.map((t, i) => (i === idx ? (event.target.value as string) : t)),
+                              )
+                            }
                           >
-                            {definedTags.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                            {definedTags.map((value) => (
+                              <MenuItem key={value} value={value}>
+                                {value}
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
-                        <IconButton size="small" color="error" onClick={() => setFormTags((prev) => prev.filter((_, i) => i !== idx))}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() =>
+                            setFormTags((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                        >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
                     ))}
                     {definedTags.length > 0 && (
                       <Box>
-                        <Button size="small" startIcon={<AddIcon />} onClick={() => setFormTags((prev) => [...prev, ''])}>
+                        <Button
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={() => setFormTags((prev) => [...prev, ''])}
+                        >
                           Add Tag
                         </Button>
                       </Box>
@@ -365,23 +459,27 @@ export default function CredentialDetailPage() {
                   </Stack>
                 ) : (
                   <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                    {formTags.length
-                      ? formTags.map((t) => <Chip key={t} label={t} size="small" />)
-                      : <Typography color="text.secondary" variant="body2">None</Typography>}
+                    {formTags.length ? (
+                      formTags.map((tag) => <Chip key={tag} label={tag} size="small" />)
+                    ) : (
+                      <Typography color="text.secondary" variant="body2">
+                        None
+                      </Typography>
+                    )}
                   </Stack>
                 )}
               </Box>
             )}
 
-            {/* Next rotation date */}
             {!isNew && credential?.next_rotation_date && (
               <ReadOnlyField
                 label="Next Rotation Date"
-                value={`${credential.next_rotation_date}${daysTillRotation !== null ? ` (${daysTillRotation} days)` : ''}`}
+                value={`${credential.next_rotation_date}${
+                  daysTillRotation !== null ? ` (${daysTillRotation} days)` : ''
+                }`}
               />
             )}
 
-            {/* Documentation */}
             {editing ? (
               <TextField
                 label="Rotation Documentation"
@@ -397,7 +495,6 @@ export default function CredentialDetailPage() {
               <ReadOnlyField label="Rotation Documentation" value={formDocumentation} />
             ) : null}
 
-            {/* Read-only audit metadata */}
             {!isNew && (
               <>
                 <Divider />
@@ -406,16 +503,24 @@ export default function CredentialDetailPage() {
                     label="Credential ID"
                     value={credential?.id}
                     sx={{ flex: '2 1 220px' }}
-                    valueSx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}
+                    valueSx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.8rem',
+                      wordBreak: 'break-all',
+                    }}
                   />
                   <ReadOnlyField
                     label="Revision"
-                    value={credential?.revision?.toString()}
+                    value={credential?.revision?.toString() ?? '—'}
                     sx={{ flex: '0 1 100px' }}
                   />
                   <ReadOnlyField
                     label="Modified"
-                    value={credential?.modified_date ? new Date(credential.modified_date).toLocaleString() : '—'}
+                    value={
+                      credential?.modified_date
+                        ? new Date(credential.modified_date).toLocaleString()
+                        : '—'
+                    }
                     sx={{ flex: '1 1 200px' }}
                   />
                   <ReadOnlyField
@@ -431,9 +536,13 @@ export default function CredentialDetailPage() {
                     <Stack spacing={0.5}>
                       {credentialServices.map((svc) => (
                         <Box key={svc.id}>
-                          <Link component={RouterLink} to={`/services/${svc.id}`}>{svc.id}</Link>
+                          <Link component={RouterLink} to={`/services/${svc.id}`}>
+                            {svc.id}
+                          </Link>
                           {!svc.enabled && (
-                            <Typography component="span" color="text.secondary" ml={1}>(disabled)</Typography>
+                            <Typography component="span" color="text.secondary" ml={1}>
+                              (disabled)
+                            </Typography>
                           )}
                         </Box>
                       ))}
@@ -444,9 +553,9 @@ export default function CredentialDetailPage() {
             )}
 
             <Typography variant="caption" color="text.secondary">
-              Note: Only fields marked with <LockIcon sx={{ fontSize: 12, verticalAlign: 'middle' }} /> are encrypted at-rest.
+              Note: Only fields marked with{' '}
+              <LockIcon sx={{ fontSize: 12, verticalAlign: 'middle' }} /> are encrypted at-rest.
             </Typography>
-
           </Stack>
         </CardContent>
 
@@ -456,7 +565,11 @@ export default function CredentialDetailPage() {
               <Button
                 variant="contained"
                 onClick={handleEdit}
-                sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
+                sx={{
+                  bgcolor: '#6bdfab',
+                  color: '#424554',
+                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                }}
               >
                 Edit
               </Button>
@@ -473,7 +586,11 @@ export default function CredentialDetailPage() {
                 variant="contained"
                 onClick={handleSave}
                 disabled={saving}
-                sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
+                sx={{
+                  bgcolor: '#6bdfab',
+                  color: '#424554',
+                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                }}
               >
                 {saving ? <CircularProgress size={18} /> : 'Save'}
               </Button>

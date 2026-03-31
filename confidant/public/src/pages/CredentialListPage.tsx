@@ -6,14 +6,20 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import {
+  DataGrid,
+  GridToolbar,
+  GridColDef,
+  GridRowParams,
+} from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
+import { CredentialSummary } from '../types/api';
 
-const columns = [
+const columns: GridColDef<CredentialSummary>[] = [
   { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
   {
     field: 'enabled',
@@ -36,7 +42,7 @@ const columns = [
     field: 'modified_date',
     headerName: 'Modified',
     width: 180,
-    valueFormatter: (value) => value ? new Date(value).toLocaleString() : '—',
+    valueFormatter: (value) => (value ? new Date(value as string).toLocaleString() : '—'),
   },
   { field: 'modified_by', headerName: 'Modified By', flex: 1, minWidth: 160 },
   {
@@ -98,16 +104,16 @@ const dataGridSx = {
 export default function CredentialListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
-  const [credentials, setCredentials] = useState([]);
+  const [credentials, setCredentials] = useState<CredentialSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const permissions = clientConfig?.generated?.permissions ?? {};
+  const permissions = clientConfig?.generated?.permissions;
 
   useEffect(() => {
     api.getCredentials()
       .then((data) => setCredentials(data.credentials || []))
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -117,7 +123,7 @@ export default function CredentialListPage() {
         <Typography variant="h5" fontWeight={600}>
           Credentials
         </Typography>
-        {permissions.credentials?.create && (
+        {permissions?.credentials?.create && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -137,7 +143,7 @@ export default function CredentialListPage() {
         loading={loading}
         autoHeight
         density="compact"
-        onRowClick={(params) => navigate(`/credentials/${params.row.id}`)}
+        onRowClick={(params: GridRowParams<CredentialSummary>) => navigate(`/credentials/${params.row.id}`)}
         slots={{ toolbar: GridToolbar }}
         slotProps={{ toolbar: { showQuickFilter: true } }}
         initialState={{

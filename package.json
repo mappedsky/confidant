@@ -16,12 +16,18 @@
     "react-router-dom": "^6.27.0"
   },
   "devDependencies": {
+    "@types/http-proxy": "^1.17.17",
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.3.0",
     "@vitejs/plugin-react": "^4.3.3",
     "vite": "^5.4.10"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit -p confidant/public/tsconfig.json",
     "preview": "vite preview"
   },
   "engines": {

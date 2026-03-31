@@ -1,14 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import type { Proxy } from 'http-proxy';
 
 // Rewrite any bare http://localhost/ redirects from the backend to port 3000
 // so the SAML auth flow lands back on the Vite dev server.
-function rewriteLocalhostRedirects(proxy) {
+function rewriteLocalhostRedirects(proxy: Proxy) {
   proxy.on('proxyRes', (proxyRes) => {
-    const loc = proxyRes.headers['location'];
-    if (loc && /^http:\/\/localhost(\/|$)/.test(loc)) {
-      proxyRes.headers['location'] = loc.replace(
+    const location = proxyRes.headers['location'];
+    if (location && /^http:\/\/localhost(\/|$)/.test(location)) {
+      proxyRes.headers['location'] = location.replace(
         /^http:\/\/localhost\b/,
         'http://localhost:3000',
       );
@@ -35,10 +36,10 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     proxy: {
-      '/v1':         { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/v1': { target: backendTarget, configure: rewriteLocalhostRedirects },
       '/healthcheck': { target: backendTarget, configure: rewriteLocalhostRedirects },
-      '/loggedout':   { target: backendTarget, configure: rewriteLocalhostRedirects },
-      '/custom':      { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/loggedout': { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/custom': { target: backendTarget, configure: rewriteLocalhostRedirects },
     },
   },
 });
