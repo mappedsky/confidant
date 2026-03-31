@@ -10,7 +10,6 @@ from confidant.routes import (
     certificates,
     credentials,
     identity,
-    jwks,
     saml,
     services,
     static_files,
@@ -60,6 +59,5 @@ def create_app():
     app.register_blueprint(saml.blueprint)
     app.register_blueprint(services.blueprint)
     app.register_blueprint(static_files.blueprint)
-    app.register_blueprint(jwks.blueprint)
 
     return app

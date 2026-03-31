@@ -1,7 +1,6 @@
 import json
 import logging
 from os import getenv
-from base64 import b64decode
 
 from confidant.encrypted_settings import EncryptedSettings
 
@@ -603,61 +602,6 @@ ROTATION_DAYS_CONFIG = json.loads(str_env('ROTATION_DAYS_CONFIG', '{}'))
 # in GET /v1/credentials/<ID> to keep track of when a human
 # last saw a credential pair
 ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env('ENABLE_SAVE_LAST_DECRYPTION_TIME')
-
-# Add any certificate authorities
-# Should be in encrypted settings following this format (where name is
-# the name of the environment) and key ids must be unique:
-# [
-# {
-#   "key": "--- RSA...",
-#   "crt": "--- CERT...",
-#   "name": "staging",
-#   "passphrase": "some-key",
-#   "kid": "some-kid"
-# }, ...
-# ]
-
-if bool_env("JWT_IS_CA_ENCRYPTED", True):
-    decrypted_jwt_cas = encrypted_settings.decrypted_secrets.get(
-        'JWT_CERTIFICATE_AUTHORITIES'
-    )
-else:
-    decrypted_jwt_cas = str_env('JWT_CERTIFICATE_AUTHORITIES')
-
-JWT_CERTIFICATE_AUTHORITIES = json.loads(b64decode(decrypted_jwt_cas)) \
-    if decrypted_jwt_cas else {}
-
-JWT_CACHING_ENABLED = bool_env('JWT_CACHING_ENABLED', False)
-
-JWT_CACHING_MAX_SIZE = int_env('JWT_CACHING_MAX_SIZE', 1000)
-
-# Maximum time JWTs are stored in Confidant's cache.
-# Warning: this needs to be considerably less than the JWT TTL
-# to avoid Confidant issuing very short lived JWTs.
-# Enabling the cache means JWTs will have a varying minimum/maximum TTL window.
-# example:
-#     JWT_CACHING_TTL_SECONDS = 900 (15 min)
-#     JWT_DEFAULT_JWT_EXPIRATION_SECONDS = 3600 (1 hr)
-# This means JWTs issued will be between 3600 and 2700 seconds
-JWT_CACHING_TTL_SECONDS = int_env('JWT_CACHING_TTL_SECONDS', 900)
-
-JWT_DEFAULT_JWT_EXPIRATION_SECONDS = int_env(
-    'JWT_DEFAULT_JWT_EXPIRATION_SECONDS', 3600
-)
-
-# A redis connection url to store JWTs.
-# Example: redis://localhost:6379
-REDIS_URL_JWT_CACHE = str_env('REDIS_URL_JWT_CACHE', '')
-# Redis socket timeout in seconds
-REDIS_SOCKET_TIMEOUT = int_env('REDIS_SOCKET_TIMEOUT', 2)
-# Setting it true uses REDIS for JWT cache
-JWT_CACHING_USE_REDIS = bool_env('JWT_CACHING_USE_REDIS', False)
-
-
-# Key IDs from CERTIFICATE_AUTHORITIES that should be used to sign new JWTs,
-# provide a JSON with the following format:
-# {"staging": "some_kid", "production": "some_kid"}
-JWT_ACTIVE_SIGNING_KEYS = json.loads(str_env('JWT_ACTIVE_SIGNING_KEYS', '{}'))
 
 # CUSTOM_CA_ENCRYPTED denotes whether provided CUSTOM_CERTIFICATE_AUTHORITIES
 # is encrypted or not. If it is encrypted, it will be decrypted before use.
