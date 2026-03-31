@@ -61,8 +61,7 @@
   json logs for logging output.
 
 * Updated the docker-compose setup to have a fully functional production-like environment, with
-  local dynamodb, local kms, and a local simplesamlphp IDP. The developer environment also has a
-  configuration for the PKI, which will generate self-signed certificates.
+  local dynamodb, local kms, and a local simplesamlphp IDP.
 
 * Fix for issue with `HISTORY_PAGE_LIMIT`, where when unset, the client would not load any history. If
   `HISTORY_PAGE_LIMIT` is now unset, it will correctly use the default behavior of not paging.
@@ -70,28 +69,6 @@
 ## 6.2.0
 
 * This release fixes a python3 stacktrace in SAML auth, when using the `SAML_SP_KEY_FILE` setting.
-
-## 6.1.0
-
-* This release adds support for confidant acting as a Certificate Authority,
-  using AWS Certificate Manager Private Certificate Authority. Four new endpoints
-  have been added:
-
-  * `GET /v1/certificates/<ca>/<cn>`: Have confidant generate a private key, a CSR,
-  and have it issue a certificate against the provided CA, with the provided CN. A
-  list of SANs can be provided via arguments: `?san=<domain>&san=<domain>` The validity
-  in number of days can be provided via arguments: `?validity=120` The maximum validity
-  is controlled server side via a configuration setting.
-  * `POST /v1/certificates/<ca>`: Generate a private key and CSR from the client side,
-  and have confidate issue a certificate against the provided CA. SAN and validity can
-  be set via a json post body: `{"san": ["domain", "domain"], "validity": 120}`
-  * `GET /v1/cas`: Get a list of configured CAs, their certificate and certificate chains,
-  and a dictionary of key/value tags set on the CA in AWS.
-  * `GET /v1/cas/<ca>`: Get the certificate, certificate chain, and a dict of tags set on
-  the CA in AWS.
-
-  The implementation supports multiple CAs. For configuration information, see [the
-  certificate authority settings section in the docs](configuration.html#certificate-authority-settings).
 
 ## 6.0.0
 
