@@ -13,6 +13,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
 
+def _exit_with_error(message):
+    logger.error(message)
+    raise click.exceptions.Exit(1)
+
+
 def credential_exists(credential_id):
     try:
         Credential.get(credential_id)
@@ -93,20 +98,16 @@ def restore_credentials(force, ids, _all):
     back into the primary storage table.
     """
     if not settings.DYNAMODB_TABLE_ARCHIVE:
-        logger.error('DYNAMODB_TABLE_ARCHIVE is not configured, exiting.')
-        return 1
+        _exit_with_error('DYNAMODB_TABLE_ARCHIVE is not configured, exiting.')
     if ids and _all:
-        logger.error('--ids and --all arguments are mutually exclusive')
-        return 1
+        _exit_with_error('--ids and --all arguments are mutually exclusive')
     if not ids and not _all:
-        logger.error('Either --ids or --all argument must be provided')
-        return 1
+        _exit_with_error('Either --ids or --all argument must be provided')
     if ids:
         # filter strips an empty string
         _ids = [_id.strip() for _id in list(filter(None, ids.split(',')))]
         if not _ids:
-            logger.error('Passed in --ids argument is empty')
-            return 1
+            _exit_with_error('Passed in --ids argument is empty')
         credentials = CredentialArchive.batch_get(_ids)
     else:
         credentials = CredentialArchive.data_type_date_index.query(

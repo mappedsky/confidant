@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from pynamodb.models import Model
 from pynamodb.attributes import (
@@ -183,7 +183,7 @@ class Credential(CredentialBase):
         # If a credential has never been rotated or been decrypted,
         # immediately rotate
         if self.last_rotation_date is None:
-            return datetime.now()
+            return datetime.now(timezone.utc)
 
         if (self.last_decrypted_date and
                 self.last_decrypted_date > self.last_rotation_date):
