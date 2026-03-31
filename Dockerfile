@@ -3,7 +3,7 @@ FROM oven/bun:latest AS frontend-build
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
-COPY vite.config.js ./
+COPY vite.config.ts ./
 COPY confidant/public ./confidant/public
 RUN bun run build
 

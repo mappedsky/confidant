@@ -10,19 +10,19 @@ A secret management system that stores credentials (key/value pairs) in DynamoDB
 
 ### Backend (Python)
 ```bash
-pipenv install               # install dependencies
-make test_unit               # run unit tests
-make test_integration        # run integration tests (requires DynamoDB + KMS locally)
-pipenv run pytest tests/unit/confidant/routes/credentials_test.py -v   # single test file
-pipenv run pytest tests/unit/confidant/routes/credentials_test.py::test_name -v  # single test
-pipenv run confidant-admin   # management CLI
+docker compose exec confidant pipenv install               # install dependencies
+docker compose exec confidant make test_unit               # run unit tests
+docker compose exec confidant make test_integration        # run integration tests (requires DynamoDB + KMS locally)
+docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/credentials_test.py -v   # single test file
+docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/credentials_test.py::test_name -v  # single test
+docker compose exec confidant pipenv run confidant-admin   # management CLI
 ```
 
 ### Frontend (Bun + Vite)
 ```bash
-bun install      # install dependencies
-bun run dev      # dev server on port 3000 (proxies /v1/* to backend)
-bun run build    # production build → confidant/dist/
+docker compose run --rm frontend bun install      # install dependencies
+docker compose run --rm frontend bun run dev      # dev server on port 3000 (proxies /v1/* to backend)
+docker compose run --rm frontend bun run build    # production build → confidant/dist/
 ```
 
 ### Local full-stack dev
@@ -32,6 +32,7 @@ docker compose down
 ```
 
 Use `localhost:3000` (the Vite dev server) during development, not port 80. The SAML auth flow is configured to round-trip through port 3000.
+Prefer running Bun and Pipenv commands through `docker compose`; avoid host-installed toolchains so the local environment matches the containers used for builds and tests.
 
 ## Architecture
 
@@ -45,10 +46,10 @@ Use `localhost:3000` (the Vite dev server) during development, not port 80. The 
 
 ### Frontend
 - **Stack**: React 18, React Router v6, MUI v6, MUI X DataGrid v7, Vite, Bun.
-- **Entry**: `confidant/public/src/App.jsx` — sets up MUI theme (system dark/light mode detection), `AppProvider`, and routes.
-- **Theme**: `src/theme.js` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
-- **API client**: `src/api.js` — wraps `fetch`; 401 responses redirect to `/v1/login`; reads XSRF cookie name from `AppContext` (set after `/v1/client_config` loads).
-- **Global state** (`src/contexts/AppContext.jsx`): loads `clientConfig` (permissions, defined tags, aws_accounts, kms_auth_manage_grants, xsrf_cookie_name) and `userEmail` once on mount.
+- **Entry**: `confidant/public/src/App.tsx` — sets up MUI theme (system dark/light mode detection), `AppProvider`, and routes.
+- **Theme**: `src/theme.ts` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
+- **API client**: `src/api.ts` — wraps `fetch`; 401 responses redirect to `/v1/login`; reads XSRF cookie name from `AppContext` (set after `/v1/client_config` loads).
+- **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags, aws_accounts, kms_auth_manage_grants, xsrf_cookie_name) and `userEmail` once on mount.
 - **Credential detail flow**: on initial load, `getCredential(id, metadata_only=true)` returns `credential_keys` (names only) but not values. `populateForm` uses `credential_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers a second fetch with `metadata_only=false` to decrypt.
 - **View vs edit rendering**: detail pages use a local `ReadOnlyField` component (label + Typography) for view mode, and `TextField`/`Select` for edit mode. Never use `InputProps={{ readOnly }}` on TextField for display — it looks editable.
 - **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` to keep the SAML round-trip on the dev server.

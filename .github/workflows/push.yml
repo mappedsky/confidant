@@ -5,10 +5,14 @@ on:
       - master
     tags:
       - '*'
+permissions:
+  contents: read
 jobs:
   build-and-deploy-docs:
     name: Build and publish docs
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -54,6 +58,7 @@ jobs:
   build-and-publish-to-ghcr:
     # Explicitly grant the `secrets.GITHUB_TOKEN` permissions.
     permissions:
+      contents: read
       # Grant the ability to write to GitHub Packages (push Docker images to
       # GitHub Container Registry).
       packages: write

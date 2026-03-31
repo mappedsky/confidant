@@ -9,14 +9,17 @@ import CredentialDetailPage from './pages/CredentialDetailPage';
 import ServiceListPage from './pages/ServiceListPage';
 import ServiceDetailPage from './pages/ServiceDetailPage';
 
-function useSystemColorMode() {
-  const [mode, setMode] = useState(
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+type ColorScheme = 'light' | 'dark';
+
+function useSystemColorMode(): ColorScheme {
+  const [mode, setMode] = useState<ColorScheme>(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   );
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e) => setMode(e.matches ? 'dark' : 'light');
+    const handler = (e: MediaQueryListEvent) =>
+      setMode(e.matches ? 'dark' : 'light');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);

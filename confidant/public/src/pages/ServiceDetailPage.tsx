@@ -28,6 +28,7 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -35,8 +36,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
+import {
+  ConflictMap,
+  CredentialSummary,
+  GrantsResponse,
+  ServiceDetail,
+} from '../types/api';
 
-function SectionLabel({ children }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
       {children}
@@ -44,7 +51,14 @@ function SectionLabel({ children }) {
   );
 }
 
-function ReadOnlyField({ label, value, sx: sxProp, valueSx }) {
+interface ReadOnlyFieldProps {
+  label: string;
+  value?: string | null;
+  sx?: React.ComponentProps<typeof Box>['sx'];
+  valueSx?: React.ComponentProps<typeof Typography>['sx'];
+}
+
+function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps) {
   return (
     <Box sx={sxProp}>
       <Typography variant="caption" color="text.secondary" display="block" mb={0.25}>
@@ -55,105 +69,124 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }) {
   );
 }
 
+interface ServiceFormCredential {
+  id: string;
+  name: string;
+  revision?: number;
+  enabled?: boolean;
+  isNew?: boolean;
+}
+
+type ServiceDetailParams = { id?: string };
+
 export default function ServiceDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<ServiceDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
 
-  const permissions = clientConfig?.generated?.permissions ?? {};
+  const permissions = clientConfig?.generated?.permissions;
   const awsAccounts = clientConfig?.generated?.aws_accounts ?? [];
   const showGrants = clientConfig?.generated?.kms_auth_manage_grants ?? false;
 
-  const [service, setService] = useState(null);
-  const [allCredentials, setAllCredentials] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [grants, setGrants] = useState(null);
+  const [service, setService] = useState<ServiceDetail | null>(null);
+  const [allCredentials, setAllCredentials] = useState<CredentialSummary[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [grants, setGrants] = useState<GrantsResponse['grants'] | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(isNew);
-  const [error, setError] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [conflicts, setConflicts] = useState(null);
-  const [grantError, setGrantError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
+  const [grantError, setGrantError] = useState<string | null>(null);
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
   const [formAccount, setFormAccount] = useState('');
-  const [formCredentials, setFormCredentials] = useState([]);
+  const [formCredentials, setFormCredentials] = useState<ServiceFormCredential[]>([]);
 
-  const populateForm = useCallback((svc) => {
+  const populateForm = useCallback((svc: ServiceDetail) => {
     setFormId(svc.id ?? '');
     setFormEnabled(svc.enabled ?? true);
     setFormAccount(svc.account ?? '');
     setFormCredentials(
-      (svc.credentials ?? []).map((c) => ({
-        id: c.id,
-        name: c.name || c.id,
-        revision: c.revision,
-        enabled: c.enabled,
-      }))
+      (svc.credentials ?? []).map((credential) =>
+        typeof credential === 'string'
+          ? { id: credential, name: credential, isNew: false }
+          : {
+              id: credential.id,
+              name: credential.name ?? credential.id,
+              revision: credential.revision,
+              enabled: credential.enabled,
+              isNew: false,
+            },
+      ),
     );
   }, []);
 
   useEffect(() => {
     api.getCredentials()
-      .then((data) => setAllCredentials(data.credentials || []))
+      .then((data) => setAllCredentials(data.credentials ?? []))
       .catch(() => {});
 
     api.getRoles()
-      .then((data) => setRoles(data.roles || []))
+      .then((data) => setRoles(data.roles ?? []))
       .catch(() => {});
 
     if (isNew) {
-      setService({ id: '', enabled: true, credentials: [], account: null });
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    const promises = [api.getService(id)];
-    if (showGrants) promises.push(api.getGrants(id).catch(() => null));
+    const servicePromise = api.getService(id);
+    const grantsPromise = showGrants
+      ? api.getGrants(id).catch(() => null)
+      : Promise.resolve<GrantsResponse | null>(null);
 
-    Promise.all(promises)
+    Promise.all([servicePromise, grantsPromise])
       .then(([svc, grantData]) => {
         setService(svc);
         populateForm(svc);
-        if (grantData) setGrants(grantData.grants);
+        setGrants(grantData?.grants ?? null);
       })
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, isNew, showGrants, populateForm]);
-
-  const handleCancel = () => {
-    if (isNew) { navigate('/services'); return; }
-    populateForm(service);
-    setSaveError(null);
-    setConflicts(null);
-    setEditing(false);
-  };
+  }, [id, isNew, populateForm, showGrants]);
 
   const handleAddCredential = () => {
     setFormCredentials((prev) => [...prev, { id: '', name: '', isNew: true }]);
   };
 
-  const handleRemoveCredential = (idx) => {
+  const handleRemoveCredential = (idx: number) => {
     setFormCredentials((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleCredentialChange = (idx, credId) => {
+  const handleCredentialChange = (idx: number, credId: string) => {
     const cred = allCredentials.find((c) => c.id === credId);
     setFormCredentials((prev) =>
-      prev.map((c, i) => i === idx ? { id: credId, name: cred?.name || credId, enabled: cred?.enabled } : c)
+      prev.map((c, i) =>
+        i === idx
+          ? {
+              id: credId,
+              name: cred?.name ?? credId,
+              revision: cred?.revision,
+              enabled: cred?.enabled,
+            }
+          : c,
+      ),
     );
   };
 
   const handleEnsureGrants = async () => {
+    if (!id) return;
     setGrantError(null);
     try {
       const data = await api.updateGrants(id);
       setGrants(data.grants);
     } catch (err) {
-      setGrantError(err.message);
+      setGrantError((err as Error).message);
     }
   };
 
@@ -161,7 +194,7 @@ export default function ServiceDetailPage() {
     setSaveError(null);
     setConflicts(null);
 
-    const credIds = formCredentials.map((c) => c.id);
+    const credIds = formCredentials.map((c) => c.id).filter(Boolean);
     if (new Set(credIds).size !== credIds.length) {
       setSaveError('Credentials must be unique.');
       return;
@@ -173,7 +206,8 @@ export default function ServiceDetailPage() {
         setSaveError(`Service with id ${formId} already exists.`);
         return;
       } catch (err) {
-        if (err.status !== 404) {
+        const error = err as { status?: number };
+        if (error.status !== 404) {
           setSaveError('Failed to check if service already exists.');
           return;
         }
@@ -189,32 +223,58 @@ export default function ServiceDetailPage() {
 
     setSaving(true);
     try {
-      let saved;
+      let saved: ServiceDetail;
       if (isNew) {
         saved = await api.createService(payload);
         navigate(`/services/${saved.id}`, { replace: true });
-      } else {
+      } else if (id) {
         saved = await api.updateService(id, payload);
         setService(saved);
         populateForm(saved);
         setEditing(false);
+      } else {
+        throw new Error('Missing service ID');
       }
-    } catch (err) {
-      setSaveError(err.message);
-      if (err.data?.conflicts) setConflicts(err.data.conflicts);
+    } catch (err: unknown) {
+      const error = err as { message: string; data?: { conflicts?: ConflictMap } };
+      setSaveError(error.message);
+      if (error.data?.conflicts) {
+        setConflicts(error.data.conflicts);
+      }
     } finally {
       setSaving(false);
     }
   };
 
+  const handleCancel = () => {
+    if (isNew) {
+      navigate('/services');
+      return;
+    }
+    if (service) {
+      populateForm(service);
+    }
+    setSaveError(null);
+    setConflicts(null);
+    setEditing(false);
+  };
+
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress /></Box>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/services')} sx={{ mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/services')}
+          sx={{ mb: 2 }}
+        >
           Back to Services
         </Button>
         <Alert severity="error">{error}</Alert>
@@ -222,19 +282,29 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const canEdit = isNew ? permissions.services?.create : service?.permissions?.update;
+  const canEdit = isNew
+    ? permissions?.services?.create
+    : service?.permissions?.update;
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/services')} sx={{ mb: 2 }}>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/services')}
+        sx={{ mb: 2 }}
+      >
         Back to Services
       </Button>
 
       <Typography variant="h5" fontWeight={600} mb={3}>
-        {isNew ? 'New Service' : (service?.id || id)}
+        {isNew ? 'New Service' : service?.id || id}
       </Typography>
 
-      {grantError && <Alert severity="warning" sx={{ mb: 2 }}>{grantError}</Alert>}
+      {grantError && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {grantError}
+        </Alert>
+      )}
 
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -247,7 +317,10 @@ export default function ServiceDetailPage() {
                   <Typography variant="body2"><strong>{key}</strong></Typography>
                   {info.credentials?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
-                      Credential: <Link component={RouterLink} to={`/credentials/${cid}`}>{cid}</Link>
+                      Credential:
+                      <Link component={RouterLink} to={`/credentials/${cid}`}>
+                        {cid}
+                      </Link>
                     </Typography>
                   ))}
                 </Box>
@@ -263,14 +336,12 @@ export default function ServiceDetailPage() {
       <Card elevation={1}>
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={3}>
-
-            {/* Service ID */}
             {isNew ? (
               <Autocomplete
                 freeSolo
                 options={roles}
                 value={formId}
-                onInputChange={(_, val) => setFormId(val)}
+                onInputChange={(_, value) => setFormId(value)}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -282,14 +353,9 @@ export default function ServiceDetailPage() {
                 )}
               />
             ) : (
-              <ReadOnlyField
-                label="Service ID"
-                value={service?.id}
-                valueSx={{ fontFamily: 'monospace' }}
-              />
+              <ReadOnlyField label="Service ID" value={service?.id} valueSx={{ fontFamily: 'monospace' }} />
             )}
 
-            {/* AWS Account */}
             {awsAccounts.length > 0 && (
               editing ? (
                 <FormControl size="small" fullWidth>
@@ -297,25 +363,38 @@ export default function ServiceDetailPage() {
                   <Select
                     label="AWS Account"
                     value={formAccount}
-                    onChange={(e) => setFormAccount(e.target.value)}
+                    onChange={(event: SelectChangeEvent<string>) =>
+                      setFormAccount(event.target.value)
+                    }
                     displayEmpty
                   >
-                    <MenuItem value=""><em>No account scoping</em></MenuItem>
-                    {awsAccounts.filter(Boolean).map((acct) => (
-                      <MenuItem key={acct} value={acct}>{acct}</MenuItem>
+                    <MenuItem value="">
+                      <em>No account scoping</em>
+                    </MenuItem>
+                    {awsAccounts.filter(Boolean).map((account) => (
+                      <MenuItem key={account} value={account}>
+                        {account}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               ) : (
-                <ReadOnlyField label="AWS Account" value={service?.account || 'No account scoping'} />
+                <ReadOnlyField
+                  label="AWS Account"
+                  value={service?.account || 'No account scoping'}
+                />
               )
             )}
 
-            {/* Enabled — existing services only */}
             {!isNew && (
               editing ? (
                 <FormControlLabel
-                  control={<Checkbox checked={formEnabled} onChange={(e) => setFormEnabled(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={formEnabled}
+                      onChange={(e) => setFormEnabled(e.target.checked)}
+                    />
+                  }
                   label="Enabled"
                 />
               ) : (
@@ -331,7 +410,6 @@ export default function ServiceDetailPage() {
               )
             )}
 
-            {/* Credentials */}
             <Box>
               <SectionLabel>Credentials</SectionLabel>
               <Table size="small">
@@ -357,14 +435,20 @@ export default function ServiceDetailPage() {
                             <FormControl size="small" fullWidth>
                               <Select
                                 value={cred.id}
-                                onChange={(e) => handleCredentialChange(idx, e.target.value)}
+                                onChange={(event: SelectChangeEvent<string>) =>
+                                  handleCredentialChange(idx, event.target.value)
+                                }
                                 displayEmpty
                               >
-                                <MenuItem value=""><em>Select credential</em></MenuItem>
+                                <MenuItem value="">
+                                  <em>Select credential</em>
+                                </MenuItem>
                                 {allCredentials
                                   .filter((c) => c.enabled || c.id === cred.id)
                                   .map((c) => (
-                                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                                    <MenuItem key={c.id} value={c.id}>
+                                      {c.name}
+                                    </MenuItem>
                                   ))}
                               </Select>
                             </FormControl>
@@ -374,7 +458,9 @@ export default function ServiceDetailPage() {
                                 {cred.name || cred.id}
                               </Link>
                               {!cred.enabled && (
-                                <Typography component="span" color="text.secondary" ml={1}>(disabled)</Typography>
+                                <Typography component="span" color="text.secondary" ml={1}>
+                                  (disabled)
+                                </Typography>
                               )}
                             </Box>
                           )}
@@ -397,13 +483,17 @@ export default function ServiceDetailPage() {
                 </TableBody>
               </Table>
               {editing && (
-                <Button size="small" startIcon={<AddIcon />} onClick={handleAddCredential} sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddCredential}
+                  sx={{ mt: 1 }}
+                >
                   Add credential
                 </Button>
               )}
             </Box>
 
-            {/* Grants */}
             {!isNew && showGrants && (
               <Box>
                 <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -422,24 +512,33 @@ export default function ServiceDetailPage() {
                 </Stack>
                 {grants ? (
                   <Stack spacing={1.5}>
-                    <ReadOnlyField label="Decrypt Grant" value={grants.decrypt_grant || 'none'} />
-                    <ReadOnlyField label="Encrypt Grant" value={grants.encrypt_grant || 'none'} />
+                    <ReadOnlyField label="Decrypt Grant" value={grants.decrypt_grant ? 'true' : 'none'} />
+                    <ReadOnlyField label="Encrypt Grant" value={grants.encrypt_grant ? 'true' : 'none'} />
                   </Stack>
                 ) : (
-                  <Typography color="text.secondary" variant="body2">No grants information available.</Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    No grants information available.
+                  </Typography>
                 )}
               </Box>
             )}
 
-            {/* Read-only audit metadata */}
             {!isNew && (
               <>
                 <Divider />
                 <Stack direction="row" flexWrap="wrap" gap={2}>
-                  <ReadOnlyField label="Revision" value={service?.revision?.toString()} sx={{ flex: '0 1 100px' }} />
+                  <ReadOnlyField
+                    label="Revision"
+                    value={service?.revision?.toString() ?? '—'}
+                    sx={{ flex: '0 1 100px' }}
+                  />
                   <ReadOnlyField
                     label="Modified"
-                    value={service?.modified_date ? new Date(service.modified_date).toLocaleString() : '—'}
+                    value={
+                      service?.modified_date
+                        ? new Date(service.modified_date).toLocaleString()
+                        : '—'
+                    }
                     sx={{ flex: '1 1 200px' }}
                   />
                   <ReadOnlyField
@@ -450,7 +549,6 @@ export default function ServiceDetailPage() {
                 </Stack>
               </>
             )}
-
           </Stack>
         </CardContent>
 
@@ -459,8 +557,16 @@ export default function ServiceDetailPage() {
             canEdit ? (
               <Button
                 variant="contained"
-                onClick={() => { setSaveError(null); setConflicts(null); setEditing(true); }}
-                sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
+                onClick={() => {
+                  setSaveError(null);
+                  setConflicts(null);
+                  setEditing(true);
+                }}
+                sx={{
+                  bgcolor: '#6bdfab',
+                  color: '#424554',
+                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                }}
               >
                 Edit
               </Button>
@@ -477,7 +583,11 @@ export default function ServiceDetailPage() {
                 variant="contained"
                 onClick={handleSave}
                 disabled={saving}
-                sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
+                sx={{
+                  bgcolor: '#6bdfab',
+                  color: '#424554',
+                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                }}
               >
                 {saving ? <CircularProgress size={18} /> : 'Save'}
               </Button>
