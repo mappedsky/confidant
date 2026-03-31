@@ -1,7 +1,25 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+// Rewrite any bare http://localhost/ redirects from the backend to port 3000
+// so the SAML auth flow lands back on the Vite dev server.
+function rewriteLocalhostRedirects(proxy) {
+  proxy.on('proxyRes', (proxyRes) => {
+    const loc = proxyRes.headers['location'];
+    if (loc && /^http:\/\/localhost(\/|$)/.test(loc)) {
+      proxyRes.headers['location'] = loc.replace(
+        /^http:\/\/localhost\b/,
+        'http://localhost:3000',
+      );
+    }
+  });
+}
+
+const backendTarget = 'http://confidant:80';
+
 export default defineConfig({
+  plugins: [react()],
   root: 'confidant/public',
   base: '/',
   build: {
@@ -16,22 +34,11 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
-    fs: {
-      allow: ['..'],
-    },
     proxy: {
-      '/v1': 'http://confidant:80',
-      '/healthcheck': 'http://confidant:80',
-      '/loggedout': 'http://confidant:80',
-      '/custom': 'http://confidant:80',
-    },
-  },
-  resolve: {
-    alias: {
-      // Compatibility with the old /components/ path
-      '/components': resolve(__dirname, 'node_modules'),
-      '/bower_components': resolve(__dirname, 'node_modules'),
-      // Add other aliases if needed
+      '/v1':         { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/healthcheck': { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/loggedout':   { target: backendTarget, configure: rewriteLocalhostRedirects },
+      '/custom':      { target: backendTarget, configure: rewriteLocalhostRedirects },
     },
   },
 });

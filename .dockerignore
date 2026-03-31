@@ -9,3 +9,5 @@ docker-compose.yml
 Dockerfile
 docs
 .git
+gunicorn.ctl
+*.sock

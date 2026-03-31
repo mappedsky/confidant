@@ -1,37 +1,14 @@
 <!doctype html>
-<html xmlns:ng="http://angularjs.org" id="ng-app" class="no-js" data-ng-controller="ConfidantMainCtrl" ng-class="pageClass" ng-app="confidantApp" data-is-mobile>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Confidant - Your secret keeper</title>
     <meta name="description" content="">
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
-    <script type="module" src="/main.js"></script>
 </head>
 <body>
-    <!--[if lt IE 9]>
-    <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-    <![endif]-->
-
-    <!-- Add your site or application content here -->
-    <div id="loading-spinner" loading-spinner="data-loading"></div>
-    <header id="page-header" class="header">
-        <nav id="site-navigation">
-          <div class="container-fluid">
-            <p class="navbar-text pull-right" style="text-align: right">
-              Logged in as {{ user.email }} | <a href="loggedout">Log Out <span class="glyphicon glyphicon-log-out"></span></a>
-            </p>
-            <h1><a href="#"><img class="site-logo visible-sm visible-md visible-lg" src="images/logo.svg"></a></h1>
-          </div>
-        </nav>
-    </header>
-
-    <div id="page-navigation" class="container-fluid has-margin-bottom" role="navigation" ng-controller="common.NavCtrl">
-      <ul class="nav nav-tabs has-margin-bottom">
-        <li role="presentation" ng-class="{ 'active': viewLocation === 'resources' }"><a ui-sref="resources" ng-class="{ 'active': viewLocation === 'resources' }">Resources <span class="glyphicon glyphicon-lock"></span></a></li>
-        <li role="presentation" ng-class="{ 'active': viewLocation === 'history' }"><a ui-sref="history" ng-class="{ 'active': viewLocation === 'history' }">History <span class="glyphicon glyphicon-time"></span></a></li>
-      </ul>
-    </div>
-    <div ui-view="main" class="container-fluid container-body"></div>
+    <div id="root"></div>
+    <script type="module" src="/main.jsx"></script>
 </body>
 </html>

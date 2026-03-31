@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lyft/confidant
+    image: mappedsky/confidant
     init: true
     restart: on-failure
     networks:

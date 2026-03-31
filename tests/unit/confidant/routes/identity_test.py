@@ -54,6 +54,8 @@ def test_get_client_config(mocker: MockerFixture):
     mocker.patch('confidant.settings.XSRF_COOKIE_NAME', 'CSRF_TOKEN')
     mocker.patch('confidant.settings.MAINTENANCE_MODE', True)
     mocker.patch('confidant.settings.HISTORY_PAGE_LIMIT', 50)
+    mocker.patch('confidant.settings.TAGS_EXCLUDING_ROTATION', [])
+    mocker.patch('confidant.settings.ROTATION_DAYS_CONFIG', {})
 
     expected = {
         'defined': {'test': 'client_config'},
