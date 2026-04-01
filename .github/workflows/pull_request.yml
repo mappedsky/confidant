@@ -1,10 +1,10 @@
+name: CI
 on:
   pull_request:
   push:
     branches:
       - '**'
-    branches-ignore:
-      - gh-pages
+      - '!gh-pages'
 
 # Explicitly grant the `secrets.GITHUB_TOKEN` only the read access needed by
 # checkout and the read-only test jobs.
