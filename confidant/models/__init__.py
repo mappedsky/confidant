@@ -1,5 +1,5 @@
-from confidant import settings
-from confidant.utils.dynamodb import create_dynamodb_tables
+"""Legacy model package.
 
-if settings.DYNAMODB_CREATE_TABLE:
-    create_dynamodb_tables()
+The rewrite moves DynamoDB access into `confidant.services.dynamodbstore`.
+This module intentionally has no import-time side effects.
+"""

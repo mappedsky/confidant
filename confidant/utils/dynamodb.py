@@ -1,42 +1,12 @@
 import base64
 import json
-import time
-
-from pynamodb.exceptions import TableError
 
 from confidant import settings
-from confidant.models.credential import Credential, CredentialArchive
-from confidant.models.service import Service
+from confidant.services.dynamodbstore import store
 
 
 def create_dynamodb_tables():
-    i = 0
-    # This loop is absurd, but there's race conditions with dynamodb local
-    while i < 5:
-        try:
-            if not Credential.exists():
-                Credential.create_table(
-                    read_capacity_units=10,
-                    write_capacity_units=10,
-                    wait=True
-                )
-            if (settings.DYNAMODB_TABLE_ARCHIVE
-                    and not CredentialArchive.exists()):
-                CredentialArchive.create_table(
-                    read_capacity_units=10,
-                    write_capacity_units=10,
-                    wait=True
-                )
-            if not Service.exists():
-                Service.create_table(
-                    read_capacity_units=10,
-                    write_capacity_units=10,
-                    wait=True
-                )
-            break
-        except TableError:
-            i = i + 1
-            time.sleep(2)
+    store.initialize()
 
 
 def encode_last_evaluated_key(last_evaluated_key):

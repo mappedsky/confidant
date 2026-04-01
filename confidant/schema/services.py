@@ -6,7 +6,30 @@ from confidant.schema.credentials import CredentialResponse
 from confidant.utils.dynamodb import encode_last_evaluated_key
 
 
+def _value(obj, key, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+class CreateServiceRequest(BaseModel):
+    credentials: List[str] = Field(default_factory=list)
+    enabled: bool = True
+    account: Optional[str] = None
+
+
+class UpdateServiceRequest(BaseModel):
+    credentials: Optional[List[str]] = None
+    enabled: Optional[bool] = None
+    account: Optional[str] = None
+
+
+class RestoreServiceVersionRequest(BaseModel):
+    comment: Optional[str] = None
+
+
 class ServiceResponse(BaseModel):
+    tenant_id: str
     id: str
     account: Optional[str] = None
     revision: int
@@ -26,18 +49,19 @@ class ServiceResponse(BaseModel):
         include_credentials=False,
     ):
         data = {
-            'id': service.id,
-            'revision': service.revision,
-            'modified_date': service.modified_date,
-            'modified_by': service.modified_by,
+            'tenant_id': _value(service, 'tenant_id'),
+            'id': _value(service, 'id'),
+            'revision': _value(service, 'revision'),
+            'modified_date': _value(service, 'modified_date'),
+            'modified_by': _value(service, 'modified_by'),
         }
-        if service.account is not None:
-            data['account'] = service.account
-        if service.enabled is not None:
-            data['enabled'] = service.enabled
+        if _value(service, 'account') is not None:
+            data['account'] = _value(service, 'account')
+        if _value(service, 'enabled') is not None:
+            data['enabled'] = _value(service, 'enabled')
 
         if include_credentials:
-            data['credentials'] = service.credentials
+            data['credentials'] = _value(service, 'credentials', [])
         return cls(**data)
 
     @classmethod
@@ -48,15 +72,16 @@ class ServiceResponse(BaseModel):
         metadata_only=True,
     ):
         data = {
-            'id': service.id,
-            'revision': service.revision,
-            'modified_date': service.modified_date,
-            'modified_by': service.modified_by,
+            'tenant_id': _value(service, 'tenant_id'),
+            'id': _value(service, 'id'),
+            'revision': _value(service, 'revision'),
+            'modified_date': _value(service, 'modified_date'),
+            'modified_by': _value(service, 'modified_by'),
         }
-        if service.account is not None:
-            data['account'] = service.account
-        if service.enabled is not None:
-            data['enabled'] = service.enabled
+        if _value(service, 'account') is not None:
+            data['account'] = _value(service, 'account')
+        if _value(service, 'enabled') is not None:
+            data['enabled'] = _value(service, 'enabled')
 
         include_sensitive = not metadata_only
         data['credentials'] = [
@@ -97,7 +122,7 @@ class ServicesResponse(BaseModel):
 
 
 class RevisionsResponse(BaseModel):
-    revisions: List[ServiceResponse]
+    versions: List[ServiceResponse]
     next_page: Optional[str] = None
 
     @classmethod
@@ -114,10 +139,10 @@ class RevisionsResponse(BaseModel):
             )
             for service in services
         ]
-        # Sort by revision as per original pre_dump sort_revisions
+        # Sort by revision to match historical version ordering.
         revisions_list.sort(key=lambda k: k.revision)
         return cls(
-            revisions=revisions_list,
+            versions=revisions_list,
             next_page=encode_last_evaluated_key(next_page),
         )
 
@@ -135,9 +160,11 @@ class SchemaWrapper:
 service_expanded_response_schema = SchemaWrapper(ServiceResponse)
 services_response_schema = SchemaWrapper(ServicesResponse)
 revisions_response_schema = SchemaWrapper(RevisionsResponse)
+service_version_list_response_schema = revisions_response_schema
 
 # For backward compatibility
 ServiceResponseSchema = SchemaWrapper
 ServiceExpandedResponseSchema = SchemaWrapper
 ServicesResponseSchema = SchemaWrapper
 RevisionsResponseSchema = SchemaWrapper
+ServiceVersionListResponseSchema = SchemaWrapper

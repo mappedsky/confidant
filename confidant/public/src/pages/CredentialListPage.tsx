@@ -20,6 +20,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { CredentialSummary } from '../types/api';
 
 const columns: GridColDef<CredentialSummary>[] = [
+  { field: 'id', headerName: 'ID', flex: 1, minWidth: 220 },
   { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
   {
     field: 'enabled',

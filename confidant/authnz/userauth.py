@@ -27,6 +27,33 @@ from confidant.authnz import errors
 logger = logging.getLogger(__name__)
 
 
+def _normalize_tenant_id(tenant_id):
+    if isinstance(tenant_id, str):
+        tenant_id = tenant_id.strip()
+    return tenant_id or None
+
+
+def resolve_saml_tenant_id(attributes):
+    if not settings.MULTI_TENANT:
+        return None
+
+    source = (settings.SAML_TENANT_ID_SOURCE or 'disabled').strip().lower()
+    if source == 'disabled':
+        return None
+    if source == 'entity_id':
+        tenant_id = settings.SAML_IDP_ENTITY_ID
+    elif source in ('attribute', 'claim'):
+        tenant_id = attributes.get(settings.SAML_TENANT_ID_ATTRIBUTE)
+    else:
+        raise ValueError(
+            'Unknown SAML_TENANT_ID_SOURCE: {!r}'.format(
+                settings.SAML_TENANT_ID_SOURCE,
+            )
+        )
+
+    return _normalize_tenant_id(tenant_id)
+
+
 def init_user_auth_class(*args, **kwargs):
     if not settings.USE_AUTH:
         module = NullUserAuthenticator
@@ -114,11 +141,18 @@ class AbstractUserAuthenticator(object):
                 max_expiration = now + datetime.timedelta(seconds=max_lifetime)
                 session['max_expiration'] = max_expiration
 
-    def set_current_user(self, email, first_name=None, last_name=None):
+    def set_current_user(
+        self,
+        email,
+        first_name=None,
+        last_name=None,
+        tenant_id=None,
+    ):
         session['user'] = {
             'email': email,
             'first_name': first_name,
             'last_name': last_name,
+            'tenant_id': tenant_id,
         }
 
     def current_email(self):
@@ -612,8 +646,14 @@ class SamlAuthenticator(AbstractUserAuthenticator):
             if key.lower() in ['lastname', 'last_name']:
                 kwargs['last_name'] = val
 
+        tenant_id = resolve_saml_tenant_id(attributes)
+        if settings.MULTI_TENANT and not tenant_id:
+            logger.warning('SAML tenant id could not be resolved')
+            resp = jsonify(error='Tenant not resolved')
+            resp.status_code = 401
+            return resp
         self.set_expiration()
-        self.set_current_user(**kwargs)
+        self.set_current_user(tenant_id=tenant_id, **kwargs)
 
         # success, redirect to RelayState if present or to /
         default_redirect = flask.url_for('static_files.index')

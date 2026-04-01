@@ -5,6 +5,7 @@ from werkzeug.exceptions import Forbidden, Unauthorized
 
 from confidant import authnz
 from confidant.app import create_app
+from confidant.authnz import userauth
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +33,84 @@ def test_get_logged_in_user_from_session(mocker: MockerFixture):
         }
         mocker.patch('confidant.authnz.userauth.session', session_data)
         assert authnz.get_logged_in_user() == 'unittestuser@example.com'
+
+
+def test_get_tenant_id_singletenant_default(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', False)
+    app = create_app()
+    with app.app_context():
+        assert authnz.get_tenant_id() == 'singletenant'
+
+
+def test_get_tenant_id_from_auth_context(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+    app = create_app()
+    with app.app_context():
+        g_mock = mocker.patch('confidant.authnz.g')
+        g_mock.tenant_id = 'tenant-a'
+        assert authnz.get_tenant_id() == 'tenant-a'
+
+
+def test_resolve_saml_tenant_id_from_entity_id(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
+    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'entity_id')
+    mocker.patch('confidant.authnz.userauth.settings.SAML_IDP_ENTITY_ID', 'tenant-a')
+    assert userauth.resolve_saml_tenant_id({}) == 'tenant-a'
+
+
+def test_resolve_saml_tenant_id_from_claim(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
+    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'claim')
+    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_ATTRIBUTE', 'tenant')
+    assert userauth.resolve_saml_tenant_id({'tenant': 'tenant-a'}) == 'tenant-a'
+
+
+def test_resolve_saml_tenant_id_rejects_missing_claim(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
+    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'attribute')
+    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_ATTRIBUTE', 'tenant')
+    assert userauth.resolve_saml_tenant_id({}) is None
+
+
+def test_get_tenant_id_rejects_none(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+    app = create_app()
+    with app.app_context():
+        g_mock = mocker.patch('confidant.authnz.g')
+        g_mock.tenant_id = None
+        mocker.patch(
+            'confidant.authnz.user_mod.is_authenticated',
+            return_value=False,
+        )
+        with pytest.raises(authnz.UserUnknownError):
+            authnz.get_tenant_id()
+
+
+def test_get_tenant_id_rejects_empty_string(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+    app = create_app()
+    with app.app_context():
+        g_mock = mocker.patch('confidant.authnz.g')
+        g_mock.tenant_id = ''
+        user_mod = mocker.patch('confidant.authnz.user_mod')
+        user_mod.is_authenticated = mocker.Mock(return_value=True)
+        user_mod.current_user = mocker.Mock(return_value={'tenant_id': ''})
+        with pytest.raises(authnz.UserUnknownError):
+            authnz.get_tenant_id()
+
+
+def test_get_tenant_id_rejects_whitespace_string(mocker: MockerFixture):
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+    app = create_app()
+    with app.app_context():
+        g_mock = mocker.patch('confidant.authnz.g')
+        g_mock.tenant_id = '   '
+        mocker.patch(
+            'confidant.authnz.user_mod.is_authenticated',
+            return_value=False,
+        )
+        with pytest.raises(authnz.UserUnknownError):
+            authnz.get_tenant_id()
 
 
 def test_user_is_user_type(mocker: MockerFixture):
@@ -323,6 +402,7 @@ def test_require_auth(mocker: MockerFixture):
         'confidant.authnz._get_kms_auth_data',
         return_value={},
     )
+    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
 
     # Session token is expired
     user_mod = mocker.MagicMock()
@@ -342,12 +422,15 @@ def test_require_auth(mocker: MockerFixture):
     user_mod.check_authorization = mocker.Mock(return_value=None)
     user_mod.auth_type = 'testmod'
     user_mod.set_expiration = mocker.Mock()
+    user_mod.current_user = mocker.Mock(return_value={'email': 'user@example.com', 'tenant_id': 'tenant-a'})
+    g_mock.tenant_id = None
     response = mocker.Mock()
     mocker.patch('confidant.authnz.make_response', return_value=response)
     user_mod.set_csrf_token = mocker.Mock()
     assert wrapped() == response
     assert g_mock.user_type == 'user'
     assert g_mock.auth_type == 'testmod'
+    assert g_mock.tenant_id == 'tenant-a'
 
     # User is authenticated, but not authorized
     user_mod.check_authorization = mocker.Mock(side_effect=authnz.NotAuthorized)

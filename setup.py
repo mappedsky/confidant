@@ -27,7 +27,6 @@ setup(
         'blinker',
         'botocore',
         'boto3',
-        'pynamodb',
         'cryptography',
         'cffi',
         'Flask-Session',

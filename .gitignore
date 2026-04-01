@@ -39,6 +39,8 @@ karma-test-results.xml
 node_modules
 npm-debug.log
 components
+!confidant/public/src/components/
+!confidant/public/src/components/*.tsx
 .sass-cache
 .tmp
 confidant/public/dist

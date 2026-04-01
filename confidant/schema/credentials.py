@@ -5,7 +5,36 @@ from pydantic import BaseModel, Field
 from confidant.utils.dynamodb import encode_last_evaluated_key
 
 
+def _value(obj, key, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+class CreateCredentialRequest(BaseModel):
+    name: str
+    credential_pairs: Dict[Any, Any]
+    metadata: Dict[Any, Any] = Field(default_factory=dict)
+    enabled: bool = True
+    documentation: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+
+class UpdateCredentialRequest(BaseModel):
+    name: Optional[str] = None
+    credential_pairs: Optional[Dict[Any, Any]] = None
+    metadata: Optional[Dict[Any, Any]] = None
+    enabled: Optional[bool] = None
+    documentation: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class RestoreCredentialVersionRequest(BaseModel):
+    comment: Optional[str] = None
+
+
 class CredentialResponse(BaseModel):
+    tenant_id: str
     id: str
     name: str
     revision: int
@@ -34,29 +63,33 @@ class CredentialResponse(BaseModel):
         # We handle attribute access here because credential is a PynamoDB model
         # or similar object that might not be a dict.
         data = {
-            'id': credential.id,
-            'name': credential.name,
-            'revision': credential.revision,
-            'modified_date': credential.modified_date,
-            'modified_by': credential.modified_by,
+            'tenant_id': _value(credential, 'tenant_id'),
+            'id': _value(credential, 'id'),
+            'name': _value(credential, 'name'),
+            'revision': _value(credential, 'revision'),
+            'modified_date': _value(credential, 'modified_date'),
+            'modified_by': _value(credential, 'modified_by'),
         }
-        if credential.enabled is not None:
-            data['enabled'] = credential.enabled
-        if credential.metadata is not None:
-            data['metadata'] = credential.metadata
-        if credential.documentation is not None:
-            data['documentation'] = credential.documentation
-        if credential.tags is not None:
-            data['tags'] = credential.tags
-        if credential.last_rotation_date is not None:
-            data['last_rotation_date'] = credential.last_rotation_date
-        if credential.next_rotation_date is not None:
-            data['next_rotation_date'] = credential.next_rotation_date
+        if _value(credential, 'enabled') is not None:
+            data['enabled'] = _value(credential, 'enabled')
+        if _value(credential, 'metadata') is not None:
+            data['metadata'] = _value(credential, 'metadata')
+        if _value(credential, 'documentation') is not None:
+            data['documentation'] = _value(credential, 'documentation')
+        if _value(credential, 'tags') is not None:
+            data['tags'] = _value(credential, 'tags')
+        if _value(credential, 'last_rotation_date') is not None:
+            data['last_rotation_date'] = _value(credential, 'last_rotation_date')
+        if _value(credential, 'next_rotation_date') is not None:
+            data['next_rotation_date'] = _value(credential, 'next_rotation_date')
 
         if include_credential_keys:
-            data['credential_keys'] = credential.credential_keys
+            data['credential_keys'] = _value(credential, 'credential_keys', [])
         if include_credential_pairs:
-            data['credential_pairs'] = credential.decrypted_credential_pairs
+            decrypted = _value(credential, 'decrypted_credential_pairs', None)
+            if decrypted is None:
+                decrypted = _value(credential, 'credential_pairs', {})
+            data['credential_pairs'] = decrypted
         return cls(**data)
 
 
@@ -90,7 +123,7 @@ class CredentialsResponse(BaseModel):
 
 
 class RevisionsResponse(BaseModel):
-    revisions: List[CredentialResponse]
+    versions: List[CredentialResponse]
     next_page: Optional[str] = None
 
     @classmethod
@@ -109,11 +142,11 @@ class RevisionsResponse(BaseModel):
             )
             for credential in credentials
         ]
-        # Sort by revision as per original pre_dump sort_revisions
+        # Sort by revision to match historical version ordering.
         revisions_list.sort(key=lambda k: k.revision)
 
         return cls(
-            revisions=revisions_list,
+            versions=revisions_list,
             next_page=encode_last_evaluated_key(next_page),
         )
 
@@ -133,8 +166,10 @@ class SchemaWrapper:
 credential_response_schema = SchemaWrapper(CredentialResponse)
 credentials_response_schema = SchemaWrapper(CredentialsResponse)
 revisions_response_schema = SchemaWrapper(RevisionsResponse)
+credential_version_list_response_schema = revisions_response_schema
 
 # For backward compatibility
 CredentialResponseSchema = SchemaWrapper
 CredentialsResponseSchema = SchemaWrapper
 RevisionsResponseSchema = SchemaWrapper
+CredentialVersionListResponseSchema = SchemaWrapper

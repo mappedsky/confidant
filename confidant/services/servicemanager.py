@@ -1,86 +1,276 @@
-from pynamodb.exceptions import DoesNotExist
+import logging
+from datetime import datetime
+from datetime import timezone
 
-from confidant import settings
-from confidant.services import credentialmanager
+from confidant.schema.credentials import CredentialResponse
+from confidant.schema.services import ServiceResponse
+from confidant.schema.services import ServicesResponse
+from confidant.schema.services import RevisionsResponse
 from confidant.services import graphite
-from confidant.models.service import Service
+from confidant.services.dynamodbstore import store
+from confidant.utils import stats
+
+logger = logging.getLogger(__name__)
 
 
-def get_services_for_credential(_id):
-    services = []
-    for service in Service.data_type_date_index.query('service'):
-        if _id in service.credentials:
-            services.append(service.id)
-    return services
+def _value(obj, key, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _as_datetime(value):
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value)
+
+
+def _service_response_from_item(item, include_credentials=False, credentials=None):
+    data = {
+        "tenant_id": item["tenant_id"],
+        "id": item["id"],
+        "revision": int(item["revision"]),
+        "modified_date": _as_datetime(item["modified_date"]),
+        "modified_by": item["modified_by"],
+    }
+    if item.get("account") is not None:
+        data["account"] = item["account"]
+    if item.get("enabled") is not None:
+        data["enabled"] = item["enabled"]
+    if include_credentials:
+        data["credentials"] = item.get("credentials", [])
+        if credentials is not None:
+            data["credentials"] = credentials
+    return ServiceResponse(**data)
+
+
+def list_services(tenant_id, limit=None, page=None):
+    results = store.list_services(
+        tenant_id,
+        limit=limit,
+        last_evaluated_key=page,
+    )
+    services = [
+        _service_response_from_item(item)
+        for item in results.get("Items", [])
+    ]
+    return ServicesResponse.from_services(
+        services,
+        next_page=results.get("LastEvaluatedKey"),
+    )
+
+
+def get_service_latest(tenant_id, service_id):
+    item = store.get_service_latest(tenant_id, service_id)
+    if not item:
+        return None
+    return _service_response_from_item(
+        item,
+        include_credentials=True,
+    )
+
+
+def list_service_versions(tenant_id, service_id):
+    items = store.list_service_versions(tenant_id, service_id)
+    services = [
+        _service_response_from_item(item, include_credentials=True)
+        for item in items
+    ]
+    return RevisionsResponse.from_services(services)
+
+
+def get_service_version(tenant_id, service_id, version):
+    item = store.get_service_version(tenant_id, service_id, version)
+    if not item:
+        return None
+    return _service_response_from_item(item, include_credentials=True)
+
+
+def get_services_for_credential(tenant_id, credential_id):
+    services = store.list_services_for_credential(tenant_id, credential_id)
+    return [item["id"] for item in services]
 
 
 def get_service_map(services):
     service_map = {}
     for service in services:
-        for credential in service.credentials:
+        for credential in _value(service, "credentials", []):
             if credential in service_map:
-                service_map[credential]['service_ids'].append(service.id)
+                service_map[credential]["service_ids"].append(_value(service, "id"))
             else:
                 service_map[credential] = {
-                    'data_type': 'credential',
-                    'service_ids': [service.id]
+                    "data_type": "credential",
+                    "service_ids": [_value(service, "id")],
                 }
     return service_map
 
 
-def pair_key_conflicts_for_services(_id, credential_keys, services):
-    conflicts = {}
-    # If we don't care about conflicts, return immediately
-    if settings.IGNORE_CONFLICTS:
-        return conflicts
-    service_map = get_service_map(services)
-    credential_ids = []
-    for credential, data in service_map.items():
-        if _id == credential:
-            continue
-        if data['data_type'] == 'credential':
-            credential_ids.append(credential)
-    credentials = credentialmanager.get_credentials(credential_ids)
-    for credential in credentials:
-        services = service_map[credential.id]['service_ids']
-        data_type = 'credentials'
-        for key in credential_keys:
-            if key in credential.credential_keys:
-                if key not in conflicts:
-                    conflicts[key] = {
-                        data_type: [credential.id],
-                        'services': services
-                    }
-                else:
-                    conflicts[key]['services'].extend(services)
-                    conflicts[key][data_type].append(credential.id)
-                conflicts[key]['services'] = list(
-                    set(conflicts[key]['services'])
-                )
-                conflicts[key][data_type] = list(
-                    set(conflicts[key][data_type])
-                )
-    return conflicts
-
-
 def send_service_mapping_graphite_event(new_service, old_service):
     if old_service:
-        old_credential_ids = old_service.credentials
+        old_credential_ids = _value(old_service, "credentials", [])
     else:
         old_credential_ids = []
-    added = list(set(new_service.credentials) - set(old_credential_ids))
-    removed = list(set(old_credential_ids) - set(new_service.credentials))
-    msg = 'Added credentials: {0}; Removed credentials {1}; Revision {2}'
-    msg = msg.format(added, removed, new_service.revision)
-    graphite.send_event([id], msg)
+    added = list(set(_value(new_service, "credentials", [])) - set(old_credential_ids))
+    removed = list(set(old_credential_ids) - set(_value(new_service, "credentials", [])))
+    msg = "Added credentials: {0}; Removed credentials {1}; Revision {2}"
+    msg = msg.format(added, removed, _value(new_service, "revision"))
+    graphite.send_event([_value(new_service, "id")], msg)
 
 
-def get_latest_service_revision(id, revision):
-    i = revision + 1
-    while True:
-        _id = '{0}-{1}'.format(id, i)
-        try:
-            Service.get(_id)
-        except DoesNotExist:
-            return i
-        i = i + 1
+def get_latest_service_revision(_id, revision):
+    return revision + 1
+
+
+def _build_service_items(
+    tenant_id,
+    service_id,
+    revision,
+    credentials,
+    account,
+    enabled,
+    modified_by,
+    created_at,
+    previous_created_at=None,
+):
+    base = {
+        "tenant_id": tenant_id,
+        "id": service_id,
+        "revision": revision,
+        "credentials": list(credentials),
+        "account": account,
+        "enabled": enabled,
+        "modified_date": created_at,
+        "modified_by": modified_by,
+    }
+    metadata_item = {
+        "PK": f"TENANT#{tenant_id}#SERVICE#{service_id}",
+        "SK": "#METADATA",
+        **base,
+    }
+    latest_item = {
+        "PK": f"TENANT#{tenant_id}#SERVICE#{service_id}",
+        "SK": "#LATEST",
+        **base,
+    }
+    version_item = {
+        "PK": f"TENANT#{tenant_id}#SERVICE#{service_id}",
+        "SK": f"VERSION#{revision:010d}",
+        **base,
+    }
+    list_item = {
+        "PK": f"TENANT#{tenant_id}#SERVICE_LIST",
+        "SK": f"SERVICE#{service_id}",
+        **base,
+    }
+    if previous_created_at is not None:
+        metadata_item["created_at"] = previous_created_at
+        latest_item["created_at"] = previous_created_at
+        version_item["created_at"] = previous_created_at
+        list_item["created_at"] = previous_created_at
+    return metadata_item, latest_item, version_item, list_item
+
+
+def create_service(
+    tenant_id,
+    service_id,
+    credentials,
+    created_by,
+    enabled=True,
+    account=None,
+):
+    revision = 1
+    now = datetime.now(timezone.utc).isoformat()
+    metadata_item, latest_item, version_item, list_item = _build_service_items(
+        tenant_id,
+        service_id,
+        revision,
+        credentials,
+        account,
+        enabled,
+        created_by,
+        now,
+    )
+    for item in (metadata_item, latest_item, version_item, list_item):
+        item["created_at"] = now
+        item["updated_at"] = now
+    store.put_version_bundle(
+        [
+            {"Item": metadata_item, "ConditionExpression": "attribute_not_exists(PK)"},
+            {"Item": latest_item, "ConditionExpression": "attribute_not_exists(PK)"},
+            {"Item": version_item, "ConditionExpression": "attribute_not_exists(PK)"},
+            {"Item": list_item, "ConditionExpression": "attribute_not_exists(PK)"},
+        ]
+    )
+    return _service_response_from_item(
+        latest_item,
+        include_credentials=True,
+    ), None
+
+
+def update_service(
+    tenant_id,
+    service_id,
+    credentials,
+    created_by,
+    enabled=None,
+    account=None,
+):
+    current = store.get_service_latest(tenant_id, service_id)
+    if not current:
+        return None, {"error": "Service not found."}
+    if enabled is None:
+        enabled = current.get("enabled", True)
+    if account is None:
+        account = current.get("account")
+    revision = int(current["revision"]) + 1
+    now = datetime.now(timezone.utc).isoformat()
+    metadata_item, latest_item, version_item, list_item = _build_service_items(
+        tenant_id,
+        service_id,
+        revision,
+        credentials,
+        account,
+        enabled,
+        created_by,
+        now,
+        previous_created_at=current.get("created_at", current["modified_date"]),
+    )
+    store.put_version_bundle(
+        [
+            {"Item": version_item, "ConditionExpression": "attribute_not_exists(PK)"},
+            {"Item": latest_item, "ConditionExpression": "attribute_exists(PK)"},
+            {
+                "Item": metadata_item,
+                "ConditionExpression": "revision = :expected",
+                "ExpressionAttributeValues": {
+                    ":expected": int(current["revision"]),
+                },
+            },
+            {"Item": list_item, "ConditionExpression": "attribute_exists(PK)"},
+        ]
+    )
+    return _service_response_from_item(
+        latest_item,
+        include_credentials=True,
+    ), None
+
+
+def restore_service_version(
+    tenant_id,
+    service_id,
+    version,
+    created_by,
+    comment=None,
+):
+    current = store.get_service_latest(tenant_id, service_id)
+    source = store.get_service_version(tenant_id, service_id, version)
+    if not current or not source:
+        return None
+    return update_service(
+        tenant_id=tenant_id,
+        service_id=service_id,
+        credentials=source.get("credentials", []),
+        created_by=created_by,
+        enabled=source.get("enabled", True),
+        account=source.get("account"),
+    )[0]

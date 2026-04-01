@@ -13,11 +13,11 @@ from confidant.routes import (
     services,
     static_files,
     )
+from confidant.utils.dynamodb import create_dynamodb_tables
 
 if not settings.get('DEBUG'):
     boto3.set_stream_logger(level=logging.CRITICAL)
     logging.getLogger('botocore').setLevel(logging.CRITICAL)
-    logging.getLogger('pynamodb').setLevel(logging.WARNING)
 
 CSP_POLICY = {
     'default-src': ["'self'"],
@@ -51,6 +51,9 @@ def create_app():
         Session(app)
 
     app.secret_key = settings.SESSION_SECRET
+
+    if settings.DYNAMODB_CREATE_TABLE:
+        create_dynamodb_tables()
 
     app.register_blueprint(credentials.blueprint)
     app.register_blueprint(identity.blueprint)

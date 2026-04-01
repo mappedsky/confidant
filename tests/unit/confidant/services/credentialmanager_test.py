@@ -1,6 +1,7 @@
 from confidant.models.credential import Credential
 from confidant.services import credentialmanager
 from pynamodb.exceptions import DoesNotExist
+import base64
 
 from pytest_mock.plugin import MockerFixture
 
@@ -65,3 +66,49 @@ def test_lowercase_credential_pairs():
     }
     res = credentialmanager.lowercase_credential_pairs(test)
     assert res == expected
+
+
+def test_encrypt_credential_pairs_encodes_data_key(mocker: MockerFixture):
+    mocker.patch(
+        'confidant.services.keymanager.create_datakey',
+        return_value={'plaintext': b'plaintext', 'ciphertext': b'ciphertext'},
+    )
+    cipher_mock = mocker.patch(
+        'confidant.services.credentialmanager.CipherManager',
+    )
+    cipher_mock.return_value.encrypt.return_value = 'encrypted-pairs'
+    _, data_key, _ = credentialmanager._encrypt_credential_pairs(
+        'tenant-a',
+        'cred-1',
+        {'a': 'b'},
+    )
+    assert data_key == base64.b64encode(b'ciphertext').decode('UTF-8')
+
+
+def test_sanitize_write_items_strips_empty_values():
+    items = [
+        {
+            'Item': {
+                'PK': 'x',
+                'SK': 'y',
+                'documentation': '',
+                'metadata': {},
+                'tags': [],
+                'value': 'ok',
+            },
+            'ConditionExpression': 'attribute_not_exists(PK)',
+        }
+    ]
+
+    sanitized = credentialmanager._sanitize_write_items(items)
+
+    assert sanitized == [
+        {
+            'Item': {
+                'PK': 'x',
+                'SK': 'y',
+                'value': 'ok',
+            },
+            'ConditionExpression': 'attribute_not_exists(PK)',
+        }
+    ]

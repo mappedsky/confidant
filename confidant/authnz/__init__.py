@@ -54,6 +54,26 @@ def get_logged_in_user():
     raise UserUnknownError()
 
 
+def get_tenant_id():
+    if not settings.MULTI_TENANT:
+        return "singletenant"
+    if hasattr(g, "tenant_id"):
+        tenant_id = g.tenant_id
+        if isinstance(tenant_id, str):
+            tenant_id = tenant_id.strip()
+        if tenant_id:
+            return tenant_id
+    if user_mod.is_authenticated():
+        current_user = user_mod.current_user()
+        if isinstance(current_user, dict):
+            tenant_id = current_user.get("tenant_id")
+            if isinstance(tenant_id, str):
+                tenant_id = tenant_id.strip()
+            if tenant_id:
+                return tenant_id
+    raise UserUnknownError()
+
+
 def user_is_user_type(user_type):
     if not settings.USE_AUTH:
         return True
@@ -185,6 +205,7 @@ def require_auth(f):
                 g.auth_type = 'kms'
                 g.account = account_for_key_alias(token_data['key_alias'])
                 g.username = _from
+                g.tenant_id = get_tenant_id()
                 return f(*args, **kwargs)
             except kmsauth.TokenValidationError:
                 logger.exception('Failed to decrypt authentication token.')
@@ -212,6 +233,7 @@ def require_auth(f):
                     # auth-N and auth-Z are good, call the decorated function
                     g.user_type = user_type
                     g.auth_type = user_mod.auth_type
+                    g.tenant_id = get_tenant_id()
                     # ensure that the csrf cookie value is set
                     resp = make_response(f(*args, **kwargs))
                     user_mod.set_csrf_token(resp)
