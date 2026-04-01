@@ -78,6 +78,10 @@ STATIC_FOLDER = str_env('STATIC_FOLDER', 'public')
 # A custom endpoint url for KMS, for use in development
 KMS_URL = str_env('KMS_URL', None)
 
+# Whether Confidant should expect tenant-aware auth context. When disabled,
+# the application behaves as a single-tenant system and uses a fixed tenant id.
+MULTI_TENANT = bool_env('MULTI_TENANT', False)
+
 # Bootstrapping
 
 # A base64 encoded and KMS encrypted YAML string that contains secrets that
@@ -153,6 +157,16 @@ SAML_SP_KEY = encrypted_settings.register(
 
 # SAML IdP Entity ID (typically a URL)
 SAML_IDP_ENTITY_ID = str_env('SAML_IDP_ENTITY_ID')
+# How SAML should derive tenant identity in multi-tenant mode.
+# Supported values:
+# - 'disabled': do not derive a tenant id from SAML
+# - 'entity_id': use the configured SAML IdP entity id
+# - 'attribute' or 'claim': use a SAML attribute specified by
+#   SAML_TENANT_ID_ATTRIBUTE
+SAML_TENANT_ID_SOURCE = str_env('SAML_TENANT_ID_SOURCE', 'disabled')
+# Attribute name to read when SAML_TENANT_ID_SOURCE is 'attribute' or
+# 'claim'. Defaults to a conventional tenant_id claim.
+SAML_TENANT_ID_ATTRIBUTE = str_env('SAML_TENANT_ID_ATTRIBUTE', 'tenant_id')
 # SAML IdP Single Sign On URL (HTTP-REDIRECT binding only)
 SAML_IDP_SIGNON_URL = str_env('SAML_IDP_SIGNON_URL')
 # SAML IdP Single Logout URL, optional, only if IDP supports it

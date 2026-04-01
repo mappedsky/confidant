@@ -227,7 +227,11 @@ export default function CredentialDetailPage() {
       let saved: CredentialDetail;
       if (isNew) {
         saved = await api.createCredential(payload);
-        navigate(`/credentials/${saved.id}`, { replace: true });
+        if (!saved.id) {
+          throw new Error('Credential was created, but no credential ID was returned.');
+        }
+        window.location.replace(`/credentials/${saved.id}`);
+        return;
       } else if (id) {
         saved = await api.updateCredential(id, payload);
         setCredential(saved);

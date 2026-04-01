@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 import confidant.clients
 from confidant import settings
 from confidant.services import keymanager
-from confidant.models.service import Service
+from confidant.services.dynamodbstore import store
 from confidant.utils.dynamodb import create_dynamodb_tables
 
 logger = logging.getLogger(__name__)
@@ -28,9 +28,7 @@ def manage_kms_auth_grants():
     except ClientError:
         logger.error('Failed to fetch IAM roles.')
         return
-    services = []
-    for service in Service.data_type_date_index.query('service'):
-        services.append(service.id)
+    services = [service["id"] for service in store.scan_service_list_items()]
     for role in roles:
         if role.name in services:
             logger.info('Managing grants for {0}.'.format(role.name))

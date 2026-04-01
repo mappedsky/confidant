@@ -86,9 +86,9 @@ export const api = {
 
   getServices: () => request<ServicesListResponse>('/v1/services'),
   getService: (id: string) => request<ServiceDetail>(`/v1/services/${id}`),
-  createService: (data: unknown) =>
-    request<ServiceDetail>('/v1/services', {
-      method: 'POST',
+  createService: (id: string, data: unknown) =>
+    request<ServiceDetail>(`/v1/services/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     }),
   updateService: (id: string, data: unknown) =>

@@ -1,85 +1,149 @@
-import json
-import pytest
-
-from unittest import mock
-from pytest_mock.plugin import MockerFixture
-from typing import List
+from datetime import datetime, timezone
 
 from confidant.app import create_app
-from confidant.models.service import Service
+from confidant.schema.credentials import CredentialResponse
+from confidant.schema.services import ServiceResponse
+from confidant.schema.services import ServicesResponse
+from confidant.schema.services import RevisionsResponse
 
 
-@pytest.fixture()
-def services_list(mocker: MockerFixture) -> List[Service]:
-    services = [
-        Service(
-            id='something-production-iad',
-            data_type='service',
-            credentials=set(),
-            enabled=True,
-            revision=1,
-            modified_by='user'
-        ),
-        Service(
-            id='another-production-iad',
-            data_type='service',
-            credentials=set(),
-            enabled=True,
-            revision=1,
-            modified_by='user'
-        ),
-    ]
-    return services
+def _credential(credential_id="c1", name="Credential"):
+    return CredentialResponse(
+        tenant_id="singletenant",
+        id=credential_id,
+        name=name,
+        revision=1,
+        enabled=True,
+        modified_date=datetime.now(timezone.utc),
+        modified_by="user@example.com",
+        credential_keys=["api_key"],
+        credential_pairs={"api_key": "value"},
+    )
 
 
-def test_get_services_list(mocker: MockerFixture, services_list: List[Service]):
+def _service(service_id="s1", revision=1, credentials=None):
+    return ServiceResponse(
+        tenant_id="singletenant",
+        id=service_id,
+        revision=revision,
+        enabled=True,
+        modified_date=datetime.now(timezone.utc),
+        modified_by="user@example.com",
+        account=None,
+        credentials=credentials or ["c1"],
+    )
+
+
+def test_get_services_list(mocker):
     app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.services.authnz.get_logged_in_user", return_value="user@example.com")
+    mocker.patch("confidant.routes.services.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.services.servicemanager.list_services",
+        return_value=ServicesResponse(services=[_service(), _service("s2")]),
+    )
 
-    mocker.patch('confidant.settings.USE_AUTH', False)
-    mocker.patch(
-        'confidant.routes.services.authnz.get_logged_in_user',
-        return_value='test@example.com',
-    )
-    mocker.patch(
-        'confidant.routes.services.acl_module_check',
-        return_value=False,
-    )
-    ret = app.test_client().get('/v1/services', follow_redirects=False)
-    assert ret.status_code == 403
-
-    mocker.patch(
-        'confidant.routes.services.acl_module_check',
-        return_value=True,
-    )
-    mocker.patch(
-        'confidant.models.service.Service.data_type_date_index.query',
-        return_value=services_list,
-    )
-    ret = app.test_client().get('/v1/services', follow_redirects=False)
-    service_ids = ['another-production-iad', 'something-production-iad']
-    json_data = json.loads(ret.data)
+    ret = app.test_client().get("/v1/services")
     assert ret.status_code == 200
-    assert len(json_data['services']) == len(services_list)
-    assert json_data['next_page'] is None
-    assert json_data['services'][0]['id'] in service_ids
-    assert json_data['services'][1]['id'] in service_ids
+    assert [s["id"] for s in ret.get_json()["services"]] == ["s1", "s2"]
+    assert ret.get_json()["services"][0]["tenant_id"] == "singletenant"
 
-    mock_service_list = mock.Mock()
-    mock_service_list.last_evaluated_key.return_value = {
-        'something': 'test'
-    }
-    mock_service_list.__iter__ = mock.Mock(
-        return_value=iter([services_list[0]])
+
+def test_get_service_detail(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.services.authnz.get_logged_in_user", return_value="user@example.com")
+    mocker.patch("confidant.routes.services.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.services.servicemanager.get_service_latest",
+        return_value=_service(),
     )
     mocker.patch(
-        'confidant.models.service.Service.data_type_date_index.query',
-        return_value=mock_service_list,
+        "confidant.routes.services.credentialmanager.get_credentials",
+        return_value=[_credential()],
     )
-    mocker.patch(
-        'confidant.schema.services.encode_last_evaluated_key',
-        return_value='{"something":"test"}',
-    )
-    ret = app.test_client().get('/v1/services?limit=1', follow_redirects=False)
-    json_data = json.loads(ret.data)
+
+    ret = app.test_client().get("/v1/services/s1")
     assert ret.status_code == 200
-    assert len(json_data['services']) == 1
+    body = ret.get_json()
+    assert body["credentials"][0]["id"] == "c1"
+    assert body["permissions"]["get"] is True
+
+
+def test_get_service_versions_and_version_detail(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.services.authnz.get_logged_in_user", return_value="user@example.com")
+    mocker.patch("confidant.routes.services.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.services.servicemanager.list_service_versions",
+        return_value=RevisionsResponse(versions=[_service(), _service(revision=2)]),
+    )
+    mocker.patch(
+        "confidant.routes.services.servicemanager.get_service_version",
+        return_value=_service(revision=2),
+    )
+    mocker.patch(
+        "confidant.routes.services.credentialmanager.get_credentials",
+        return_value=[_credential()],
+    )
+    mocker.patch(
+        "confidant.routes.services.servicemanager.store.list_services",
+        return_value={"Items": []},
+    )
+
+    ret = app.test_client().get("/v1/services/s1/versions")
+    assert ret.status_code == 200
+    assert [s["revision"] for s in ret.get_json()["versions"]] == [1, 2]
+
+    ret = app.test_client().get(
+        "/v1/services/s1/versions/2"
+    )
+    assert ret.status_code == 200
+    assert ret.get_json()["revision"] == 2
+
+
+def test_create_and_update_service(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.services.authnz.get_logged_in_user", return_value="user@example.com")
+    mocker.patch("confidant.routes.services.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.services.servicemanager.get_service_latest",
+        side_effect=[None, _service()],
+    )
+    mocker.patch(
+        "confidant.routes.services.servicemanager.create_service",
+        return_value=(_service(), None),
+    )
+    mocker.patch(
+        "confidant.routes.services.servicemanager.update_service",
+        return_value=(_service(revision=2), None),
+    )
+    mocker.patch(
+        "confidant.routes.services.credentialmanager.get_credentials",
+        return_value=[_credential()],
+    )
+    mocker.patch(
+        "confidant.routes.services.servicemanager.store.list_services",
+        return_value={"Items": []},
+    )
+
+    ret = app.test_client().put(
+        "/v1/services/s1",
+        json={
+            "credentials": ["c1"],
+        },
+    )
+    assert ret.status_code == 200
+    assert ret.get_json()["revision"] == 1
+
+    ret = app.test_client().put(
+        "/v1/services/s1",
+        json={
+            "credentials": ["c1"],
+        },
+    )
+    assert ret.status_code == 200
+    assert ret.get_json()["revision"] == 2

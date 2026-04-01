@@ -22,10 +22,12 @@ import {
   Chip,
   Stack,
   Autocomplete,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableHead,
+  TableContainer,
   TableRow,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
@@ -67,6 +69,10 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
       <Typography variant="body2" sx={valueSx}>{value ?? '—'}</Typography>
     </Box>
   );
+}
+
+function credentialDisplayLabel(credential: Pick<CredentialSummary, 'name' | 'id'>) {
+  return `${credential.name} (${credential.id})`;
 }
 
 interface ServiceFormCredential {
@@ -225,8 +231,12 @@ export default function ServiceDetailPage() {
     try {
       let saved: ServiceDetail;
       if (isNew) {
-        saved = await api.createService(payload);
-        navigate(`/services/${saved.id}`, { replace: true });
+        saved = await api.createService(formId, payload);
+        if (!saved.id) {
+          throw new Error('Service was created, but no service ID was returned.');
+        }
+        window.location.replace(`/services/${saved.id}`);
+        return;
       } else if (id) {
         saved = await api.updateService(id, payload);
         setService(saved);
@@ -412,76 +422,88 @@ export default function ServiceDetailPage() {
 
             <Box>
               <SectionLabel>Credentials</SectionLabel>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Credential</TableCell>
-                    {!editing && <TableCell sx={{ fontWeight: 600 }}>Revision</TableCell>}
-                    {editing && <TableCell sx={{ width: 60 }} />}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {formCredentials.length === 0 ? (
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}
+              >
+                <Table size="small" sx={{ minWidth: 640 }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={3} sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                        No credentials assigned.
-                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: editing ? '48%' : '40%' }}>Credential</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: '32%' }}>Credential ID</TableCell>
+                      {!editing && <TableCell sx={{ fontWeight: 600, width: '14%' }}>Revision</TableCell>}
+                      {editing && <TableCell sx={{ fontWeight: 600, width: 60 }} />}
                     </TableRow>
-                  ) : (
-                    formCredentials.map((cred, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>
-                          {editing ? (
-                            <FormControl size="small" fullWidth>
-                              <Select
-                                value={cred.id}
-                                onChange={(event: SelectChangeEvent<string>) =>
-                                  handleCredentialChange(idx, event.target.value)
-                                }
-                                displayEmpty
-                              >
-                                <MenuItem value="">
-                                  <em>Select credential</em>
-                                </MenuItem>
-                                {allCredentials
-                                  .filter((c) => c.enabled || c.id === cred.id)
-                                  .map((c) => (
-                                    <MenuItem key={c.id} value={c.id}>
-                                      {c.name}
-                                    </MenuItem>
-                                  ))}
-                              </Select>
-                            </FormControl>
-                          ) : (
-                            <Box>
-                              <Link component={RouterLink} to={`/credentials/${cred.id}`}>
-                                {cred.name || cred.id}
-                              </Link>
-                              {!cred.enabled && (
-                                <Typography component="span" color="text.secondary" ml={1}>
-                                  (disabled)
-                                </Typography>
-                              )}
-                            </Box>
-                          )}
+                  </TableHead>
+                  <TableBody>
+                    {formCredentials.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={editing ? 4 : 3} sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                          No credentials assigned.
                         </TableCell>
-                        {!editing && (
-                          <TableCell>
-                            <Typography color="text.secondary">{cred.revision}</Typography>
-                          </TableCell>
-                        )}
-                        {editing && (
-                          <TableCell>
-                            <IconButton size="small" color="error" onClick={() => handleRemoveCredential(idx)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        )}
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      formCredentials.map((cred, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            {editing ? (
+                              <FormControl size="small" fullWidth>
+                                <Select
+                                  value={cred.id}
+                                  onChange={(event: SelectChangeEvent<string>) =>
+                                    handleCredentialChange(idx, event.target.value)
+                                  }
+                                  displayEmpty
+                                >
+                                  <MenuItem value="">
+                                    <em>Select credential</em>
+                                  </MenuItem>
+                                  {allCredentials
+                                    .filter((c) => c.enabled || c.id === cred.id)
+                                    .map((c) => (
+                                      <MenuItem key={c.id} value={c.id}>
+                                        {credentialDisplayLabel(c)}
+                                      </MenuItem>
+                                    ))}
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Box>
+                                <Link component={RouterLink} to={`/credentials/${cred.id}`}>
+                                  {cred.name || cred.id}
+                                </Link>
+                                {!cred.enabled && (
+                                  <Typography component="span" color="text.secondary" ml={1}>
+                                    (disabled)
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                              {cred.id || '—'}
+                            </Typography>
+                          </TableCell>
+                          {!editing && (
+                            <TableCell>
+                              <Typography color="text.secondary">{cred.revision}</Typography>
+                            </TableCell>
+                          )}
+                          {editing && (
+                            <TableCell>
+                              <IconButton size="small" color="error" onClick={() => handleRemoveCredential(idx)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
               {editing && (
                 <Button
                   size="small"
