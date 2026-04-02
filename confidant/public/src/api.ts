@@ -87,8 +87,8 @@ export const api = {
     }),
 
   getServices: () => request<ServicesListResponse>('/v1/services'),
-  getService: (id: string, metadataOnly = true) =>
-    request<ServiceDetail>(`/v1/services/${id}?metadata_only=${metadataOnly}`),
+  getService: (id: string) =>
+    request<ServiceDetail>(`/v1/services/${id}`),
   createService: (id: string, data: unknown) =>
     request<ServiceDetail>(`/v1/services/${id}`, {
       method: 'PUT',

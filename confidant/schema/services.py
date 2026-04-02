@@ -52,7 +52,7 @@ class ServiceResponse(BaseModel):
             'revision': _value(service, 'revision'),
             'modified_date': _value(service, 'modified_date'),
             'modified_by': _value(service, 'modified_by'),
-            'credentials': _value(service, 'credentials', []),
+            'credentials': _value(service, 'credential_ids', _value(service, 'credentials', [])),
         }
         if _value(service, 'account') is not None:
             data['account'] = _value(service, 'account')

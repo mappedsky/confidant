@@ -197,8 +197,6 @@ def list_credentials(tenant_id, limit=None, page=None):
         credentials,
         next_page=results.get("LastEvaluatedKey"),
     )
-
-
 def get_credential_latest(
     tenant_id,
     credential_id,

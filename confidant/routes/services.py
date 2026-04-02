@@ -72,25 +72,14 @@ def get_service_list():
 def get_service(id):
     with stats.timer("get_service_by_id"):
         tenant_id = authnz.get_tenant_id()
-        metadata_only = misc.get_boolean(request.args.get("metadata_only"))
-        action = "metadata" if metadata_only else "get"
-        if action == "metadata":
-            permissions = {
-                "metadata": acl_module_check(
-                    resource_type="service",
-                    action="metadata",
-                    resource_id=id,
-                )
-            }
-        else:
-            permissions = {
-                "get": acl_module_check(
-                    resource_type="service",
-                    action="get",
-                    resource_id=id,
-                )
-            }
-        if not permissions[action]:
+        permissions = {
+            "get": acl_module_check(
+                resource_type="service",
+                action="get",
+                resource_id=id,
+            )
+        }
+        if not permissions["get"]:
             msg = "{} does not have access to get service {}".format(
                 authnz.get_logged_in_user(),
                 id,
@@ -147,7 +136,7 @@ def get_service_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
         resource_type="service",
-        action="metadata",
+        action="get",
         resource_id=id,
     ):
         msg = "{} does not have access to service {}".format(
@@ -155,14 +144,12 @@ def get_service_version(id, version):
             id,
         )
         return jsonify({"error": msg, "reference": id}), 403
-    metadata_only = misc.get_boolean(request.args.get("metadata_only"))
     response = servicemanager.get_service_version(tenant_id, id, version)
     if not response:
         return jsonify({}), 404
     expanded = ServiceResponse.from_service(response)
     expanded.permissions = {
-        "metadata": True,
-        "get": not metadata_only,
+        "get": True,
         "update": acl_module_check(
             resource_type="service",
             action="update",
