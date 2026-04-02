@@ -32,12 +32,18 @@ def _service_response_from_item(item):
         "modified_date": _as_datetime(item["modified_date"]),
         "modified_by": item["modified_by"],
     }
-    if item.get("account") is not None:
-        data["account"] = item["account"]
     if item.get("enabled") is not None:
         data["enabled"] = item["enabled"]
     data["credentials"] = item.get("credentials", [])
     return ServiceResponse(**data)
+
+
+def _service_item_base(item):
+    return {
+        key: value
+        for key, value in item.items()
+        if key != "account"
+    }
 
 
 def list_services(tenant_id, limit=None, page=None):
@@ -121,7 +127,6 @@ def _build_service_items(
     service_id,
     revision,
     credentials,
-    account,
     enabled,
     modified_by,
     created_at,
@@ -132,7 +137,6 @@ def _build_service_items(
         "id": service_id,
         "revision": revision,
         "credentials": list(credentials),
-        "account": account,
         "enabled": enabled,
         "modified_date": created_at,
         "modified_by": modified_by,
@@ -171,7 +175,6 @@ def create_service(
     credentials,
     created_by,
     enabled=True,
-    account=None,
 ):
     revision = 1
     now = datetime.now(timezone.utc).isoformat()
@@ -180,7 +183,6 @@ def create_service(
         service_id,
         revision,
         credentials,
-        account,
         enabled,
         created_by,
         now,
@@ -207,15 +209,13 @@ def update_service(
     credentials,
     created_by,
     enabled=None,
-    account=None,
 ):
     current = store.get_service_latest(tenant_id, service_id)
     if not current:
         return None, {"error": "Service not found."}
+    current = _service_item_base(current)
     if enabled is None:
         enabled = current.get("enabled", True)
-    if account is None:
-        account = current.get("account")
     revision = int(current["revision"]) + 1
     now = datetime.now(timezone.utc).isoformat()
     metadata_item, latest_item, version_item, list_item = _build_service_items(
@@ -223,7 +223,6 @@ def update_service(
         service_id,
         revision,
         credentials,
-        account,
         enabled,
         created_by,
         now,
@@ -259,11 +258,11 @@ def restore_service_version(
     source = store.get_service_version(tenant_id, service_id, version)
     if not current or not source:
         return None
+    source = _service_item_base(source)
     return update_service(
         tenant_id=tenant_id,
         service_id=service_id,
         credentials=source.get("credentials", []),
         created_by=created_by,
         enabled=source.get("enabled", True),
-        account=source.get("account"),
     )[0]

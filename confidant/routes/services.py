@@ -88,10 +88,6 @@ def get_service(id):
         service = servicemanager.get_service_latest(tenant_id, id)
         if not service:
             return jsonify({}), 404
-        if not authnz.service_in_account(service.account):
-            logger.warning("Authz failed for service %s (wrong account).", id)
-            return jsonify({"error": "Authenticated user is not authorized."}), 401
-
         if authnz.user_is_user_type("user"):
             permissions["update"] = acl_module_check(
                 resource_type="service",
@@ -172,10 +168,6 @@ def map_service_credentials(id):
     if not isinstance(credentials, list):
         return jsonify({"error": "credentials must be a list"}), 400
 
-    accounts = list(settings.SCOPED_AUTH_KEYS.values())
-    if data.get("account") and data["account"] not in accounts:
-        return jsonify({"error": "{0} is not a valid account."}), 400
-
     creds = credentialmanager.get_credentials(
         tenant_id,
         credentials,
@@ -203,7 +195,6 @@ def map_service_credentials(id):
             credentials=[cred.id for cred in creds],
             created_by=authnz.get_logged_in_user(),
             enabled=data.get("enabled", True),
-            account=data.get("account"),
         )
     else:
         if not acl_module_check(
@@ -222,7 +213,6 @@ def map_service_credentials(id):
             credentials=[cred.id for cred in creds],
             created_by=authnz.get_logged_in_user(),
             enabled=data.get("enabled"),
-            account=data.get("account"),
         )
     if error:
         return jsonify(error), 400

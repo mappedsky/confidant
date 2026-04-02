@@ -32,7 +32,6 @@ def _get_validator():
             auth_token_max_lifetime=settings.AUTH_TOKEN_MAX_LIFETIME,
             minimum_token_version=settings.KMS_MINIMUM_TOKEN_VERSION,
             maximum_token_version=settings.KMS_MAXIMUM_TOKEN_VERSION,
-            scoped_auth_keys=settings.SCOPED_AUTH_KEYS,
             token_cache_size=settings.KMS_AUTH_TOKEN_CACHE_SIZE,
             stats=stats,
             endpoint_url=settings.KMS_URL,
@@ -89,21 +88,6 @@ def user_is_service(service):
         if g.username == service:
             return True
     return False
-
-
-def service_in_account(account):
-    # We only scope to account, if an account is specified.
-    if not account:
-        return True
-    if g.account == account:
-        return True
-    return False
-
-
-def account_for_key_alias(key_alias):
-    return settings.SCOPED_AUTH_KEYS.get(key_alias)
-
-
 def require_csrf_token(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -203,7 +187,6 @@ def require_auth(f):
                 logger.debug(msg)
                 g.user_type = _user_type
                 g.auth_type = 'kms'
-                g.account = account_for_key_alias(token_data['key_alias'])
                 g.username = _from
                 g.tenant_id = get_tenant_id()
                 return f(*args, **kwargs)

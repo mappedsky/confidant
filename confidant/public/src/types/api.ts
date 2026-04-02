@@ -20,7 +20,6 @@ export interface ClientConfigPermissions {
 }
 
 export interface ClientConfigGenerated {
-  aws_accounts: string[];
   xsrf_cookie_name: string;
   maintenance_mode: boolean;
   history_page_limit: number;
@@ -78,7 +77,6 @@ export interface ServiceBase {
   id: string;
   revision: number;
   enabled: boolean;
-  account?: string | null;
   modified_date?: string;
   modified_by?: string;
   permissions?: EntityPermissions;

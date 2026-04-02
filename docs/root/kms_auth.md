@@ -355,31 +355,3 @@ to any service, you can change the second statement slightly:
 When the user authenticates, they'll use a header like: `'X-Auth-From': '2/user/rlane'`.
 From the server side, you'll be able to verify the token, then you can mark the user
 by user_type, so that you can do access control based on their type (service or user).
-
-## Multi-account KMS authentication
-
-Without much change it's possible to do KMS authentication across accounts. In
-the simplest approach, you can simply allow multiple accounts to use the KMS
-authnz key. The downside to this is that when you allow another account to use
-the KMS key, you're trusting that account with the IAM policy of whichever
-actions you're allowing. So, if you have two accounts: sandbox and production,
-and you allow sandbox to use the KMS authnz key in production, sandbox can
-write IAM policies that allow it to generate tokens for any service in
-confidant, which may not be what you intend.
-
-Starting in version 1.1, Confidant added support for using scoped KMS
-authentication keys. Rather than using a single KMS authentication key for all
-accounts, you'll create a KMS key for each account. The key policy for each key
-will allow its specific account to use the key. Note that it's important that
-all of these keys live in the same AWS account as the confidant service.
-
-After creating and configuring the keys, you can use the SCOPED_AUTH_KEYS
-setting in confidant to map key aliases to friendly account names. Once this is
-configured, users can scope services to accounts.
-
-If you're implementing KMS auth outside of confidant: we map keys to account
-names. When a token is decrypted, part of what KMS returns is the key ARN used
-for the decryption. We take that ARN and lookup the alias that's associated with
-it. We take the alias and look it up in the SCOPED_AUTH_KEYS mapping to find its
-associated account. If the scoped service matches the key used, we accept the
-request.

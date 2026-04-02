@@ -17,7 +17,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Link,
   Chip,
   Stack,
@@ -90,7 +89,6 @@ export default function ServiceDetailPage() {
   const isNew = !id;
 
   const permissions = clientConfig?.generated?.permissions;
-  const awsAccounts = clientConfig?.generated?.aws_accounts ?? [];
 
   const [service, setService] = useState<ServiceDetail | null>(null);
   const [allCredentials, setAllCredentials] = useState<CredentialSummary[]>([]);
@@ -104,13 +102,11 @@ export default function ServiceDetailPage() {
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
-  const [formAccount, setFormAccount] = useState('');
   const [formCredentials, setFormCredentials] = useState<ServiceFormCredential[]>([]);
 
   const populateForm = useCallback((svc: ServiceDetail) => {
     setFormId(svc.id ?? '');
     setFormEnabled(svc.enabled ?? true);
-    setFormAccount(svc.account ?? '');
     setFormCredentials(
       (svc.credentials ?? []).map((credential) => ({
         id: credential,
@@ -195,7 +191,6 @@ export default function ServiceDetailPage() {
     const payload = {
       id: formId,
       enabled: formEnabled,
-      account: formAccount || null,
       credentials: credIds,
     };
 
@@ -329,36 +324,6 @@ export default function ServiceDetailPage() {
               />
             ) : (
               <ReadOnlyField label="Service ID" value={service?.id} valueSx={{ fontFamily: 'monospace' }} />
-            )}
-
-            {awsAccounts.length > 0 && (
-              editing ? (
-                <FormControl size="small" fullWidth>
-                  <InputLabel>AWS Account</InputLabel>
-                  <Select
-                    label="AWS Account"
-                    value={formAccount}
-                    onChange={(event: SelectChangeEvent<string>) =>
-                      setFormAccount(event.target.value)
-                    }
-                    displayEmpty
-                  >
-                    <MenuItem value="">
-                      <em>No account scoping</em>
-                    </MenuItem>
-                    {awsAccounts.filter(Boolean).map((account) => (
-                      <MenuItem key={account} value={account}>
-                        {account}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : (
-                <ReadOnlyField
-                  label="AWS Account"
-                  value={service?.account || 'No account scoping'}
-                />
-              )
             )}
 
             {!isNew && (

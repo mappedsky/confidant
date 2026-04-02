@@ -176,29 +176,6 @@ def test_user_is_service(mocker: MockerFixture):
 
         g_mock.username = 'confidant-unitttest'
         assert authnz.user_is_service('notconfidant-unitttest') is False
-
-
-def test_service_in_account(mocker: MockerFixture):
-    # If we aren't scoping, this should pass
-    assert authnz.service_in_account(None) is True
-
-    app = create_app()
-    with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.account = 'confidant-unitttest'
-        assert authnz.service_in_account('bad-service') is False
-        assert authnz.service_in_account('confidant-unitttest') is True
-
-
-def test_account_for_key_alias(mocker: MockerFixture):
-    mocker.patch(
-        'confidant.authnz.settings.SCOPED_AUTH_KEYS',
-        {'sandbox-auth-key': 'sandbox'},
-    )
-    assert authnz.account_for_key_alias('sandbox-auth-key') == 'sandbox'
-    assert authnz.account_for_key_alias('non-existent') is None
-
-
 def test__get_kms_auth_data_from_auth(mocker: MockerFixture):
     app = create_app()
     with app.test_request_context('/fake'):
@@ -386,8 +363,6 @@ def test_require_auth(mocker: MockerFixture):
     validator_mock.decrypt_token = mocker.Mock(
         return_value={'payload': {}, 'key_alias': 'testkey'},
     )
-
-    mocker.patch('confidant.authnz.account_for_key_alias', return_value=None)
 
     app = create_app()
     with app.app_context():

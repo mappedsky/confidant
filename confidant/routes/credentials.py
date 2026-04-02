@@ -33,8 +33,6 @@ def _service_has_credential_access(tenant_id, credential_id):
     )
     if not service:
         return False
-    if not authnz.service_in_account(service.account):
-        return False
     return credential_id in (service.credentials or [])
 
 

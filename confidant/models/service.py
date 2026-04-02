@@ -47,8 +47,6 @@ class Service(Model):
     def equals(self, other_service):
         if set(self.credentials) != set(other_service.credentials):
             return False
-        if self.account != other_service.account:
-            return False
         return True
 
     def diff(self, other_service):
@@ -68,8 +66,6 @@ class Service(Model):
                 old.credentials,
                 new.credentials,
             )
-        if old.account != new.account:
-            diff['account'] = {'added': new.account, 'removed': old.account}
         diff['modified_by'] = {
             'added': new.modified_by,
             'removed': old.modified_by,

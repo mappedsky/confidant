@@ -14,13 +14,11 @@ def _value(obj, key, default=None):
 class CreateServiceRequest(BaseModel):
     credentials: List[str] = Field(default_factory=list)
     enabled: bool = True
-    account: Optional[str] = None
 
 
 class UpdateServiceRequest(BaseModel):
     credentials: Optional[List[str]] = None
     enabled: Optional[bool] = None
-    account: Optional[str] = None
 
 
 class RestoreServiceVersionRequest(BaseModel):
@@ -30,7 +28,6 @@ class RestoreServiceVersionRequest(BaseModel):
 class ServiceResponse(BaseModel):
     tenant_id: str
     id: str
-    account: Optional[str] = None
     revision: int
     enabled: bool = True
     modified_date: datetime
@@ -54,8 +51,6 @@ class ServiceResponse(BaseModel):
             'modified_by': _value(service, 'modified_by'),
             'credentials': _value(service, 'credential_ids', _value(service, 'credentials', [])),
         }
-        if _value(service, 'account') is not None:
-            data['account'] = _value(service, 'account')
         if _value(service, 'enabled') is not None:
             data['enabled'] = _value(service, 'enabled')
         return cls(**data)

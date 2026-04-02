@@ -411,22 +411,6 @@ export SECRETS_BOOTSTRAP=`cat encrypted_dict.yaml.enc`
 python manage.py decrypt_secrets_bootstrap
 ```
 
-### Multi-account authentication
-
-It's possible to use confidant across multiple AWS accounts by allowing
-cross-account access to the AUTH\_KEY, but when you give access to the AUTH\_KEY
-in other accounts, you're trusting the other account's IAM policy for
-generating authentication tokens for services. Confidant supports scoping
-services to accounts, where you generate a KMS key for each account, for
-authentication. You can configure confidant to map keys to account names:
-
-```bash
-export SCOPED_AUTH_KEYS='{"sandbox-auth-key":"sandbox","primary-auth-key":"primary"}'
-```
-
-In the above example, if a user scopes a service to the "sandbox" account,
-it'll require authentication to use the "sandbox-auth-key" KMS key.
-
 ### KMS authentication for end-users
 
 In confidant version 1.1 we introduced a new version of KMS auth that allows

@@ -8,12 +8,10 @@ def test_equals(mocker: MockerFixture):
     service1 = Service(
         id='test',
         credentials=['abc', 'def'],
-        account='test-account',
     )
     service2 = Service(
         id='test',
         credentials=['abc', 'def'],
-        account='test-account',
     )
     assert service1.equals(service2) is True
 
@@ -22,12 +20,10 @@ def test_not_equals(mocker: MockerFixture):
     service1 = Service(
         id='test',
         credentials=['abc', 'def'],
-        account='test-account',
     )
     service2 = Service(
         id='test',
         credentials=['def'],
-        account='test-account',
     )
     assert service1.equals(service2) is False
 
@@ -40,7 +36,6 @@ def test_diff(mocker: MockerFixture):
         id='test',
         revision=1,
         credentials=['abc', 'def'],
-        account='test-account',
         modified_by=modified_by,
         modified_date=modified_date_old,
     )
@@ -48,7 +43,6 @@ def test_diff(mocker: MockerFixture):
         id='test',
         revision=1,
         credentials=['def'],
-        account='test-account2',
         modified_by=modified_by,
         modified_date=modified_date_new,
     )
@@ -60,10 +54,6 @@ def test_diff(mocker: MockerFixture):
     expected_diff = {
         'credentials': {
             'removed': ['abc'],
-        },
-        'account': {
-            'removed': 'test-account',
-            'added': 'test-account2',
         },
         'modified_by': {
             'removed': 'test@example.com',

@@ -14,7 +14,6 @@ def _service(service_id="s1", revision=1, credentials=None):
         enabled=True,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
-        account=None,
         credentials=credentials or ["c1"],
     )
 
