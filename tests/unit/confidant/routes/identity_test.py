@@ -46,7 +46,6 @@ def test_get_client_config(mocker: MockerFixture):
     mocker.patch('confidant.routes.identity.acl_module_check', acl_module_check)
     mocker.patch('confidant.settings.USE_AUTH', False)
     mocker.patch('confidant.settings.CLIENT_CONFIG', {'test': 'client_config'})
-    mocker.patch('confidant.settings.KMS_AUTH_MANAGE_GRANTS', False)
     mocker.patch(
         'confidant.settings.SCOPED_AUTH_KEYS',
         {'sandbox-account': 'sandbox'},
@@ -60,7 +59,6 @@ def test_get_client_config(mocker: MockerFixture):
     expected = {
         'defined': {'test': 'client_config'},
         'generated': {
-            'kms_auth_manage_grants': False,
             'aws_accounts': ['sandbox'],
             'xsrf_cookie_name': 'CSRF_TOKEN',
             'maintenance_mode': True,

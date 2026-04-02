@@ -14,7 +14,6 @@ from confidant.schema.services import (
 )
 from confidant.services import credentialmanager
 from confidant.services import iamrolemanager
-from confidant.services import keymanager
 from confidant.services import servicemanager
 from confidant.utils import maintenance
 from confidant.utils import misc
@@ -270,30 +269,3 @@ def restore_service_version(id, version):
         "update": True,
     }
     return service_response_schema.dumps(expanded)
-
-
-@blueprint.route("/v1/grants/<id>", methods=["PUT"])
-@authnz.require_auth
-@authnz.require_csrf_token
-@maintenance.check_maintenance_mode
-def ensure_grants(id):
-    if not acl_module_check(
-        resource_type="service",
-        action="update",
-        resource_id=id,
-        kwargs={
-            "credential_ids": [],
-        },
-    ):
-        msg = "{} does not have access to update service {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
-        return jsonify({"error": msg, "reference": id}), 403
-    try:
-        keymanager.ensure_grants(id)
-    except keymanager.ServiceCreateGrantError:
-        msg = "Failed to add grants for {0}.".format(id)
-        logger.error(msg)
-        return jsonify({"error": msg}), 500
-    return jsonify({"id": id, "grants": keymanager.grants_exist(id)})

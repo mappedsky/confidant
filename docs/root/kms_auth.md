@@ -223,11 +223,11 @@ rotating their authentication tokens.
 
 ### IAM policy configuration for service-to-service auth
 
-If you wish to disable grant management for KMS auth, it's possible to manage
-IAM policy for service-to-service authentication. An assumption of this example
-is that a confidant service (serviceA-production) maps directly to an IAM role
-(serviceA-production) and your confidant service is confidant-production. Let's
-add a policy to the service, to allow authentication:
+Service-to-service authentication is managed through IAM policy. An assumption
+of this example is that a confidant service (serviceA-production) maps
+directly to an IAM role (serviceA-production) and your confidant service is
+confidant-production. Let's add a policy to the service, to allow
+authentication:
 
 ```json
 {

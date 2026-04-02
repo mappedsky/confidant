@@ -449,21 +449,6 @@ export KMS_MINIMUM_TOKEN_VERSION='1'
 export KMS_AUTH_USER_TYPES='user,service'
 ```
 
-### KMS grant management
-
-By default confidant will manage KMS grants automatically for services that are
-created, assuming that services are directly associated with IAM roles.
-Confidant services don't need to be directly associated with IAM roles, though,
-since access to the services is defined either by grants on the keys, or
-through IAM policy. It's possible to disable confidant's grant management. If
-you disable grant managenent, you'll either need to manage KMS key grants
-manually, or you'll need to manage your IAM policy for KMS.
-
-```bash
-# Manage auth key grants for service to service authentication. Default True
-export KMS_AUTH_MANAGE_GRANTS='False'
-```
-
 ### Confidant client configuration
 
 Confidant exposes some data to its clients via a flask endpoint. It's possible
@@ -670,14 +655,6 @@ above configuration. Note the following:
     },
     "Action" : [ "kms:Decrypt", "kms:GenerateDataKey*", "kms:ReEncrypt*",
 "kms:DescribeKey", "kms:Encrypt" ],
-    "Resource" : "*"
-  }, {
-    "Sid" : "Allow attachment of persistent resources",
-    "Effect" : "Allow",
-    "Principal" : {
-      "AWS" : "arn:aws:iam::12345:role/confidant-production"
-    },
-    "Action" : [ "kms:ListGrants", "kms:CreateGrant", "kms:RevokeGrant" ],
     "Resource" : "*"
   } ]
 }

@@ -20,7 +20,6 @@ export interface ClientConfigPermissions {
 }
 
 export interface ClientConfigGenerated {
-  kms_auth_manage_grants: boolean;
   aws_accounts: string[];
   xsrf_cookie_name: string;
   maintenance_mode: boolean;
@@ -95,14 +94,6 @@ export interface ServiceDetail extends ServiceBase {
 
 export interface ServicesListResponse {
   services: ServiceSummary[];
-}
-
-export interface GrantsResponse {
-  id: string;
-  grants: {
-    encrypt_grant?: boolean;
-    decrypt_grant?: boolean;
-  };
 }
 
 export interface GenerateValueResponse {

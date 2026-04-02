@@ -3,8 +3,6 @@ from flask.cli import FlaskGroup
 
 from confidant.app import create_app
 from confidant.scripts.archive import archive_credentials
-from confidant.scripts.utils import manage_kms_auth_grants
-from confidant.scripts.utils import revoke_all_kms_auth_grants
 from confidant.scripts.utils import create_dynamodb_tables
 from confidant.scripts.bootstrap import generate_secrets_bootstrap
 from confidant.scripts.bootstrap import decrypt_secrets_bootstrap
@@ -25,8 +23,6 @@ def manager():
     pass
 
 
-manager.command("manage_kms_auth_grants")(manage_kms_auth_grants)
-manager.command("revoke_all_kms_auth_grants")(revoke_all_kms_auth_grants)
 manager.command("generate_secrets_bootstrap")(generate_secrets_bootstrap)
 manager.command("decrypt_secrets_bootstrap")(decrypt_secrets_bootstrap)
 manager.command("create_dynamodb_tables")(create_dynamodb_tables)
