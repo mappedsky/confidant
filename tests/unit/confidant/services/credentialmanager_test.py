@@ -85,6 +85,35 @@ def test_encrypt_credential_pairs_encodes_data_key(mocker: MockerFixture):
     assert data_key == base64.b64encode(b'ciphertext').decode('UTF-8')
 
 
+def test_save_last_decryption_time_updates_store_and_item(mocker: MockerFixture):
+    update_mock = mocker.patch(
+        'confidant.services.credentialmanager.store.update_credential_last_decrypted_date',
+    )
+    mocker.patch('confidant.settings.ENABLE_SAVE_LAST_DECRYPTION_TIME', True)
+
+    item = {'id': 'cred-1', 'tenant_id': 'tenant-a'}
+    updated = credentialmanager._save_last_decryption_time(
+        'tenant-a',
+        'cred-1',
+        item,
+    )
+
+    update_mock.assert_called_once()
+    assert updated['last_decrypted_date']
+    assert 'last_decrypted_date' not in item
+
+
+def test_save_last_decryption_time_noops_when_disabled(mocker: MockerFixture):
+    update_mock = mocker.patch(
+        'confidant.services.credentialmanager.store.update_credential_last_decrypted_date',
+    )
+    mocker.patch('confidant.settings.ENABLE_SAVE_LAST_DECRYPTION_TIME', False)
+
+    item = {'id': 'cred-1'}
+    assert credentialmanager._save_last_decryption_time('tenant-a', 'cred-1', item) == item
+    update_mock.assert_not_called()
+
+
 def test_sanitize_write_items_strips_empty_values():
     items = [
         {

@@ -114,6 +114,21 @@ def _credential_response_from_item(
     return CredentialResponse(**data)
 
 
+def _save_last_decryption_time(tenant_id, credential_id, item=None):
+    if not settings.ENABLE_SAVE_LAST_DECRYPTION_TIME:
+        return item
+    last_decrypted_date = datetime.now(timezone.utc).isoformat()
+    store.update_credential_last_decrypted_date(
+        tenant_id,
+        credential_id,
+        last_decrypted_date,
+    )
+    if item is not None:
+        item = copy.deepcopy(item)
+        item["last_decrypted_date"] = last_decrypted_date
+    return item
+
+
 def _decrypt_credential_pairs(item):
     if not item.get("credential_pairs"):
         return {}
@@ -182,9 +197,12 @@ def list_credentials(tenant_id, limit=None, page=None):
         credentials,
         next_page=results.get("LastEvaluatedKey"),
     )
-
-
-def get_credential_latest(tenant_id, credential_id, metadata_only=False):
+def get_credential_latest(
+    tenant_id,
+    credential_id,
+    metadata_only=False,
+    alert_on_access=False,
+):
     item = (
         store.get_credential_metadata(tenant_id, credential_id)
         if metadata_only
@@ -192,6 +210,8 @@ def get_credential_latest(tenant_id, credential_id, metadata_only=False):
     )
     if not item:
         return None
+    if not metadata_only and alert_on_access:
+        item = _save_last_decryption_time(tenant_id, credential_id, item)
     return _credential_response_from_item(
         item,
         include_credential_keys=True,
@@ -212,42 +232,17 @@ def list_credential_versions(tenant_id, credential_id):
     return RevisionsResponse.from_credentials(credentials)
 
 
-def get_credential_version(tenant_id, credential_id, version):
+def get_credential_version(tenant_id, credential_id, version, alert_on_access=False):
     item = store.get_credential_version(tenant_id, credential_id, version)
     if not item:
         return None
+    if alert_on_access:
+        item = _save_last_decryption_time(tenant_id, credential_id, item)
     return _credential_response_from_item(
         item,
         include_credential_keys=True,
         include_credential_pairs=True,
     )
-
-
-def pair_key_conflicts_for_credentials(tenant_id, credential_ids):
-    conflicts = {}
-    pair_keys = {}
-    if settings.IGNORE_CONFLICTS:
-        return conflicts
-    credentials = get_credentials(
-        tenant_id,
-        credential_ids,
-        include_credential_keys=True,
-    )
-    for credential in credentials:
-        for key in credential.credential_keys:
-            data = {
-                "id": credential.id,
-                "data_type": "credential",
-            }
-            if key in pair_keys:
-                pair_keys[key].append(data)
-            else:
-                pair_keys[key] = [data]
-    for key, data in pair_keys.items():
-        if len(data) > 1:
-            ids = [k["id"] for k in data if k["data_type"] == "credential"]
-            conflicts[key] = {"credentials": ids}
-    return conflicts
 
 
 def check_credential_pair_values(credential_pairs):
@@ -292,6 +287,7 @@ def _build_credential_items(
     documentation,
     tags,
     last_rotation_date,
+    last_decrypted_date,
     created_at,
     previous_created_at=None,
 ):
@@ -306,6 +302,7 @@ def _build_credential_items(
         "modified_by": modified_by,
         "documentation": documentation,
         "tags": tags,
+        "last_decrypted_date": last_decrypted_date,
         "last_rotation_date": last_rotation_date,
         "credential_keys": list(credential_keys),
         "credential_pairs": credential_pairs,
@@ -340,6 +337,7 @@ def _build_credential_items(
         "modified_by": modified_by,
         "documentation": documentation,
         "tags": tags,
+        "last_decrypted_date": last_decrypted_date,
         "last_rotation_date": last_rotation_date,
         "credential_keys": list(credential_keys),
     }
@@ -387,6 +385,7 @@ def create_credential(
     now = datetime.now(timezone.utc).isoformat()
     metadata = metadata or {}
     tags = tags or []
+    last_decrypted_date = None
     last_rotation_date = now
     credential_keys = list(credential_pairs)
     metadata_item, latest_item, version_item, list_item = _build_credential_items(
@@ -404,6 +403,7 @@ def create_credential(
         documentation,
         tags,
         last_rotation_date,
+        last_decrypted_date,
         now,
     )
     for item in (metadata_item, latest_item, version_item, list_item):
@@ -464,6 +464,7 @@ def update_credential(
     current_credential_pairs = current.get("credential_pairs")
     data_key = current.get("data_key")
     cipher_version = current.get("cipher_version")
+    last_decrypted_date = current.get("last_decrypted_date")
     last_rotation_date = current.get("last_rotation_date")
 
     if credential_pairs is not None:
@@ -499,6 +500,7 @@ def update_credential(
         documentation,
         tags,
         last_rotation_date,
+        last_decrypted_date,
         now,
         previous_created_at=current.get("created_at", current["modified_date"]),
     )

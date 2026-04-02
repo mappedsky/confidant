@@ -208,6 +208,24 @@ def _transact_put_items(items: Sequence[Dict[str, Any]]) -> None:
     _get_client().transact_write_items(TransactItems=transact_items)
 
 
+def _update_item(
+    key: Dict[str, str],
+    *,
+    update_expression: str,
+    expression_attribute_values: Dict[str, Any],
+    expression_attribute_names: Optional[Dict[str, str]] = None,
+) -> None:
+    table = _get_table()
+    kwargs: Dict[str, Any] = {
+        "Key": key,
+        "UpdateExpression": update_expression,
+        "ExpressionAttributeValues": expression_attribute_values,
+    }
+    if expression_attribute_names:
+        kwargs["ExpressionAttributeNames"] = expression_attribute_names
+    table.update_item(**kwargs)
+
+
 class DynamoDBConfidantStore:
     def initialize(self) -> None:
         table_name = settings.DYNAMODB_TABLE
@@ -334,6 +352,33 @@ class DynamoDBConfidantStore:
         items: Sequence[Dict[str, Any]],
     ) -> None:
         _transact_put_items(items)
+
+    def update_credential_last_decrypted_date(
+        self,
+        tenant_id: str,
+        credential_id: str,
+        last_decrypted_date: str,
+    ) -> None:
+        update_expression = "SET #last_decrypted_date = :last_decrypted_date"
+        expression_attribute_names = {"#last_decrypted_date": "last_decrypted_date"}
+        expression_attribute_values = {
+            ":last_decrypted_date": last_decrypted_date,
+        }
+        keys = [
+            {"PK": _credential_pk(tenant_id, credential_id), "SK": _SK_METADATA},
+            {"PK": _credential_pk(tenant_id, credential_id), "SK": _SK_LATEST},
+            {
+                "PK": _credential_list_pk(tenant_id),
+                "SK": f"CREDENTIAL#{credential_id}",
+            },
+        ]
+        for key in keys:
+            _update_item(
+                key,
+                update_expression=update_expression,
+                expression_attribute_values=expression_attribute_values,
+                expression_attribute_names=expression_attribute_names,
+            )
 
     def delete_credential(self, tenant_id: str, credential_id: str) -> None:
         table = _get_table()

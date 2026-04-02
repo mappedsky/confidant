@@ -6,10 +6,9 @@ from flask import request
 
 from confidant import authnz
 from confidant import settings
-from confidant.schema.credentials import credential_response_schema
 from confidant.schema.services import ServiceResponse
 from confidant.schema.services import (
-    service_expanded_response_schema,
+    service_response_schema,
     services_response_schema,
     revisions_response_schema,
 )
@@ -73,25 +72,14 @@ def get_service_list():
 def get_service(id):
     with stats.timer("get_service_by_id"):
         tenant_id = authnz.get_tenant_id()
-        metadata_only = misc.get_boolean(request.args.get("metadata_only"))
-        action = "metadata" if metadata_only else "get"
-        if action == "metadata":
-            permissions = {
-                "metadata": acl_module_check(
-                    resource_type="service",
-                    action="metadata",
-                    resource_id=id,
-                )
-            }
-        else:
-            permissions = {
-                "get": acl_module_check(
-                    resource_type="service",
-                    action="get",
-                    resource_id=id,
-                )
-            }
-        if not permissions[action]:
+        permissions = {
+            "get": acl_module_check(
+                resource_type="service",
+                action="get",
+                resource_id=id,
+            )
+        }
+        if not permissions["get"]:
             msg = "{} does not have access to get service {}".format(
                 authnz.get_logged_in_user(),
                 id,
@@ -105,13 +93,6 @@ def get_service(id):
             logger.warning("Authz failed for service %s (wrong account).", id)
             return jsonify({"error": "Authenticated user is not authorized."}), 401
 
-        credentials = credentialmanager.get_credentials(
-            tenant_id,
-            service.credentials,
-            include_credential_keys=True,
-            include_credential_pairs=not metadata_only,
-        )
-
         if authnz.user_is_user_type("user"):
             permissions["update"] = acl_module_check(
                 resource_type="service",
@@ -122,13 +103,9 @@ def get_service(id):
                 },
             )
 
-        response = ServiceResponse.from_service_expanded(
-            service,
-            credentials=credentials,
-            metadata_only=metadata_only,
-        )
+        response = ServiceResponse.from_service(service)
         response.permissions = permissions
-        return service_expanded_response_schema.dumps(response)
+        return service_response_schema.dumps(response)
 
 
 @blueprint.route("/v1/services/<id>/versions", methods=["GET"])
@@ -159,7 +136,7 @@ def get_service_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
         resource_type="service",
-        action="metadata",
+        action="get",
         resource_id=id,
     ):
         msg = "{} does not have access to service {}".format(
@@ -167,31 +144,19 @@ def get_service_version(id, version):
             id,
         )
         return jsonify({"error": msg, "reference": id}), 403
-    metadata_only = misc.get_boolean(request.args.get("metadata_only"))
     response = servicemanager.get_service_version(tenant_id, id, version)
     if not response:
         return jsonify({}), 404
-    credentials = credentialmanager.get_credentials(
-        tenant_id,
-        response.credentials,
-        include_credential_keys=True,
-        include_credential_pairs=not metadata_only,
-    )
-    expanded = ServiceResponse.from_service_expanded(
-        response,
-        credentials=credentials,
-        metadata_only=metadata_only,
-    )
+    expanded = ServiceResponse.from_service(response)
     expanded.permissions = {
-        "metadata": True,
-        "get": not metadata_only,
+        "get": True,
         "update": acl_module_check(
             resource_type="service",
             action="update",
             resource_id=id,
         ),
     }
-    return service_expanded_response_schema.dumps(expanded)
+    return service_response_schema.dumps(expanded)
 
 
 @blueprint.route("/v1/services/<id>", methods=["PUT"])
@@ -262,18 +227,14 @@ def map_service_credentials(id):
         )
     if error:
         return jsonify(error), 400
-    expanded = ServiceResponse.from_service_expanded(
-        response,
-        credentials=creds,
-        metadata_only=False,
-    )
+    expanded = ServiceResponse.from_service(response)
     expanded.permissions = {
         "create": existing is None,
         "metadata": True,
         "get": True,
         "update": True,
     }
-    return service_expanded_response_schema.dumps(expanded)
+    return service_response_schema.dumps(expanded)
 
 
 @blueprint.route("/v1/services/<id>/versions/<int:version>/restore", methods=["POST"])
@@ -302,23 +263,13 @@ def restore_service_version(id, version):
     )
     if not response:
         return jsonify({}), 404
-    credentials = credentialmanager.get_credentials(
-        tenant_id,
-        response.credentials,
-        include_credential_keys=True,
-        include_credential_pairs=True,
-    )
-    expanded = ServiceResponse.from_service_expanded(
-        response,
-        credentials=credentials,
-        metadata_only=False,
-    )
+    expanded = ServiceResponse.from_service(response)
     expanded.permissions = {
         "metadata": True,
         "get": True,
         "update": True,
     }
-    return service_expanded_response_schema.dumps(expanded)
+    return service_response_schema.dumps(expanded)
 
 
 @blueprint.route("/v1/grants/<id>", methods=["PUT"])

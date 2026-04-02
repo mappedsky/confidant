@@ -38,7 +38,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) {
-    window.location.href = '/v1/login';
+    if (window.location.pathname !== '/v1/login') {
+      window.location.href = '/v1/login';
+    }
     return new Promise<T>(() => {});
   }
   if (!res.ok) {
@@ -85,7 +87,8 @@ export const api = {
     }),
 
   getServices: () => request<ServicesListResponse>('/v1/services'),
-  getService: (id: string) => request<ServiceDetail>(`/v1/services/${id}`),
+  getService: (id: string) =>
+    request<ServiceDetail>(`/v1/services/${id}`),
   createService: (id: string, data: unknown) =>
     request<ServiceDetail>(`/v1/services/${id}`, {
       method: 'PUT',

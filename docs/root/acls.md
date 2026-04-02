@@ -93,12 +93,24 @@ This check controls access to specific credential metadata, which does not inclu
 ```python
 acl_module_check(
     resource_type='credential',
-    action='get',
+    action='read',
     resource_id=id,
 )
 ```
 
-This check controls access to specific credentials, which includes credential pairs. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific credentials without triggering rotation alerting side effects. This is intended for service reads that fetch credential pairs. Fine-grained controls can be applied using the provided `resource_id`.
+
+#### Get credential with alert
+
+```python
+acl_module_check(
+    resource_type='credential',
+    action='read_with_alert',
+    resource_id=id,
+)
+```
+
+This check controls access to specific credentials and allows the read path to update `last_decrypted_date`, which can affect required rotation timing. This is intended for human users that fetch credential pairs.
 
 #### Create credential
 
@@ -157,7 +169,7 @@ acl_module_check(
 )
 ```
 
-This check controls access to specific service metadata, which includes service data, and credential metadata, for credentials that are mapped to the service, but does not include credential pairs in the credentials. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific service metadata. Service reads no longer expand mapped credentials; credential payloads are fetched from the credential endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
 
 #### Get service
 
@@ -169,7 +181,21 @@ acl_module_check(
 )
 ```
 
-This check controls access to specific service data, which includes service data, and credential that are mapped to the service, including credential pairs in the credentials. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific service data. Service reads no longer expand mapped credentials; credential payloads are fetched from the credential endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
+
+#### Get credential via mapped service
+
+Credential read endpoints also allow access when the authenticated service is mapped to the requested credential:
+
+```python
+acl_module_check(
+    resource_type='credential',
+    action='read',
+    resource_id=id,
+)
+```
+
+The default ACL module continues to handle human users. Credential routes add a service-mapping authorization check before returning credential metadata or pairs. Mapped service reads use `read`; interactive user reads use `read_with_alert`.
 
 #### Create service
 
