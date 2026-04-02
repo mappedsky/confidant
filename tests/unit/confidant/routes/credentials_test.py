@@ -4,6 +4,8 @@ from confidant.app import create_app
 from confidant.schema.credentials import CredentialResponse
 from confidant.schema.credentials import CredentialsResponse
 from confidant.schema.credentials import RevisionsResponse
+from confidant.schema.services import ServiceResponse
+from confidant.routes import credentials as credentials_routes
 
 
 def _credential(
@@ -23,6 +25,107 @@ def _credential(
         credential_keys=["api_key"],
         credential_pairs={"api_key": "value"} if credential_pairs is None else credential_pairs,
     )
+
+
+def _service(service_id="service-a", credentials=None, account=None):
+    return ServiceResponse(
+        tenant_id="singletenant",
+        id=service_id,
+        revision=1,
+        enabled=True,
+        modified_date=datetime.now(timezone.utc),
+        modified_by="user@example.com",
+        account=account,
+        credentials=credentials or ["c1"],
+    )
+
+
+def test_service_can_access_mapped_credential(mocker):
+    mocker.patch("confidant.settings.USE_AUTH", True)
+    mocker.patch(
+        "confidant.routes.credentials.authnz.user_is_user_type",
+        side_effect=lambda user_type: user_type == "service",
+    )
+    mocker.patch(
+        "confidant.routes.credentials.authnz.get_logged_in_user",
+        return_value="service-a",
+    )
+    mocker.patch(
+        "confidant.routes.credentials.authnz.service_in_account",
+        return_value=True,
+    )
+    mocker.patch(
+        "confidant.routes.credentials.servicemanager.get_service_latest",
+        return_value=_service(),
+    )
+
+    assert credentials_routes._service_has_credential_access("singletenant", "c1") is True
+    assert credentials_routes._service_has_credential_access("singletenant", "c2") is False
+
+
+def test_service_credential_access_respects_account(mocker):
+    mocker.patch("confidant.settings.USE_AUTH", True)
+    mocker.patch(
+        "confidant.routes.credentials.authnz.user_is_user_type",
+        side_effect=lambda user_type: user_type == "service",
+    )
+    mocker.patch(
+        "confidant.routes.credentials.authnz.get_logged_in_user",
+        return_value="service-a",
+    )
+    mocker.patch(
+        "confidant.routes.credentials.authnz.service_in_account",
+        return_value=False,
+    )
+    mocker.patch(
+        "confidant.routes.credentials.servicemanager.get_service_latest",
+        return_value=_service(account="acct-a"),
+    )
+
+    assert credentials_routes._service_has_credential_access("singletenant", "c1") is False
+
+
+def test_can_read_credential_falls_back_to_service_mapping(mocker):
+    mocker.patch("confidant.routes.credentials.acl_module_check", return_value=False)
+    mocker.patch(
+        "confidant.routes.credentials._service_has_credential_access",
+        return_value=True,
+    )
+
+    assert credentials_routes._can_read_credential("singletenant", "c1", "read") is True
+
+
+def test_read_action_for_request_defaults_to_read_with_alert(mocker):
+    mocker.patch("confidant.settings.USE_AUTH", False)
+
+    assert credentials_routes._read_action_for_request() == "read_with_alert"
+    assert credentials_routes._should_alert_on_read() is True
+
+
+def test_read_action_for_service_request_is_read(mocker):
+    mocker.patch("confidant.settings.USE_AUTH", True)
+    mocker.patch(
+        "confidant.routes.credentials.authnz.user_is_user_type",
+        side_effect=lambda user_type: user_type == "service",
+    )
+
+    assert credentials_routes._read_action_for_request() == "read"
+    assert credentials_routes._should_alert_on_read() is False
+
+
+def test_metadata_access_allows_read_permissions(mocker):
+    acl_mock = mocker.patch(
+        "confidant.routes.credentials.acl_module_check",
+        side_effect=[False, True],
+    )
+    mocker.patch(
+        "confidant.routes.credentials._service_has_credential_access",
+        return_value=False,
+    )
+
+    assert credentials_routes._can_view_credential_metadata("singletenant", "c1") is True
+    assert acl_mock.call_args_list[0].kwargs["action"] == "metadata"
+    assert acl_mock.call_args_list[1].kwargs["action"] == "read"
 
 
 def test_get_credential_list(mocker):
@@ -64,7 +167,7 @@ def test_get_credential_detail_and_metadata_only(mocker):
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch("confidant.routes.credentials.authnz.get_logged_in_user", return_value="user@example.com")
     mocker.patch("confidant.routes.credentials.acl_module_check", return_value=True)
-    mocker.patch(
+    latest_mock = mocker.patch(
         "confidant.routes.credentials.credentialmanager.get_credential_latest",
         return_value=_credential(),
     )
@@ -75,7 +178,14 @@ def test_get_credential_detail_and_metadata_only(mocker):
     assert ret.status_code == 200
     body = ret.get_json()
     assert body["credential_pairs"] == {"api_key": "value"}
-    assert body["permissions"]["get"] is True
+    assert body["permissions"]["read_with_alert"] is True
+    assert body["permissions"]["read"] is False
+    latest_mock.assert_any_call(
+        "singletenant",
+        "c1",
+        metadata_only=False,
+        alert_on_access=True,
+    )
 
     ret = app.test_client().get(
         "/v1/credentials/c1?metadata_only=true"
@@ -83,7 +193,47 @@ def test_get_credential_detail_and_metadata_only(mocker):
     assert ret.status_code == 200
     body = ret.get_json()
     assert body["credential_pairs"] == {}
-    assert body["permissions"]["get"] is False
+    assert body["permissions"]["read"] is False
+    assert body["permissions"]["read_with_alert"] is False
+    latest_mock.assert_any_call(
+        "singletenant",
+        "c1",
+        metadata_only=True,
+        alert_on_access=False,
+    )
+
+
+def test_service_full_reads_do_not_alert(mocker):
+    mocker.patch("confidant.settings.USE_AUTH", True)
+    mocker.patch(
+        "confidant.routes.credentials.authnz.user_is_user_type",
+        side_effect=lambda user_type: user_type == "service",
+    )
+
+    assert credentials_routes._read_action_for_request() == "read"
+    assert credentials_routes._should_alert_on_read() is False
+
+
+def test_get_credential_dependencies_allows_read_permissions(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.credentials.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    mocker.patch(
+        "confidant.routes.credentials._can_view_credential_metadata",
+        return_value=True,
+    )
+    deps_mock = mocker.patch(
+        "confidant.routes.credentials.credentialmanager.get_credential_dependencies",
+        return_value=[{"id": "service-a", "enabled": True}],
+    )
+
+    ret = app.test_client().get("/v1/credentials/c1/services")
+    assert ret.status_code == 200
+    assert ret.get_json()["services"][0]["id"] == "service-a"
+    deps_mock.assert_called_once_with("singletenant", "c1")
 
 
 def test_create_and_update_credential(mocker):
@@ -129,7 +279,7 @@ def test_list_and_get_versions(mocker):
         "confidant.routes.credentials.credentialmanager.list_credential_versions",
         return_value=RevisionsResponse(versions=[_credential(), _credential(revision=2)]),
     )
-    mocker.patch(
+    version_mock = mocker.patch(
         "confidant.routes.credentials.credentialmanager.get_credential_version",
         return_value=_credential(revision=2),
     )
@@ -144,4 +294,12 @@ def test_list_and_get_versions(mocker):
         "/v1/credentials/c1/versions/2"
     )
     assert ret.status_code == 200
-    assert ret.get_json()["revision"] == 2
+    body = ret.get_json()
+    assert body["revision"] == 2
+    assert body["permissions"]["read_with_alert"] is True
+    version_mock.assert_called_once_with(
+        "singletenant",
+        "c1",
+        2,
+        alert_on_access=True,
+    )

@@ -117,17 +117,11 @@ export default function ServiceDetailPage() {
     setFormEnabled(svc.enabled ?? true);
     setFormAccount(svc.account ?? '');
     setFormCredentials(
-      (svc.credentials ?? []).map((credential) =>
-        typeof credential === 'string'
-          ? { id: credential, name: credential, isNew: false }
-          : {
-              id: credential.id,
-              name: credential.name ?? credential.id,
-              revision: credential.revision,
-              enabled: credential.enabled,
-              isNew: false,
-            },
-      ),
+      (svc.credentials ?? []).map((credential) => ({
+        id: credential,
+        name: credential,
+        isNew: false,
+      })),
     );
   }, []);
 

@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from datetime import timezone
 
-from confidant.schema.credentials import CredentialResponse
 from confidant.schema.services import ServiceResponse
 from confidant.schema.services import ServicesResponse
 from confidant.schema.services import RevisionsResponse
@@ -25,7 +24,7 @@ def _as_datetime(value):
     return datetime.fromisoformat(value)
 
 
-def _service_response_from_item(item, include_credentials=False, credentials=None):
+def _service_response_from_item(item):
     data = {
         "tenant_id": item["tenant_id"],
         "id": item["id"],
@@ -37,10 +36,7 @@ def _service_response_from_item(item, include_credentials=False, credentials=Non
         data["account"] = item["account"]
     if item.get("enabled") is not None:
         data["enabled"] = item["enabled"]
-    if include_credentials:
-        data["credentials"] = item.get("credentials", [])
-        if credentials is not None:
-            data["credentials"] = credentials
+    data["credentials"] = item.get("credentials", [])
     return ServiceResponse(**data)
 
 
@@ -66,14 +62,13 @@ def get_service_latest(tenant_id, service_id):
         return None
     return _service_response_from_item(
         item,
-        include_credentials=True,
     )
 
 
 def list_service_versions(tenant_id, service_id):
     items = store.list_service_versions(tenant_id, service_id)
     services = [
-        _service_response_from_item(item, include_credentials=True)
+        _service_response_from_item(item)
         for item in items
     ]
     return RevisionsResponse.from_services(services)
@@ -83,7 +78,7 @@ def get_service_version(tenant_id, service_id, version):
     item = store.get_service_version(tenant_id, service_id, version)
     if not item:
         return None
-    return _service_response_from_item(item, include_credentials=True)
+    return _service_response_from_item(item)
 
 
 def get_services_for_credential(tenant_id, credential_id):
@@ -203,7 +198,6 @@ def create_service(
     )
     return _service_response_from_item(
         latest_item,
-        include_credentials=True,
     ), None
 
 
@@ -251,7 +245,6 @@ def update_service(
     )
     return _service_response_from_item(
         latest_item,
-        include_credentials=True,
     ), None
 
 

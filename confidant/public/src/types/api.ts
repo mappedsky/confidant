@@ -1,5 +1,7 @@
 export interface EntityPermissions {
   metadata?: boolean;
+  read?: boolean;
+  read_with_alert?: boolean;
   get?: boolean;
   update?: boolean;
   create?: boolean;
@@ -73,20 +75,6 @@ export interface CredentialServicesResponse {
   services: CredentialIdentifier[];
 }
 
-export interface ServiceCredential {
-  id: string;
-  name?: string;
-  enabled?: boolean;
-  revision?: number;
-  credential_keys?: string[];
-  credential_pairs?: Record<string, string>;
-  metadata?: Record<string, string>;
-  documentation?: string;
-  modified_date?: string;
-  modified_by?: string;
-  permissions?: EntityPermissions;
-}
-
 export interface ServiceBase {
   id: string;
   revision: number;
@@ -102,7 +90,7 @@ export interface ServiceSummary extends ServiceBase {
 }
 
 export interface ServiceDetail extends ServiceBase {
-  credentials: Array<string | ServiceCredential>;
+  credentials: string[];
 }
 
 export interface ServicesListResponse {

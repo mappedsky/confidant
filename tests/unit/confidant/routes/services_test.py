@@ -1,24 +1,9 @@
 from datetime import datetime, timezone
 
 from confidant.app import create_app
-from confidant.schema.credentials import CredentialResponse
 from confidant.schema.services import ServiceResponse
 from confidant.schema.services import ServicesResponse
 from confidant.schema.services import RevisionsResponse
-
-
-def _credential(credential_id="c1", name="Credential"):
-    return CredentialResponse(
-        tenant_id="singletenant",
-        id=credential_id,
-        name=name,
-        revision=1,
-        enabled=True,
-        modified_date=datetime.now(timezone.utc),
-        modified_by="user@example.com",
-        credential_keys=["api_key"],
-        credential_pairs={"api_key": "value"},
-    )
 
 
 def _service(service_id="s1", revision=1, credentials=None):
@@ -59,15 +44,11 @@ def test_get_service_detail(mocker):
         "confidant.routes.services.servicemanager.get_service_latest",
         return_value=_service(),
     )
-    mocker.patch(
-        "confidant.routes.services.credentialmanager.get_credentials",
-        return_value=[_credential()],
-    )
 
     ret = app.test_client().get("/v1/services/s1")
     assert ret.status_code == 200
     body = ret.get_json()
-    assert body["credentials"][0]["id"] == "c1"
+    assert body["credentials"] == ["c1"]
     assert body["permissions"]["get"] is True
 
 
@@ -85,10 +66,6 @@ def test_get_service_versions_and_version_detail(mocker):
         return_value=_service(revision=2),
     )
     mocker.patch(
-        "confidant.routes.services.credentialmanager.get_credentials",
-        return_value=[_credential()],
-    )
-    mocker.patch(
         "confidant.routes.services.servicemanager.store.list_services",
         return_value={"Items": []},
     )
@@ -101,7 +78,9 @@ def test_get_service_versions_and_version_detail(mocker):
         "/v1/services/s1/versions/2"
     )
     assert ret.status_code == 200
-    assert ret.get_json()["revision"] == 2
+    body = ret.get_json()
+    assert body["revision"] == 2
+    assert body["credentials"] == ["c1"]
 
 
 def test_create_and_update_service(mocker):
@@ -123,7 +102,7 @@ def test_create_and_update_service(mocker):
     )
     mocker.patch(
         "confidant.routes.services.credentialmanager.get_credentials",
-        return_value=[_credential()],
+        return_value=[type("Cred", (), {"id": "c1"})()],
     )
     mocker.patch(
         "confidant.routes.services.servicemanager.store.list_services",
@@ -138,6 +117,7 @@ def test_create_and_update_service(mocker):
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 1
+    assert ret.get_json()["credentials"] == ["c1"]
 
     ret = app.test_client().put(
         "/v1/services/s1",
@@ -147,3 +127,4 @@ def test_create_and_update_service(mocker):
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 2
+    assert ret.get_json()["credentials"] == ["c1"]

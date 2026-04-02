@@ -12,6 +12,7 @@ from confidant.schema.credentials import (
     revisions_response_schema,
 )
 from confidant.services import credentialmanager
+from confidant.services import servicemanager
 from confidant.utils import maintenance
 from confidant.utils import misc
 from confidant.utils import stats
@@ -21,6 +22,48 @@ logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("credentials", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
+
+
+def _service_has_credential_access(tenant_id, credential_id):
+    if not settings.USE_AUTH or not authnz.user_is_user_type("service"):
+        return False
+    service = servicemanager.get_service_latest(
+        tenant_id,
+        authnz.get_logged_in_user(),
+    )
+    if not service:
+        return False
+    if not authnz.service_in_account(service.account):
+        return False
+    return credential_id in (service.credentials or [])
+
+
+def _read_action_for_request():
+    if settings.USE_AUTH and authnz.user_is_user_type("service"):
+        return "read"
+    return "read_with_alert"
+
+
+def _should_alert_on_read():
+    return _read_action_for_request() == "read_with_alert"
+
+
+def _can_view_credential_metadata(tenant_id, credential_id):
+    if _can_read_credential(tenant_id, credential_id, "metadata"):
+        return True
+    if _can_read_credential(tenant_id, credential_id, "read"):
+        return True
+    return _can_read_credential(tenant_id, credential_id, "read_with_alert")
+
+
+def _can_read_credential(tenant_id, credential_id, action):
+    if acl_module_check(
+        resource_type="credential",
+        action=action,
+        resource_id=credential_id,
+    ):
+        return True
+    return _service_has_credential_access(tenant_id, credential_id)
 
 
 @blueprint.route("/v1/credentials", methods=["GET"])
@@ -57,12 +100,13 @@ def get_credential(id):
     with stats.timer("get_credential_by_id"):
         tenant_id = authnz.get_tenant_id()
         metadata_only = misc.get_boolean(request.args.get("metadata_only"))
-        action = "metadata" if metadata_only else "get"
-        if not acl_module_check(
-            resource_type="credential",
-            action=action,
-            resource_id=id,
-        ):
+        action = "metadata" if metadata_only else _read_action_for_request()
+        can_access = (
+            _can_view_credential_metadata(tenant_id, id)
+            if metadata_only
+            else _can_read_credential(tenant_id, id, action)
+        )
+        if not can_access:
             msg = "{} does not have access to credential {}".format(
                 authnz.get_logged_in_user(),
                 id,
@@ -72,6 +116,7 @@ def get_credential(id):
             tenant_id,
             id,
             metadata_only=metadata_only,
+            alert_on_access=not metadata_only and _should_alert_on_read(),
         )
         if not response:
             return jsonify({}), 404
@@ -79,7 +124,8 @@ def get_credential(id):
             response.credential_pairs = {}
         response.permissions = {
             "metadata": True,
-            "get": not metadata_only,
+            "read": not metadata_only and not _should_alert_on_read(),
+            "read_with_alert": not metadata_only and _should_alert_on_read(),
             "update": acl_module_check(
                 resource_type="credential",
                 action="update",
@@ -94,11 +140,7 @@ def get_credential(id):
 @authnz.require_auth
 def list_credential_versions(id):
     tenant_id = authnz.get_tenant_id()
-    if not acl_module_check(
-        resource_type="credential",
-        action="metadata",
-        resource_id=id,
-    ):
+    if not _can_view_credential_metadata(tenant_id, id):
         msg = "{} does not have access to credential {} versions".format(
             authnz.get_logged_in_user(),
             id,
@@ -115,22 +157,25 @@ def list_credential_versions(id):
 @authnz.require_auth
 def get_credential_version(id, version):
     tenant_id = authnz.get_tenant_id()
-    if not acl_module_check(
-        resource_type="credential",
-        action="metadata",
-        resource_id=id,
-    ):
+    read_action = _read_action_for_request()
+    if not _can_read_credential(tenant_id, id, read_action):
         msg = "{} does not have access to credential {}".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg}), 403
-    response = credentialmanager.get_credential_version(tenant_id, id, version)
+    response = credentialmanager.get_credential_version(
+        tenant_id,
+        id,
+        version,
+        alert_on_access=_should_alert_on_read(),
+    )
     if not response:
         return jsonify({}), 404
     response.permissions = {
         "metadata": True,
-        "get": True,
+        "read": not _should_alert_on_read(),
+        "read_with_alert": _should_alert_on_read(),
         "update": acl_module_check(
             resource_type="credential",
             action="update",
@@ -174,7 +219,8 @@ def create_credential():
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "get": True,
+            "read": True,
+            "read_with_alert": True,
             "update": True,
         }
         return credential_response_schema.dumps(response)
@@ -214,7 +260,8 @@ def update_credential(id):
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "get": True,
+            "read": True,
+            "read_with_alert": True,
             "update": True,
         }
         return credential_response_schema.dumps(response)
@@ -244,7 +291,8 @@ def restore_credential_version(id, version):
         return jsonify({}), 404
     response.permissions = {
         "metadata": True,
-        "get": True,
+        "read": True,
+        "read_with_alert": True,
         "update": True,
     }
     return credential_response_schema.dumps(response)
@@ -254,11 +302,7 @@ def restore_credential_version(id, version):
 @authnz.require_auth
 def get_credential_dependencies(id):
     tenant_id = authnz.get_tenant_id()
-    if not acl_module_check(
-        resource_type="credential",
-        action="metadata",
-        resource_id=id,
-    ):
+    if not _can_view_credential_metadata(tenant_id, id):
         msg = "{} does not have access to get dependencies for credential {}".format(
             authnz.get_logged_in_user(),
             id,
