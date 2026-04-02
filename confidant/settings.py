@@ -248,13 +248,6 @@ AUTH_CONTEXT = str_env('AUTH_CONTEXT')
 # If a key alias is used, rather than an ARN, it must be prefixed with: alias/
 # Example: alias/mykmskey
 AUTH_KEY = str_env('AUTH_KEY')
-# A dict of KMS key to account mappings. These keys are for the 'service' role
-# to support multiple AWS accounts. If services are scoped to accounts,
-# confidant will ensure the service authentication KMS auth used the mapped
-# key. The account values in this setting will be shown to the user when
-# creating or editing services.
-# Example: {"sandbox-auth-key":"sandbox","primary-auth-key":"primary"}
-SCOPED_AUTH_KEYS = json.loads(str_env('SCOPED_AUTH_KEYS', '{}'))
 # The alias of the KMS key being used for authentication that is specifically
 # for the 'user' role. This should not be the same key as AUTH_KEY if your
 # kms token version is < 2, as it would allow services to masquerade as users.
@@ -269,8 +262,6 @@ KMS_MAXIMUM_TOKEN_VERSION = int_env('KMS_MAXIMUM_TOKEN_VERSION', 2)
 KMS_MINIMUM_TOKEN_VERSION = int_env('KMS_MINIMUM_TOKEN_VERSION', 1)
 # Comma separated list of user types allowed to auth via KMS.
 KMS_AUTH_USER_TYPES = str_env('KMS_AUTH_USER_TYPES', 'service').split(',')
-# Manage auth key grants for service to service authentication.
-KMS_AUTH_MANAGE_GRANTS = bool_env('KMS_AUTH_MANAGE_GRANTS', True)
 # Number of tokens to cache for authentication. This should be roughly
 # equivalent to the number of tokens you expect to generate within the lifetime
 # of your tokens.
@@ -517,16 +508,6 @@ ROTATION_DAYS_CONFIG = json.loads(str_env('ROTATION_DAYS_CONFIG', '{}'))
 # in GET /v1/credentials/<ID> to keep track of when a human
 # last saw a credential pair
 ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env('ENABLE_SAVE_LAST_DECRYPTION_TIME')
-
-# Configuration validation
-_settings_failures = False
-if len(set(SCOPED_AUTH_KEYS.values())) != len(SCOPED_AUTH_KEYS.values()):
-    logger.error('SCOPED_AUTH_KEYS values are not unique.')
-    _settings_failures = True
-
-if _settings_failures:
-    raise SettingsError('Refusing to continue with invalid settings.')
-
 
 def get(name, default=None):
     """

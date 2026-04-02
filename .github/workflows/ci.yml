@@ -2,13 +2,19 @@ name: CI
 
 on:
   pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   test-unit:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,6 +23,8 @@ jobs:
 
   test-integration:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +33,8 @@ jobs:
 
   test-frontend:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,3 +44,40 @@ jobs:
           node-version: '20.x'
       - name: Run frontend tests
         run: npm ci && npm run -s typecheck
+
+  linter:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Determine files to check
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+          fi
+          if [ -z "$base_sha" ] || [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+            git ls-files -z > changed-files.txt
+          else
+            git diff --name-only -z "$base_sha" "${{ github.sha }}" > changed-files.txt
+          fi
+          echo "count=$(tr -cd '\\0' < changed-files.txt | wc -c)" >> "$GITHUB_OUTPUT"
+      - name: Run pre-commit
+        run: |
+          if [ "${{ steps.changed-files.outputs.count }}" = "0" ]; then
+            echo "No files changed."
+            exit 0
+          fi
+          xargs -0 pre-commit run --show-diff-on-failure --files < changed-files.txt

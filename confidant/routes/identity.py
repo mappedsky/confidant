@@ -86,11 +86,9 @@ def get_client_config():
        {
          "defined": {},
          "generated": {
-           "kms_auth_manage_grants": false,
-           "aws_accounts": [],
            "xsrf_cookie_name": "XSRF_COOKIE",
-           "maintenance_mode": false,
-           "history_page_limit": 500,
+            "maintenance_mode": false,
+            "history_page_limit": 500,
            "permissions": {
              "list": true,
              "create": true
@@ -123,8 +121,6 @@ def get_client_config():
     response = jsonify({
         'defined': settings.CLIENT_CONFIG,
         'generated': {
-            'kms_auth_manage_grants': settings.KMS_AUTH_MANAGE_GRANTS,
-            'aws_accounts': list(settings.SCOPED_AUTH_KEYS.values()),
             'xsrf_cookie_name': settings.XSRF_COOKIE_NAME,
             'maintenance_mode': settings.MAINTENANCE_MODE,
             'history_page_limit': settings.HISTORY_PAGE_LIMIT,

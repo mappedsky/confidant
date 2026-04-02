@@ -17,7 +17,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Link,
   Chip,
   Stack,
@@ -33,7 +32,6 @@ import {
 import type { SelectChangeEvent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { api } from '../api';
@@ -41,7 +39,6 @@ import { useAppContext } from '../contexts/AppContext';
 import {
   ConflictMap,
   CredentialSummary,
-  GrantsResponse,
   ServiceDetail,
 } from '../types/api';
 
@@ -92,30 +89,24 @@ export default function ServiceDetailPage() {
   const isNew = !id;
 
   const permissions = clientConfig?.generated?.permissions;
-  const awsAccounts = clientConfig?.generated?.aws_accounts ?? [];
-  const showGrants = clientConfig?.generated?.kms_auth_manage_grants ?? false;
 
   const [service, setService] = useState<ServiceDetail | null>(null);
   const [allCredentials, setAllCredentials] = useState<CredentialSummary[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
-  const [grants, setGrants] = useState<GrantsResponse['grants'] | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(isNew);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
-  const [grantError, setGrantError] = useState<string | null>(null);
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
-  const [formAccount, setFormAccount] = useState('');
   const [formCredentials, setFormCredentials] = useState<ServiceFormCredential[]>([]);
 
   const populateForm = useCallback((svc: ServiceDetail) => {
     setFormId(svc.id ?? '');
     setFormEnabled(svc.enabled ?? true);
-    setFormAccount(svc.account ?? '');
     setFormCredentials(
       (svc.credentials ?? []).map((credential) => ({
         id: credential,
@@ -140,20 +131,14 @@ export default function ServiceDetailPage() {
     }
 
     setLoading(true);
-    const servicePromise = api.getService(id);
-    const grantsPromise = showGrants
-      ? api.getGrants(id).catch(() => null)
-      : Promise.resolve<GrantsResponse | null>(null);
-
-    Promise.all([servicePromise, grantsPromise])
-      .then(([svc, grantData]) => {
+    api.getService(id)
+      .then((svc) => {
         setService(svc);
         populateForm(svc);
-        setGrants(grantData?.grants ?? null);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, isNew, populateForm, showGrants]);
+  }, [id, isNew, populateForm]);
 
   const handleAddCredential = () => {
     setFormCredentials((prev) => [...prev, { id: '', name: '', isNew: true }]);
@@ -177,17 +162,6 @@ export default function ServiceDetailPage() {
           : c,
       ),
     );
-  };
-
-  const handleEnsureGrants = async () => {
-    if (!id) return;
-    setGrantError(null);
-    try {
-      const data = await api.updateGrants(id);
-      setGrants(data.grants);
-    } catch (err) {
-      setGrantError((err as Error).message);
-    }
   };
 
   const handleSave = async () => {
@@ -217,7 +191,6 @@ export default function ServiceDetailPage() {
     const payload = {
       id: formId,
       enabled: formEnabled,
-      account: formAccount || null,
       credentials: credIds,
     };
 
@@ -303,13 +276,6 @@ export default function ServiceDetailPage() {
       <Typography variant="h5" fontWeight={600} mb={3}>
         {isNew ? 'New Service' : service?.id || id}
       </Typography>
-
-      {grantError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {grantError}
-        </Alert>
-      )}
-
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -358,36 +324,6 @@ export default function ServiceDetailPage() {
               />
             ) : (
               <ReadOnlyField label="Service ID" value={service?.id} valueSx={{ fontFamily: 'monospace' }} />
-            )}
-
-            {awsAccounts.length > 0 && (
-              editing ? (
-                <FormControl size="small" fullWidth>
-                  <InputLabel>AWS Account</InputLabel>
-                  <Select
-                    label="AWS Account"
-                    value={formAccount}
-                    onChange={(event: SelectChangeEvent<string>) =>
-                      setFormAccount(event.target.value)
-                    }
-                    displayEmpty
-                  >
-                    <MenuItem value="">
-                      <em>No account scoping</em>
-                    </MenuItem>
-                    {awsAccounts.filter(Boolean).map((account) => (
-                      <MenuItem key={account} value={account}>
-                        {account}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : (
-                <ReadOnlyField
-                  label="AWS Account"
-                  value={service?.account || 'No account scoping'}
-                />
-              )
             )}
 
             {!isNew && (
@@ -509,35 +445,6 @@ export default function ServiceDetailPage() {
                 </Button>
               )}
             </Box>
-
-            {!isNew && showGrants && (
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                  <SectionLabel>Service Grants</SectionLabel>
-                  {!editing && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<RefreshIcon />}
-                      onClick={handleEnsureGrants}
-                      sx={{ mb: '2px' }}
-                    >
-                      Update Grants
-                    </Button>
-                  )}
-                </Stack>
-                {grants ? (
-                  <Stack spacing={1.5}>
-                    <ReadOnlyField label="Decrypt Grant" value={grants.decrypt_grant ? 'true' : 'none'} />
-                    <ReadOnlyField label="Encrypt Grant" value={grants.encrypt_grant ? 'true' : 'none'} />
-                  </Stack>
-                ) : (
-                  <Typography color="text.secondary" variant="body2">
-                    No grants information available.
-                  </Typography>
-                )}
-              </Box>
-            )}
 
             {!isNew && (
               <>

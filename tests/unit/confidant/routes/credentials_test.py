@@ -27,7 +27,7 @@ def _credential(
     )
 
 
-def _service(service_id="service-a", credentials=None, account=None):
+def _service(service_id="service-a", credentials=None):
     return ServiceResponse(
         tenant_id="singletenant",
         id=service_id,
@@ -35,7 +35,6 @@ def _service(service_id="service-a", credentials=None, account=None):
         enabled=True,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
-        account=account,
         credentials=credentials or ["c1"],
     )
 
@@ -51,40 +50,12 @@ def test_service_can_access_mapped_credential(mocker):
         return_value="service-a",
     )
     mocker.patch(
-        "confidant.routes.credentials.authnz.service_in_account",
-        return_value=True,
-    )
-    mocker.patch(
         "confidant.routes.credentials.servicemanager.get_service_latest",
         return_value=_service(),
     )
 
     assert credentials_routes._service_has_credential_access("singletenant", "c1") is True
     assert credentials_routes._service_has_credential_access("singletenant", "c2") is False
-
-
-def test_service_credential_access_respects_account(mocker):
-    mocker.patch("confidant.settings.USE_AUTH", True)
-    mocker.patch(
-        "confidant.routes.credentials.authnz.user_is_user_type",
-        side_effect=lambda user_type: user_type == "service",
-    )
-    mocker.patch(
-        "confidant.routes.credentials.authnz.get_logged_in_user",
-        return_value="service-a",
-    )
-    mocker.patch(
-        "confidant.routes.credentials.authnz.service_in_account",
-        return_value=False,
-    )
-    mocker.patch(
-        "confidant.routes.credentials.servicemanager.get_service_latest",
-        return_value=_service(account="acct-a"),
-    )
-
-    assert credentials_routes._service_has_credential_access("singletenant", "c1") is False
-
-
 def test_can_read_credential_falls_back_to_service_mapping(mocker):
     mocker.patch("confidant.routes.credentials.acl_module_check", return_value=False)
     mocker.patch(

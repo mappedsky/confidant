@@ -411,22 +411,6 @@ export SECRETS_BOOTSTRAP=`cat encrypted_dict.yaml.enc`
 python manage.py decrypt_secrets_bootstrap
 ```
 
-### Multi-account authentication
-
-It's possible to use confidant across multiple AWS accounts by allowing
-cross-account access to the AUTH\_KEY, but when you give access to the AUTH\_KEY
-in other accounts, you're trusting the other account's IAM policy for
-generating authentication tokens for services. Confidant supports scoping
-services to accounts, where you generate a KMS key for each account, for
-authentication. You can configure confidant to map keys to account names:
-
-```bash
-export SCOPED_AUTH_KEYS='{"sandbox-auth-key":"sandbox","primary-auth-key":"primary"}'
-```
-
-In the above example, if a user scopes a service to the "sandbox" account,
-it'll require authentication to use the "sandbox-auth-key" KMS key.
-
 ### KMS authentication for end-users
 
 In confidant version 1.1 we introduced a new version of KMS auth that allows
@@ -447,21 +431,6 @@ export KMS_MINIMUM_TOKEN_VERSION='1'
 # Comma separated list of user types allowed to auth via KMS. Default is
 # 'service'.
 export KMS_AUTH_USER_TYPES='user,service'
-```
-
-### KMS grant management
-
-By default confidant will manage KMS grants automatically for services that are
-created, assuming that services are directly associated with IAM roles.
-Confidant services don't need to be directly associated with IAM roles, though,
-since access to the services is defined either by grants on the keys, or
-through IAM policy. It's possible to disable confidant's grant management. If
-you disable grant managenent, you'll either need to manage KMS key grants
-manually, or you'll need to manage your IAM policy for KMS.
-
-```bash
-# Manage auth key grants for service to service authentication. Default True
-export KMS_AUTH_MANAGE_GRANTS='False'
 ```
 
 ### Confidant client configuration
@@ -670,14 +639,6 @@ above configuration. Note the following:
     },
     "Action" : [ "kms:Decrypt", "kms:GenerateDataKey*", "kms:ReEncrypt*",
 "kms:DescribeKey", "kms:Encrypt" ],
-    "Resource" : "*"
-  }, {
-    "Sid" : "Allow attachment of persistent resources",
-    "Effect" : "Allow",
-    "Principal" : {
-      "AWS" : "arn:aws:iam::12345:role/confidant-production"
-    },
-    "Action" : [ "kms:ListGrants", "kms:CreateGrant", "kms:RevokeGrant" ],
     "Resource" : "*"
   } ]
 }

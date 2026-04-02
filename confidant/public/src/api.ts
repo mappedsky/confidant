@@ -6,7 +6,6 @@ import {
   CredentialsListResponse,
   CredentialServicesResponse,
   GenerateValueResponse,
-  GrantsResponse,
   ServicesListResponse,
   ServiceDetail,
   UserEmailResponse,
@@ -109,10 +108,6 @@ export const api = {
     }),
 
   getRoles: () => request<{ roles: string[] }>('/v1/roles'),
-
-  getGrants: (id: string) => request<GrantsResponse>(`/v1/grants/${id}`),
-  updateGrants: (id: string) =>
-    request<GrantsResponse>(`/v1/grants/${id}`, { method: 'PUT' }),
 
   generateValue: () => request<GenerateValueResponse>('/v1/value_generator'),
 };

@@ -256,16 +256,6 @@ Ensure authnz-{{ grains.cluster_name }} key is managed:
               AWS: 'arn:aws:iam::{{ pillar.account_id }}:role/{{ grains.cluster_name }}'
             Resource: '*'
             Sid: Allow use of the key
-          - Action:
-              - kms:ListGrants
-              - kms:CreateGrant
-              - kms:RevokeGrant
-            Effect: Allow
-            Principal:
-              # Only allow this specific region to manage grants for this key.
-              AWS: 'arn:aws:iam::{{ pillar.account_id }}:role/{{ grains.cluster_name }}'
-            Resource: '*'
-            Sid: Allow attachment of persistent resources
         Version: '2012-10-17'
     - description: 'authnz-{{ grains.cluster_name }} key'
     - key_rotation: True
