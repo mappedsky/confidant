@@ -1,447 +1,287 @@
 import pytest
 from pytest_mock.plugin import MockerFixture
-from typing import Union
-from werkzeug.exceptions import Forbidden, Unauthorized
+from werkzeug.exceptions import InternalServerError
+from werkzeug.exceptions import Unauthorized
 
 from confidant import authnz
 from confidant.app import create_app
-from confidant.authnz import userauth
 
 
-@pytest.fixture(autouse=True)
-def mock_email_suffix(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USER_EMAIL_SUFFIX', '')
-
-
-def test_get_logged_in_user(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USER_EMAIL_SUFFIX', 'example.com')
+def test_get_logged_in_user_requires_principal(mocker: MockerFixture):
+    mocker.patch("confidant.authnz.settings.USE_AUTH", True)
     app = create_app()
-    with app.test_request_context('/v1/user/email'):
+    with app.test_request_context("/v1/user/email"):
         with pytest.raises(authnz.UserUnknownError):
             authnz.get_logged_in_user()
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.username = 'unittestuser'
-        assert authnz.get_logged_in_user() == 'unittestuser'
 
 
-def test_get_logged_in_user_from_session(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USER_EMAIL_SUFFIX', 'example.com')
+def test_get_logged_in_user_from_request_principal(mocker: MockerFixture):
+    mocker.patch("confidant.authnz.settings.USE_AUTH", True)
     app = create_app()
-    with app.test_request_context('/v1/user/email'):
-        session_data = {
-            'user': {'email': 'unittestuser@example.com'}
-        }
-        mocker.patch('confidant.authnz.userauth.session', session_data)
-        assert authnz.get_logged_in_user() == 'unittestuser@example.com'
+    with app.test_request_context("/v1/user/email"):
+        principal = authnz.RequestPrincipal(
+            user_type="user",
+            username="user@example.com",
+            email="user@example.com",
+            tenant_id="tenant-a",
+            jwt_claims={},
+        )
+        authnz._set_request_principal(principal)
+        assert authnz.get_logged_in_user() == "user@example.com"
+        assert authnz.get_logged_in_email() == "user@example.com"
 
 
 def test_get_tenant_id_singletenant_default(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', False)
+    mocker.patch("confidant.authnz.settings.MULTI_TENANT", False)
     app = create_app()
     with app.app_context():
-        assert authnz.get_tenant_id() == 'singletenant'
+        assert authnz.get_tenant_id() == "singletenant"
 
 
 def test_get_tenant_id_from_auth_context(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+    mocker.patch("confidant.authnz.settings.MULTI_TENANT", True)
     app = create_app()
     with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.tenant_id = 'tenant-a'
-        assert authnz.get_tenant_id() == 'tenant-a'
+        g_mock = mocker.patch("confidant.authnz.g")
+        g_mock.tenant_id = "tenant-a"
+        assert authnz.get_tenant_id() == "tenant-a"
 
 
-def test_resolve_saml_tenant_id_from_entity_id(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
-    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'entity_id')
-    mocker.patch('confidant.authnz.userauth.settings.SAML_IDP_ENTITY_ID', 'tenant-a')
-    assert userauth.resolve_saml_tenant_id({}) == 'tenant-a'
-
-
-def test_resolve_saml_tenant_id_from_claim(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
-    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'claim')
-    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_ATTRIBUTE', 'tenant')
-    assert userauth.resolve_saml_tenant_id({'tenant': 'tenant-a'}) == 'tenant-a'
-
-
-def test_resolve_saml_tenant_id_rejects_missing_claim(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.userauth.settings.MULTI_TENANT', True)
-    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_SOURCE', 'attribute')
-    mocker.patch('confidant.authnz.userauth.settings.SAML_TENANT_ID_ATTRIBUTE', 'tenant')
-    assert userauth.resolve_saml_tenant_id({}) is None
-
-
-def test_get_tenant_id_rejects_none(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
+def test_get_tenant_id_rejects_missing_tenant(mocker: MockerFixture):
+    mocker.patch("confidant.authnz.settings.MULTI_TENANT", True)
     app = create_app()
     with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
+        g_mock = mocker.patch("confidant.authnz.g")
         g_mock.tenant_id = None
-        mocker.patch(
-            'confidant.authnz.user_mod.is_authenticated',
-            return_value=False,
-        )
-        with pytest.raises(authnz.UserUnknownError):
-            authnz.get_tenant_id()
-
-
-def test_get_tenant_id_rejects_empty_string(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
-    app = create_app()
-    with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.tenant_id = ''
-        user_mod = mocker.patch('confidant.authnz.user_mod')
-        user_mod.is_authenticated = mocker.Mock(return_value=True)
-        user_mod.current_user = mocker.Mock(return_value={'tenant_id': ''})
-        with pytest.raises(authnz.UserUnknownError):
-            authnz.get_tenant_id()
-
-
-def test_get_tenant_id_rejects_whitespace_string(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
-    app = create_app()
-    with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.tenant_id = '   '
-        mocker.patch(
-            'confidant.authnz.user_mod.is_authenticated',
-            return_value=False,
-        )
         with pytest.raises(authnz.UserUnknownError):
             authnz.get_tenant_id()
 
 
 def test_user_is_user_type(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USE_AUTH', False)
-    assert authnz.user_is_user_type('anything') is True
+    mocker.patch("confidant.authnz.settings.USE_AUTH", False)
+    assert authnz.user_is_user_type("anything") is True
 
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
+    mocker.patch("confidant.authnz.settings.USE_AUTH", True)
     app = create_app()
     with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.user_type = 'user'
-        assert authnz.user_is_user_type('user') is True
-
-        g_mock.user_type = 'service'
-        assert authnz.user_is_user_type('service') is True
-
-        g_mock.user_type = 'user'
-        assert authnz.user_is_user_type('service') is False
-
-        g_mock.user_type = 'service'
-        assert authnz.user_is_user_type('user') is False
-
-
-def test_require_csrf_token(mocker: MockerFixture):
-    mock_fn = mocker.Mock()
-    mock_fn.__name__ = 'mock_fn'
-    mock_fn.return_value = 'unittestval'
-
-    wrapped = authnz.require_csrf_token(mock_fn)
-
-    mocker.patch('confidant.authnz.settings.USE_AUTH', False)
-    assert wrapped() == 'unittestval'
-
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
-    app = create_app()
-    with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.auth_type = 'kms'
-        assert wrapped() == 'unittestval'
-
-        g_mock.auth_type = 'google oauth'
-        u_mock = mocker.patch('confidant.authnz.user_mod')
-        u_mock.check_csrf_token = mocker.Mock(return_value=True)
-        assert wrapped() == 'unittestval'
-
-        g_mock.auth_type = 'google oauth'
-        u_mock = mocker.patch('confidant.authnz.user_mod')
-        u_mock.check_csrf_token = mocker.Mock(return_value=False)
-        with pytest.raises(Unauthorized):
-            wrapped()
+        g_mock = mocker.patch("confidant.authnz.g")
+        g_mock.user_type = "user"
+        assert authnz.user_is_user_type("user") is True
+        assert authnz.user_is_user_type("service") is False
 
 
 def test_user_is_service(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USE_AUTH', False)
-    assert authnz.user_is_service('anything') is True
+    mocker.patch("confidant.authnz.settings.USE_AUTH", False)
+    assert authnz.user_is_service("anything") is True
 
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
+    mocker.patch("confidant.authnz.settings.USE_AUTH", True)
+    mocker.patch("confidant.authnz.settings.JWT_SERVICE_TYPE_VALUE", "service")
     app = create_app()
     with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        g_mock.username = 'confidant-unitttest'
-        assert authnz.user_is_service('confidant-unitttest') is True
-
-        g_mock.username = 'confidant-unitttest'
-        assert authnz.user_is_service('notconfidant-unitttest') is False
-def test__get_kms_auth_data_from_auth(mocker: MockerFixture):
-    app = create_app()
-    with app.test_request_context('/fake'):
-        auth_mock = mocker.patch('confidant.authnz.request')
-        expected = {
-            'username': 'test-user',
-            'token': 'test-token',
-        }
-        auth_mock.authorization = {
-            'username': expected['username'],
-            'password': expected['token'],
-        }
-        auth_mock.headers = None
-        assert authnz._get_kms_auth_data() == expected
-
-        auth_mock.authorization = {
-            'username': expected['username'],
-        }
-        with pytest.raises(authnz.AuthenticationError):
-            authnz._get_kms_auth_data()
+        g_mock = mocker.patch("confidant.authnz.g")
+        g_mock.user_type = "service"
+        g_mock.username = "confidant-unittest"
+        assert authnz.user_is_service("confidant-unittest") is True
+        assert authnz.user_is_service("other-service") is False
 
 
-def test__get_kms_auth_data_from_headers(mocker: MockerFixture):
-    app = create_app()
-    with app.test_request_context('/fake'):
-        auth_mock = mocker.patch('confidant.authnz.request')
-        expected = {
-            'username': 'test-user',
-            'token': 'test-token',
-        }
-        auth_mock.headers = {
-            'X-Auth-From': expected['username'],
-            'X-Auth-Token': expected['token'],
-        }
-        auth_mock.authorization = None
-        assert authnz._get_kms_auth_data() == expected
+def test_require_csrf_token_is_noop():
+    def mock_fn():
+        return "ok"
 
-        auth_mock.headers = {
-            'X-Auth-From': expected['username'],
-            'X-Auth-Token': None,
-        }
-        with pytest.raises(authnz.AuthenticationError):
-            authnz._get_kms_auth_data()
+    wrapped = authnz.require_csrf_token(mock_fn)
+    assert wrapped() == "ok"
 
 
-def test_redirect_to_logout_if_no_auth(mocker: MockerFixture):
-    mock_fn = mocker.Mock()
-    mock_fn.__name__ = 'mock_fn'
-    mock_fn.return_value = 'unittestval'
+def test_redirect_to_logout_if_no_auth_is_noop():
+    def mock_fn():
+        return "ok"
 
     wrapped = authnz.redirect_to_logout_if_no_auth(mock_fn)
-
-    u_mock = mocker.patch('confidant.authnz.user_mod')
-    u_mock.is_expired = mocker.Mock(return_value=False)
-    u_mock.is_authenticated = mocker.Mock(return_value=True)
-    assert wrapped() == 'unittestval'
-
-    u_mock = mocker.patch('confidant.authnz.user_mod')
-    u_mock.is_expired = mocker.Mock(return_value=True)
-    u_mock.redirect_to_goodbye = mocker.Mock(return_value='redirect_return')
-    assert wrapped() == 'redirect_return'
-
-    u_mock = mocker.patch('confidant.authnz.user_mod')
-    u_mock.is_expired = mocker.Mock(return_value=False)
-    u_mock.is_authenticated = mocker.Mock(return_value=False)
-    u_mock.redirect_to_goodbye = mocker.Mock(return_value='redirect_return')
-    assert wrapped() == 'redirect_return'
+    assert wrapped() == "ok"
 
 
-@pytest.fixture()
-def mock_header_auth(mocker: MockerFixture):
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
-    mocker.patch('confidant.authnz.settings.USER_AUTH_MODULE', 'header')
-    mocker.patch(
-        'confidant.authnz.settings.HEADER_AUTH_USERNAME_HEADER',
-        'X-Confidant-Username'
-    )
-    mocker.patch(
-        'confidant.authnz.settings.HEADER_AUTH_EMAIL_HEADER',
-        'X-Confidant-Email'
-    )
-    mocker.patch(
-        'confidant.authnz.user_mod',
-        authnz.userauth.init_user_auth_class()
-    )
+def test_require_logout_for_goodbye_is_noop():
+    def mock_fn():
+        return "ok"
+
+    wrapped = authnz.require_logout_for_goodbye(mock_fn)
+    assert wrapped() == "ok"
 
 
-def test_header_auth_will_extract_from_request(
-    mocker: MockerFixture,
-    mock_header_auth: None
-):
+def test_log_in_redirects_to_index():
     app = create_app()
-    with app.test_request_context('/fake'):
-        # No headers given: an error
-        with pytest.raises(authnz.UserUnknownError):
-            authnz.get_logged_in_user()
-
-        # Both headers given: success
-        request_mock = mocker.patch('confidant.authnz.userauth.request')
-        request_mock.headers = {
-            'X-Confidant-Username': 'unittestuser',
-            'X-Confidant-Email': 'unittestuser@example.com',  # noqa:E501
-        }
-        assert authnz.get_logged_in_user() == 'unittestuser@example.com'
+    with app.test_request_context("/v1/login"):
+        response = authnz.log_in()
+        assert response.status_code == 302
+        assert response.location == "/"
 
 
-def test_header_auth_will_log_in(
-    mocker: MockerFixture,
-    mock_header_auth: None
-):
+def test_read_bearer_token_from_authorization_header(mocker: MockerFixture):
+    mocker.patch("confidant.authnz.settings.JWT_HEADER_NAME", "Authorization")
     app = create_app()
-    with app.test_request_context('/fake'):
-        request_mock = mocker.patch('confidant.authnz.userauth.request')
-        request_mock.headers = {
-            'X-Confidant-Username': 'unittestuser',
-            'X-Confidant-Email': 'unittestuser@example.com',  # noqa:E501
-        }
-        resp = authnz.user_mod.log_in()
+    with app.test_request_context(
+        "/v1/user/email",
+        headers={"Authorization": "Bearer test-token"},
+    ):
+        assert authnz._read_bearer_token_from_request() == "test-token"
 
-        assert resp.status_code == 302
-        assert resp.headers['Location'] == '/'
+
+def test_read_bearer_token_from_custom_header(mocker: MockerFixture):
+    mocker.patch("confidant.authnz.settings.JWT_HEADER_NAME", "X-IDP-JWT")
+    app = create_app()
+    with app.test_request_context(
+        "/v1/user/email",
+        headers={"X-IDP-JWT": "test-token"},
+    ):
+        assert authnz._read_bearer_token_from_request() == "test-token"
+
+
+def test_principal_from_payload_uses_service_claims(mocker: MockerFixture):
+    mocker.patch(
+        "confidant.authnz.settings.JWT_PRINCIPAL_TYPE_CLAIM",
+        "principal_type",
+    )
+    mocker.patch("confidant.authnz.settings.JWT_SERVICE_TYPE_VALUE", "service")
+    mocker.patch("confidant.authnz.settings.JWT_USER_TYPE_VALUE", "user")
+    mocker.patch(
+        "confidant.authnz.settings.JWT_ALLOWED_PRINCIPAL_TYPES",
+        ["user", "service"],
+    )
+    mocker.patch(
+        "confidant.authnz.settings.JWT_SERVICE_PRINCIPAL_CLAIM", "service_name"
+    )
+    payload = {
+        "principal_type": "service",
+        "service_name": "confidant-api",
+        "sub": "client-123",
+    }
+
+    principal = authnz._principal_from_payload(payload)
+    assert principal.user_type == "service"
+    assert principal.username == "confidant-api"
+
+
+def test_decode_jwt_disables_audience_check_when_unset(mocker: MockerFixture):
+    signing_key = mocker.Mock()
+    signing_key.key = "public-key"
+    jwks_client = mocker.Mock()
+    jwks_client.get_signing_key_from_jwt.return_value = signing_key
+
+    mocker.patch("confidant.authnz._get_jwks_client", return_value=jwks_client)
+    decode_mock = mocker.patch(
+        "confidant.authnz.jwt.decode", return_value={"sub": "developer"}
+    )
+    mocker.patch(
+        "confidant.authnz.settings.ALLOWED_JWT_ALGORITHMS",
+        ["RS256"],
+    )
+    mocker.patch("confidant.authnz.settings.JWT_ISSUER", "")
+    mocker.patch("confidant.authnz.settings.JWT_AUDIENCE", "")
+
+    payload = authnz._decode_jwt("token")
+
+    assert payload == {"sub": "developer"}
+    decode_mock.assert_called_once_with(
+        "token",
+        "public-key",
+        algorithms=["RS256"],
+        options={"verify_aud": False},
+    )
+
+
+def test_decode_jwt_validates_audience_when_configured(mocker: MockerFixture):
+    signing_key = mocker.Mock()
+    signing_key.key = "public-key"
+    jwks_client = mocker.Mock()
+    jwks_client.get_signing_key_from_jwt.return_value = signing_key
+
+    mocker.patch("confidant.authnz._get_jwks_client", return_value=jwks_client)
+    decode_mock = mocker.patch(
+        "confidant.authnz.jwt.decode", return_value={"sub": "developer"}
+    )
+    mocker.patch(
+        "confidant.authnz.settings.ALLOWED_JWT_ALGORITHMS",
+        ["RS256"],
+    )
+    mocker.patch("confidant.authnz.settings.JWT_ISSUER", "")
+    mocker.patch("confidant.authnz.settings.JWT_AUDIENCE", "confidant")
+
+    payload = authnz._decode_jwt("token")
+
+    assert payload == {"sub": "developer"}
+    decode_mock.assert_called_once_with(
+        "token",
+        "public-key",
+        algorithms=["RS256"],
+        audience="confidant",
+    )
 
 
 def test_require_auth(mocker: MockerFixture):
-    mocker.patch(
-        'confidant.authnz.settings.KMS_AUTH_USER_TYPES',
-        ['user', 'service'],
-    )
+    def mock_fn():
+        return "ok"
 
-    mock_fn = mocker.Mock()
-    mock_fn.__name__ = 'mock_fn'
-    mock_fn.return_value = 'unittestval'
-
-    # Auth is disabled, so immediate return
     wrapped = authnz.require_auth(mock_fn)
-    mocker.patch('confidant.authnz.settings.USE_AUTH', False)
-    assert wrapped() == 'unittestval'
 
-    # Test auth failure
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
-    mocker.patch(
-        'confidant.authnz._get_kms_auth_data',
-        mocker.Mock(side_effect=authnz.AuthenticationError()),
-    )
-    with pytest.raises(Forbidden):
+    mocker.patch("confidant.authnz.settings.USE_AUTH", False)
+    assert wrapped() == "ok"
+
+    mocker.patch("confidant.authnz.settings.USE_AUTH", True)
+    mocker.patch("confidant.authnz.settings.JWKS_URL", "")
+    with pytest.raises(InternalServerError):
         wrapped()
 
-    def extract_username_field(username: str, field: str) -> Union[str, None]:
-        username_arr = username.split('/')
-        if field == 'from':
-            return username_arr[2]
-        elif field == 'user_type':
-            return username_arr[1]
-        return None
-
-    validator_mock = mocker.MagicMock()
-    mocker.patch('confidant.authnz._get_validator', return_value=validator_mock)
-    validator_mock.extract_username_field = extract_username_field
-
-    # Test for a bad user type in the token
     mocker.patch(
-        'confidant.authnz._get_kms_auth_data',
-        return_value={
-            'username': '2/badusertype/test-user',
-            'token': 'test-token',
-        },
+        "confidant.authnz.settings.JWKS_URL",
+        "https://idp.example.com/jwks.json",
     )
-    with pytest.raises(Forbidden):
+    mocker.patch(
+        "confidant.authnz._read_bearer_token_from_request",
+        return_value=None,
+    )
+    with pytest.raises(Unauthorized):
         wrapped()
 
-    # Test for validation error from the kmsauth library
     mocker.patch(
-        'confidant.authnz._get_kms_auth_data',
-        return_value={
-            'username': '2/service/test-user',
-            'token': 'test-token',
-        },
+        "confidant.authnz._read_bearer_token_from_request", return_value="token"
     )
-    validator_mock.decrypt_token = mocker.Mock(
-        side_effect=authnz.kmsauth.TokenValidationError
+    mocker.patch(
+        "confidant.authnz._decode_jwt",
+        side_effect=authnz.AuthenticationError("bad token"),
     )
-    with pytest.raises(Forbidden):
+    with pytest.raises(Unauthorized):
         wrapped()
 
-    validator_mock.decrypt_token = mocker.Mock(
-        return_value={'payload': {}, 'key_alias': 'testkey'},
+    payload = {
+        "principal_type": "service",
+        "service_name": "confidant-api",
+        "sub": "client-123",
+        "email": "service@example.com",
+        "tenant_id": "tenant-a",
+    }
+    mocker.patch(
+        "confidant.authnz.settings.JWT_PRINCIPAL_TYPE_CLAIM",
+        "principal_type",
     )
+    mocker.patch(
+        "confidant.authnz.settings.JWT_SERVICE_PRINCIPAL_CLAIM", "service_name"
+    )
+    mocker.patch("confidant.authnz.settings.JWT_SERVICE_TYPE_VALUE", "service")
+    mocker.patch("confidant.authnz.settings.JWT_USER_TYPE_VALUE", "user")
+    mocker.patch(
+        "confidant.authnz.settings.JWT_ALLOWED_PRINCIPAL_TYPES",
+        ["user", "service"],
+    )
+    mocker.patch("confidant.authnz.settings.JWT_EMAIL_CLAIM", "email")
+    mocker.patch("confidant.authnz.settings.JWT_TENANT_ID_CLAIM", "tenant_id")
+    mocker.patch("confidant.authnz.settings.JWT_SUB_CLAIM", "sub")
+    mocker.patch("confidant.authnz._decode_jwt", return_value=payload)
 
     app = create_app()
     with app.app_context():
-        g_mock = mocker.patch('confidant.authnz.g')
-        assert wrapped() == 'unittestval'
-        assert g_mock.user_type == 'service'
-        assert g_mock.auth_type == 'kms'
-        assert g_mock.username == 'test-user'
-
-    # User auth
-    mocker.patch(
-        'confidant.authnz._get_kms_auth_data',
-        return_value={},
-    )
-    mocker.patch('confidant.authnz.settings.MULTI_TENANT', True)
-
-    # Session token is expired
-    user_mod = mocker.MagicMock()
-    mocker.patch('confidant.authnz.user_mod', user_mod)
-    user_mod.is_expired = mocker.Mock(return_value=True)
-    with pytest.raises(Unauthorized):
-        wrapped()
-
-    # Failed to authenticate
-    user_mod.is_expired = mocker.Mock(return_value=False)
-    user_mod.is_authenticated = mocker.Mock(return_value=False)
-    with pytest.raises(Unauthorized):
-        wrapped()
-
-    # User authentication success
-    user_mod.is_authenticated = mocker.Mock(return_value=True)
-    user_mod.check_authorization = mocker.Mock(return_value=None)
-    user_mod.auth_type = 'testmod'
-    user_mod.set_expiration = mocker.Mock()
-    user_mod.current_user = mocker.Mock(return_value={'email': 'user@example.com', 'tenant_id': 'tenant-a'})
-    g_mock.tenant_id = None
-    response = mocker.Mock()
-    mocker.patch('confidant.authnz.make_response', return_value=response)
-    user_mod.set_csrf_token = mocker.Mock()
-    assert wrapped() == response
-    assert g_mock.user_type == 'user'
-    assert g_mock.auth_type == 'testmod'
-    assert g_mock.tenant_id == 'tenant-a'
-
-    # User is authenticated, but not authorized
-    user_mod.check_authorization = mocker.Mock(side_effect=authnz.NotAuthorized)
-    with pytest.raises(Forbidden):
-        wrapped()
-
-
-def test_require_logout_for_goodbye(mocker: MockerFixture):
-    mock_fn = mocker.Mock()
-    mock_fn.__name__ = 'mock_fn'
-    mock_fn.return_value = 'unittestval'
-
-    wrapped = authnz.require_logout_for_goodbye(mock_fn)
-
-    mocker.patch('confidant.authnz.settings.USE_AUTH', False)
-    assert wrapped() == 'unittestval'
-
-    mocker.patch('confidant.authnz.settings.USE_AUTH', True)
-    u_mock = mocker.patch('confidant.authnz.user_mod')
-    mocker.patch(
-        'confidant.authnz.get_logged_in_user',
-        mocker.Mock(side_effect=authnz.UserUnknownError()),
-    )
-    assert wrapped() == 'unittestval'
-
-    mocker.patch(
-        'confidant.authnz.get_logged_in_user',
-        mocker.Mock(return_value=True),
-    )
-    response = mocker.MagicMock()
-    response.headers = {'Location': 'http://example.com'}
-    u_mock.log_out = mocker.Mock(return_value=response)
-    mocker.patch(
-        'confidant.authnz.url_for',
-        return_value='http://bad.example.com',
-    )
-    assert wrapped() == response
-    mocker.patch('confidant.authnz.url_for', return_value='http://example.com')
-    assert wrapped() == 'unittestval'
+        assert wrapped() == "ok"
+        assert authnz.g.user_type == "service"
+        assert authnz.g.auth_type == "jwt"
+        assert authnz.g.username == "confidant-api"
+        assert authnz.g.tenant_id == "tenant-a"

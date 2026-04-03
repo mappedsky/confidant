@@ -16,6 +16,5 @@ services:
     volumes:
       - .:/srv/confidant
       - ./config/development/logging.conf:/etc/confidant/logging.conf
-      - ./config/development/idp.crt:/etc/confidant/idp.crt
       - ./config/gunicorn.conf:/etc/confidant/gunicorn.conf
     command: "bash /srv/confidant/actions_run_integration.sh"

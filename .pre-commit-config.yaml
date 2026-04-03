@@ -1,6 +1,9 @@
 default_language_version:
     python: python3
-exclude: '^docs/.*$'
+# Authentik blueprints use custom !Find tags that PyYAML cannot parse.
+# Keep the generic YAML hook away from that directory and validate it via
+# runtime tests instead.
+exclude: '^(\.config/dev/authentik/blueprints/.*|docs/.*)$'
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

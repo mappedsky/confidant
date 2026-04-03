@@ -27,18 +27,18 @@ docker compose run --rm frontend bun run build    # production build → confida
 
 ### Local full-stack dev
 ```bash
-docker compose up    # starts: app (port 80), frontend (port 3000), dynamodb-local, kms-local, saml-idp
+docker compose up    # starts: app (port 80), frontend (port 3000), dynamodb-local, kms-local, authentik
 docker compose down
 ```
 
-Use `localhost:3000` (the Vite dev server) during development, not port 80. The SAML auth flow is configured to round-trip through port 3000.
+Use `localhost:3000` (the Vite dev server) during development, not port 80. The OIDC callback is configured to round-trip through port 3000. Authentik runs at `http://localhost:9000` with dev credentials `akadmin/devpassword`, `developer/devpassword`, and `confidant-development/devpassword` for service-principal testing.
 Prefer running Bun and Pipenv commands through `docker compose`; avoid host-installed toolchains so the local environment matches the containers used for builds and tests.
 
 ## Architecture
 
 ### Backend
 - **Flask app** (`confidant/app.py`) with blueprints registered from `confidant/routes/`
-- **Auth** (`confidant/authnz/`): pluggable via `USER_AUTH_MODULE` setting — supports SAML, Google OAuth, header-based, or null. The `@authnz.require_auth` decorator gates all API routes. CSRF is validated via `X-XSRF-TOKEN` header (token read from cookie whose name is returned by `/v1/client_config`).
+- **Auth** (`confidant/authnz/`): JWT-only. The backend validates Bearer tokens against `JWKS_URL`, derives `user` vs `service` from a JWT claim (`JWT_PRINCIPAL_TYPE_CLAIM`), and populates `flask.g` with a normalized request principal. Browser login is handled by the React app via OIDC PKCE against Authentik.
 - **Models** (`confidant/models/`): PynamoDB (DynamoDB ORM). `Credential` stores `credential_pairs` as KMS-encrypted blobs. `Service` stores a list of credential IDs.
 - **Services layer** (`confidant/services/`): business logic; `credentialmanager` and `servicemanager` handle ACL checks and call `keymanager`/`ciphermanager` for encryption.
 - **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `CredentialResponse` has both `credential_keys` (always populated — the key names) and `credential_pairs` (only populated when `metadata_only=False` — the decrypted values). Service responses expose credential IDs only; credential payloads are returned from the credential endpoints after ACL and mapped-service authorization checks.
@@ -48,11 +48,11 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 - **Stack**: React 18, React Router v6, MUI v6, MUI X DataGrid v7, Vite, Bun.
 - **Entry**: `confidant/public/src/App.tsx` — sets up MUI theme (system dark/light mode detection), `AppProvider`, and routes.
 - **Theme**: `src/theme.ts` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
-- **API client**: `src/api.ts` — wraps `fetch`; 401 responses redirect to `/v1/login`; reads XSRF cookie name from `AppContext` (set after `/v1/client_config` loads).
+- **API client**: `src/api.ts` — wraps `fetch`; attaches a Bearer token supplied by the OIDC auth provider and redirects back into the OIDC flow on 401s.
 - **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags, xsrf_cookie_name) and `userEmail` once on mount.
 - **Credential detail flow**: on initial load, `getCredential(id, metadata_only=true)` returns `credential_keys` (names only) but not values. `populateForm` uses `credential_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers a second fetch with `metadata_only=false` to decrypt. Services no longer hydrate credentials in service detail responses.
 - **View vs edit rendering**: detail pages use a local `ReadOnlyField` component (label + Typography) for view mode, and `TextField`/`Select` for edit mode. Never use `InputProps={{ readOnly }}` on TextField for display — it looks editable.
-- **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` to keep the SAML round-trip on the dev server.
+- **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` so OIDC/logout redirects return to the Vite dev server cleanly.
 
 ### Key data flow: credential decryption
 ```

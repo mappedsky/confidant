@@ -60,7 +60,7 @@ def default_acl(*args, **kwargs):
 
 This function is defined by the `ACL_MODULE` setting, which by default is `confidant.authnz.rbac:default_acl`. The format is `python.path.to.module:function_in_module`. You can use this to implement an ACL approach that integrates with your own enviroment, or adjusts confidant's behavior to your needs.
 
-When implementing a new ACL module, remember that there's two types of users: `user` and `service`. By default `service` users are through kmsauth, whereas `user` users can come through kmsauth, or through one of the other forms of auth intended for the UI. You need to implement ACLs for both user types. Additionally, you should likely default your return to False, unless you're intending to only restrict features.
+When implementing a new ACL module, remember that there are two principal types: `user` and `service`. Confidant now reads that distinction directly from JWT claims provided by the IdP, so your ACL logic must handle both types explicitly. Additionally, you should likely default your return to `False`, unless you're intentionally broadening access.
 
 ## ACL Hookpoints
 

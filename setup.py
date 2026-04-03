@@ -10,10 +10,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from setuptools import find_packages
+from setuptools import setup
 
-from setuptools import setup, find_packages
-
-with open('VERSION') as f:
+with open("VERSION") as f:
     VERSION = f.read()
 
 setup(
@@ -23,45 +23,41 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Flask',
-        'blinker',
-        'botocore',
-        'boto3',
-        'cryptography',
-        'cffi',
-        'Flask-Session',
-        'redis',
-        'types-redis',
-        'Flask-SSLify',
-        'Authomatic',
-        'python3-saml',
-        'lxml',
-        'xmlsec',
-        'requests',
-        'ndg-httpsclient',
-        'pyasn1',
-        'pyOpenSSL',
-        'guard',
-        'PyYAML',
-        'types-PyYAML',
-        'gunicorn',
-        'gevent',
-        'greenlet',
-        'statsd',
-        'kmsauth',
-        'pydantic',
-        'lru-dict',
-        'python-json-logger',
-        'pytest',
-        'pytest-mock',
-        'pytest-cov',
-        'pytest-lazy-fixture',
-        'pytest-env',
-        'pytest-gevent',
-        'pytz',
-        'types-pytz',
-        'cerberus',
-        'mypy',
+        "Flask",
+        "blinker",
+        "botocore",
+        "boto3",
+        "cryptography",
+        "cffi",
+        "Flask-Session",
+        "redis",
+        "types-redis",
+        "Flask-SSLify",
+        "requests",
+        "PyJWT[crypto]",
+        "ndg-httpsclient",
+        "pyasn1",
+        "pyOpenSSL",
+        "guard",
+        "PyYAML",
+        "types-PyYAML",
+        "gunicorn",
+        "gevent",
+        "greenlet",
+        "statsd",
+        "pydantic",
+        "lru-dict",
+        "python-json-logger",
+        "pytest",
+        "pytest-mock",
+        "pytest-cov",
+        "pytest-lazy-fixture",
+        "pytest-env",
+        "pytest-gevent",
+        "pytz",
+        "types-pytz",
+        "cerberus",
+        "mypy",
     ],
     author="Ryan Lane",
     author_email="rlane@ryandlane.com",
@@ -69,10 +65,10 @@ setup(
     license="apache2",
     url="https://github.com/mappedsky/confidant",
     entry_points={
-        'console_scripts': [
-            'confidant-admin = confidant.scripts.manage:main',
+        "console_scripts": [
+            "confidant-admin = confidant.scripts.manage:main",
         ]
     },
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
 )

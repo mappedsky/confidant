@@ -18,6 +18,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { AuthConfigContext } from '../authConfig.context';
 import { useAppContext } from '../contexts/AppContext';
 
 const DRAWER_WIDTH = 220;
@@ -35,7 +36,21 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { auth_required, userManager } = React.useContext(AuthConfigContext);
   const { userEmail, loading, error } = useAppContext();
+
+  const handleLogout = React.useCallback(() => {
+    if (!auth_required || !userManager) {
+      window.location.href = '/loggedout';
+      return;
+    }
+    userManager
+      .signoutRedirect()
+      .catch(async () => {
+        await userManager.removeUser();
+        window.location.href = '/loggedout';
+      });
+  }, [auth_required, userManager]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default' }}>
@@ -117,7 +132,7 @@ export default function Layout({ children }: LayoutProps) {
           )}
 
           <Button
-            href="/loggedout"
+            onClick={handleLogout}
             size="small"
             startIcon={<LogoutIcon fontSize="small" />}
             sx={{

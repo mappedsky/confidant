@@ -19,7 +19,16 @@ export interface ClientConfigPermissions {
   };
 }
 
+export interface OidcConfig {
+  authority: string;
+  client_id: string;
+  redirect_uri: string;
+  scope: string;
+}
+
 export interface ClientConfigGenerated {
+  auth_required: boolean;
+  oidc: OidcConfig | null;
   xsrf_cookie_name: string;
   maintenance_mode: boolean;
   history_page_limit: number;
@@ -30,6 +39,11 @@ export interface ClientConfigGenerated {
 export interface ClientConfigResponse {
   defined: Record<string, unknown>;
   generated: ClientConfigGenerated;
+}
+
+export interface AuthConfigResponse {
+  auth_required: boolean;
+  oidc: OidcConfig | null;
 }
 
 export interface UserEmailResponse {
