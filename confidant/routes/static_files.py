@@ -13,6 +13,7 @@ from confidant import settings
 
 logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("static_files", __name__)
+_FRONTEND_DEV_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 
 def _get_frontend_dev_origin():
@@ -22,9 +23,15 @@ def _get_frontend_dev_origin():
     if not redirect_uri:
         return None
     parsed = urlparse(redirect_uri)
-    if not parsed.scheme or not parsed.netloc:
+    if (
+        not parsed.scheme
+        or not parsed.netloc
+        or parsed.scheme not in {"http", "https"}
+        or parsed.hostname not in _FRONTEND_DEV_HOSTS
+        or parsed.port not in {3000}
+    ):
         return None
-    return f"{parsed.scheme}://{parsed.netloc}"
+    return "http://localhost:3000"
 
 
 def _redirect_to_frontend_dev_server():
