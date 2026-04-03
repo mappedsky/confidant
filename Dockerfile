@@ -16,7 +16,7 @@ WORKDIR /srv/confidant
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         curl ca-certificates python3.10 python3-pip python3.10-dev gcc pkg-config \
-        libffi-dev libxml2-dev libxmlsec1-dev git-core make \
+        libffi-dev git-core make \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir pipenv

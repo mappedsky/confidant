@@ -3,10 +3,6 @@
 Confidant is primarily configured through environment variables. The list of
 all available configuration options can be found in the settings.py file.
 
-Prerequisites not covered by this guide:
-
-1. Your Google application is setup and you know your client id and secret key.
-
 ## Docker vs bash
 
 Note that below the format of the configuration is given in bash format for
@@ -37,10 +33,6 @@ This is the minimum configuration needed to use Confidant:
 ```bash
 # The region our service is running in.
 export AWS_DEFAULT_REGION='us-east-1'
-# The IAM role name of the confidant server.
-export AUTH_CONTEXT='confidant-production'
-# The KMS key used for auth.
-export AUTH_KEY='alias/authnz-production'
 # The DynamoDB table name for storage.
 export DYNAMODB_TABLE='confidant-production'
 # Auto-generate the dynamodb table.
@@ -50,7 +42,10 @@ export DYNAMODB_CREATE_TABLE=true
 # export GEVENT_RESOLVER='ares'
 # The KMS key used for at-rest encryption in DynamoDB.
 export KMS_MASTER_KEY='alias/confidant-production'
-# A long randomly generated string for CSRF protection.
+# JWT / OIDC auth
+export JWKS_URL='https://idp.example.com/application/o/confidant/jwks/'
+export OIDC_AUTHORITY='https://idp.example.com/application/o/confidant'
+export OIDC_CLIENT_ID='confidant'
 # SESSION_SECRET can be loaded via SECRETS_BOOTSTRAP
 export SESSION_SECRET='aBVmJA3zv6zWGjrYto135hkdox6mW2kOu7UaXIHK8ztJvT8w5O'
 # The IP address to listen on.
@@ -82,219 +77,47 @@ argument to gunicorn:
 gunicorn confidant.wsgi:app -k gevent --forwarded-allow-ips=*
 ```
 
-### Google authentication configuration
+### JWT / OIDC authentication configuration
 
-To enable Google authentication, you'll need to visit the API manager in the
-Google developer console (https://console.developers.google.com), and create a
-new project (or add credentials to an existing project, if you prefer). After
-creating the project, you'll need to enable the Google+ API. After enabling the
-Google+ API, you'll need to add credentials to this project. You'll want to
-create OAuth client ID credentials. The application type is 'Web application'.
-The Authorized JavaScript origins is '<url>/'. The Authorized redirect URI is
-`<url>/v1/login`. Take the generated client id and consumer secret, and set
-them in the settings. You'll also need to generate a long random string and set
-the AUTHOMATIC\_SALT setting, for CSRF protection.
+Confidant now authenticates every API request with a Bearer JWT and validates
+that token against a JWKS endpoint. The browser UI uses OIDC Authorization Code
+with PKCE to acquire the token. Any standard OIDC provider can be used; the local
+development stack ships with Authentik.
 
 ```bash
-# The authentication type we'll be using for user authentication (google is the
-# default)
-export USER_AUTH_MODULE='google'
-# The client id and consumer secret from the google developer console.
-# GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CONSUMER_SECRET can be loaded via SECRETS_BOOTSTRAP
-export GOOGLE_OAUTH_CLIENT_ID='123456789-abcdefghijklmnop.apps.googleusercontent.com'
-export GOOGLE_OAUTH_CONSUMER_SECRET='123456789abcdefghijklmnop'
-# A long randomly generated string used for the google OAuth2 flow.
-# AUTHOMATIC_SALT can be loaded via SECRETS_BOOTSTRAP
-export AUTHOMATIC_SALT='H39bfLCqLbrYrFyiJIxkK0uf12rlzvgjgo9FqOnttPXIdAAuyQ'
+# JWKS endpoint used by the backend to validate JWTs
+export JWKS_URL='https://idp.example.com/application/o/confidant/jwks/'
+
+# Browser OIDC settings exposed to the frontend
+export OIDC_AUTHORITY='https://idp.example.com/application/o/confidant'
+export OIDC_CLIENT_ID='confidant'
+export OIDC_REDIRECT_URI='https://confidant.example.com/auth/callback'
+export OIDC_SCOPE='openid email profile'
+
+# Optional JWT validation constraints
+export JWT_ISSUER=''
+export JWT_AUDIENCE=''
+
+# Claim names used to normalize the current principal
+export JWT_EMAIL_CLAIM='email'
+export JWT_SUB_CLAIM='sub'
+export JWT_TENANT_ID_CLAIM='tenant_id'
+export JWT_PRINCIPAL_TYPE_CLAIM='principal_type'
+export JWT_USER_PRINCIPAL_CLAIM='email'
+export JWT_SERVICE_PRINCIPAL_CLAIM='sub'
+
+# The IdP must explicitly mark whether the token represents a user or a service
+export JWT_USER_TYPE_VALUE='user'
+export JWT_SERVICE_TYPE_VALUE='service'
+export JWT_ALLOWED_PRINCIPAL_TYPES='user,service'
 ```
 
-### SAML authentication configuration
+### Session settings
 
-To enable SAML authentication, set the `USER_AUTH_MODULE` environment variable.
-
-```bash
-# The authentication type we'll be using for user authentication - set to SAML.
-export USER_AUTH_MODULE='saml'
-```
-
-You will first need to create a SAML application in your Identity Provider
-(IdP) and provide the following details to it:
-
-* ACS URL: https://your-confidant-url-here.com/v1/saml/consume
-* Entity ID: https://your-confidant-url-here.com/v1/saml/metadata
-
-You can optionally include an attribute mapping on the (IdP) to pass the first
-name as `first_name` and last name as `last_name` to the service provider (SP)
-so that this information is captured when logging in to Confidant. The IdP
-should provide some details about the Entity ID, the IdP certificate, the
-Sign-On URL and the Log-Out URL (the Log-Out URL may not be provided depending
-on the IdP). Export your SAML details as environment variables for Confidant to
-read:
-
-```bash
-# Root URL that browsers use to hit Confidant.
-export SAML_CONFIDANT_URL_ROOT='https://your-confidant-url-here.com'
-# SAML IdP Entity ID (typically a URL)
-export SAML_IDP_ENTITY_ID='https://idp-provided-url-here.com/'
-# SAML IdP Single Sign On URL (HTTP-REDIRECT binding only)
-export SAML_IDP_SIGNON_URL='https://idp-provided-url-here.com/'
-# SAML IdP Single Logout URL, optional, only if IDP supports it
-# (HTTP-REDIRECT binding only)
-export SAML_IDP_LOGOUT_URL='https://idp-provided-url-here.com/'
-# SAML IdP X.509 certificate in PEM format
-export SAML_IDP_CERT="-----BEGIN CERTIFICATE-----
-MIICsDCCAhmgAwIBAgIJALw1z/rM2pg2MA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
-BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
-aWRnaXRzIFB0eSBMdGQwHhcNMTcwMjE1MTk0NjAyWhcNMjcwMjE1MTk0NjAyWjBF
-MQswCQYDVQQGEwJBVTETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50
-ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB
-gQDVlwBwiK9S9uQo0uNT1ho0TzfPSQ3MZ0QNS7MAUSBUWwqx7B8orjmzohSliWjC
-0vlb14F8bqkJpcpMEZRrG4AM2H41XG2T/aCBjH4w3SUHZzTsCxuC1VUym4sLbWBU
-DtvApkpEJDnQiYyQH4M3KMFqKzEB/cu1YEKcDsXqUjHKMQIDAQABo4GnMIGkMB0G
-A1UdDgQWBBT4HpgZAnlydQzcbhE7xPB9zendbDB1BgNVHSMEbjBsgBT4HpgZAnly
-dQzcbhE7xPB9zendbKFJpEcwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgTClNvbWUt
-U3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZIIJALw1z/rM
-2pg2MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADgYEAirAqPWuc7zX/Qc7Q
-6xbYd/NdCLIVXoQoPbnNDGuv25b1PZKYcfEuGBt+2kU7Xo0AAxgFUEQ00juyBg/r
-616V3SRuXi0r+xbUOdTvEz7visAXu2e3kyDQncvryEhq3DCffc4UTGbpZrnTxhRm
-1DJr81eyo8/xREBnRcK5/DCj+U4=
------END CERTIFICATE-----"
-# SAML IdP X.509 certificate file in PEM format
-export SAML_IDP_CERT_FILE='/path/to/idp_cert.pem'
-# NOTE: Only provide either SAML_IDP_CERT or SAML_IDP_CERT_FILE (you should not
-# provide both).
-```
-
-If your IdP requires you to sign your SAML requests, you will need to set up
-the service provider (SP) details. If you do not already have a certificate
-and private key for the SP, you can generate one using the command below:
-
-```bash
-# Generate a self-signed certificate and place the certificate in
-# sp.crt and the private key in private.key. It will ask for input for a
-# passphrase.
-openssl req -new -x509 -days 365 -out sp.crt -keyout private.key
-```
-
-Export the SP details as environment variables for Confidant to read:
-
-```bash
-# Raw X.509 certificate in PEM format
-export SAML_SP_CERT="-----BEGIN CERTIFICATE-----
-MIICsDCCAhmgAwIBAgIJAKTiHVFA9kAbMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
-BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
-aWRnaXRzIFB0eSBMdGQwHhcNMTcwMjE1MjIyODQzWhcNMTgwMjE1MjIyODQzWjBF
-MQswCQYDVQQGEwJBVTETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50
-ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB
-gQDF4sRC8SXwhYB6al8UhGjeAB6xJXYnjFEqhd8U3Kc1Gs9SyxDsId4tOHYotWdK
-C3doeLbCuM0xqVbWZX8XUptLR1PImZvUX2KmLOtO0NVIGGa17XlUJBcgd9uKLrCO
-lizS8saWTLuPdNdlv7WNYyGSRAgw9/H06Szy2b7735thiQIDAQABo4GnMIGkMB0G
-A1UdDgQWBBQW3mpcpfpspIF4pKleytfm3gP6bzB1BgNVHSMEbjBsgBQW3mpcpfps
-pIF4pKleytfm3gP6b6FJpEcwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgTClNvbWUt
-U3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZIIJAKTiHVFA
-9kAbMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADgYEAi4fOkax7ZMKw9wbF
-Do1A1c8YXmPERHtfNuGJb3QINLqeMXl+4p/ryzTJR0UP6iqDTPOq02mtJ+eR4AhC
-Fmgrm671fKCTYu3vjQS33IXOoGW+0f2XX+gWVHie8ZC4vi/dfh30At+A6wJelXkz
-cRNGXl5zn4uyC6T8g1rC544tbb8=
------END CERTIFICATE-----"
-# Path to SP X.509 certificate file in PEM format
-export SAML_SP_CERT_FILE='/path/to/sp_cert.pem'
-# NOTE: Only provide either SAML_SP_CERT or SAML_SP_CERT_FILE (you should not
-# provide both).
-
-# Path to SP private key file in PEM format
-export SAML_SP_KEY_FILE='/path/to/sp_key.key'
-# Raw SP private key in PEM format
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-export SAML_SP_KEY="-----BEGIN RSA PRIVATE KEY-----
-Proc-Type: 4,ENCRYPTED
-DEK-Info: DES-EDE3-CBC,241900635D644CE6
-
-RcUZgdpnT2ZUdMGoKb2+3TbenSuT/dsi3SRajCL6IvbFOG9wUo4TvIcH0CCZB5ZY
-u08B/zmuOpm5QDEFbfiipqs76SXHKUZssKrEiiJPI5FZKfkyCkK5vV7eLhuI/B5U
-f0S6MBXXvP1dUg5LzZPOhNfJVcaNxOCFPBgl6HJ6sn0qkLOzrcc4wHycHsJmDxhe
-SC8EfIWv94vk8EsW/pWRsc+AQ1HPw3SHEPMGv6ojUdGPlF136ZTNSTjUlygHjhPX
-nes9+PKgt+Rfpb+kolXSGlvujFsWTxGz9h08X37RhyVGV8V9bS6REt62OGdErofp
-BSRO3791dOhYcEywDt8oaFaieR3ND+iL4RnsfKseQRM+EAUBhjVjxqP64h5DlaNc
-UHzaBuCWUeGoorzVqSG+UotcWYaXeyq+WjkCaDFPI/sCpk0goJtUjzJZP3nL1vKy
-BMfDyjrz3QPkLU7hksWH4G89H2NXGGSvHttzzY3ihYqVXVJiNASCXPqo3qjnO+/Z
-Qsis6z//zd/URtqmk2pr6RznqJJg74NL4wj8pMHRlJ3Li7LDYm6q6GCmQugIZ+4l
-M1nlyELLrq4fRellVmXXA+z0FGqDxEe2q8g4KBbdjpFCzYO0kgqbNiFNilx3SAZY
-B5FP+dxNU+ZkA1mkS6u2j/sRpdDvPMJJ9R0xdUmrJODwdVL+B2jvfhLsTmNuOnzF
-hBK/zw00MXYq37qv7x3JcdCrUAtEhinXbdx3xmBPshGHy6YYH5L4UPkrxlV7yAmg
-Uiql+YCDH79JiVLf8jvKJa3WDPeTEPBEmZDjpdefimdswU73J+oPmg==
------END RSA PRIVATE KEY-----"
-# Password for the SAML_SP_KEY_FILE
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-export SAML_SP_KEY_FILE_PASSWORD='verysecurepassword'
-```
-
-There are some other SAML options that you can set that may need to be changed
-depending on the IdP that you use. If you get SAML errors, tweaking these
-variables may help solve your issue. The values listed below are the defaults
-that Confidant uses.
-
-```bash
-# Algorithm used for SAML signing
-# default: http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
-# see also: http://www.w3.org/2000/09/xmldsig#rsa-sha1
-export SAML_SECURITY_SIG_ALGO='http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
-# Whether to require signatures on SLO responses
-export SAML_SECURITY_SLO_RESP_SIGNED=true
-# Whether to require signatures on full SAML response messages
-export SAML_SECURITY_MESSAGES_SIGNED=true
-# Whether to require signatures on individual SAML response assertion fields
-export SAML_SECURITY_ASSERTIONS_SIGNED=false
-# NOTE: You will very likely want at least one of
-# SAML_SECURITY_MESSAGES_SIGNED or SAML_SECURITY_ASSERTIONS_SIGNED to be true.
-# Whether you want an attribute statement from the SAML assertion
-export SAML_WANT_ATTRIBUTE_STATEMENT=true
-```
-
-To debug SAML and/or test SAML in development, you may want to set either of
-the following flags to true.
-
-```bash
-# Debug mode for python-saml library. Follows global DEBUG setting if not set.
-export SAML_DEBUG=false
-# Pretend that all requests are HTTPS for purposes of SAML validation. This is
-# useful if your app is behind a weird load balancer and flask isn't respecting
-# X-Forwarded-Proto. For security, this flag will only be respected in debug
-# mode.
-export SAML_FAKE_HTTPS=false
-```
-
-### User authentication session settings
-
-By default (in confidant 1.1) confidant will use itsdangerous secure cookies
-for session management, with a session lifetime and maximum session lifetime. A
-user's session lifetime with automatically be extended any time a user performs
-any action in the interface, but the user's session lifetime can only be
-extended up to the maximum session lifetime, in which they'll be required to
-login again. The session lifetime and maximum session lifetime can be adjusted:
-
-```bash
-# Session lifetime in seconds. Default is 12 hours.
-export PERMANENT_SESSION_LIFETIME='43200'
-# Maximum session lifetime in seconds. Default is 24 hours.
-export MAX_PERMANENT_SESSION_LIFETIME='86400'
-```
-
-An alternative to using itsdangerous cookies is to store cookies in a redis
-backend:
-
-```bash
-export REDIS_URL='redis://localhost:6381'
-export PERMANENT_SESSION_LIFETIME='0'
-```
-
-It's possible to use custom cookie names for both the session cookie, and for
-the XSRF token cookie:
-
-```bash
-export SESSION_COOKIE_NAME='confidant_session'
-export XSRF_COOKIE_NAME='XSRF-TOKEN'
-```
+JWT authentication is stateless and no longer relies on server-managed login
+sessions or CSRF cookies. The remaining Flask session
+settings are only relevant to the application's general cookie/session
+configuration and are not part of the authentication flow.
 
 ### Disabling credential conflict checks
 
@@ -411,28 +234,6 @@ export SECRETS_BOOTSTRAP=`cat encrypted_dict.yaml.enc`
 python manage.py decrypt_secrets_bootstrap
 ```
 
-### KMS authentication for end-users
-
-In confidant version 1.1 we introduced a new version of KMS auth that allows
-user authentication in addition to service authentication. By default confidant
-will only allow service authentication.
-
-```bash
-# The alias of the KMS key being used for authentication that is specifically
-# for the 'user' role. This should not be the same key as AUTH_KEY if your
-# kms token version is less than 2, as it would allow services to masquerade
-#  as users.
-export USER_AUTH_KEY='alias/user-auth-key'
-# The maximum version of the authentication token accepted.
-export KMS_MAXIMUM_TOKEN_VERSION='2'
-# The minimum version of the authentication token accepted. You should set this
-# as high as your clients support.
-export KMS_MINIMUM_TOKEN_VERSION='1'
-# Comma separated list of user types allowed to auth via KMS. Default is
-# 'service'.
-export KMS_AUTH_USER_TYPES='user,service'
-```
-
 ### Confidant client configuration
 
 Confidant exposes some data to its clients via a flask endpoint. It's possible
@@ -547,8 +348,7 @@ KMS_URL=http://kms:8080
 
 ## KMS key policy configuration
 
-Confidant needs to have special KMS key policy for both the at-rest
-`KMS_MASTER_KEY` and the authentication `AUTH_KEY`.
+Confidant needs a KMS key policy for the at-rest `KMS_MASTER_KEY`.
 
 Here's an example key policy for the at-rest encryption key, `KMS_MASTER_KEY`, assuming the
 above configuration. Note the following:

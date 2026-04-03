@@ -1,12 +1,11 @@
 # Environment variables for the confidant process
 confidant_env:
   AWS_DEFAULT_REGION: 'us-east-1'
-  AUTH_CONTEXT: '{{ grains.cluster_name }}'
-  AUTH_KEY: 'authnz-{{ grains.cluster_name }}'
-  AUTHOMATIC_SALT: 'H39bfLCqLbrYrFyiJIxkK0uf12rlzvgjgo9FqOnttPXIdAAuyQ'
   DYNAMODB_TABLE: '{{ grains.cluster_name }}'
-  GOOGLE_OAUTH_CLIENT_ID: '123456789-abcdefghijklmnop.apps.googleusercontent.com'
-  GOOGLE_OAUTH_CONSUMER_SECRET: '123456789abcdefghijklmnop'
+  JWKS_URL: 'https://idp.example.com/application/o/confidant/jwks/'
+  OIDC_AUTHORITY: 'https://idp.example.com/application/o/confidant'
+  OIDC_CLIENT_ID: 'confidant'
+  OIDC_REDIRECT_URI: 'https://confidant.example.com/auth/callback'
   KMS_MASTER_KEY: '{{ grains.cluster_name }}'
   # TODO: make this point at elasticache.
   REDIS_URL: ''

@@ -1,146 +1,238 @@
 import logging
-
-import kmsauth
-from flask import abort, request, g, make_response
-from flask import url_for
+from dataclasses import dataclass
 from functools import wraps
+from typing import Any
+
+import jwt
+from flask import abort
+from flask import g
+from flask import redirect
+from flask import request
+from flask import url_for
+from jwt import PyJWKClient
 
 from confidant import settings
-from confidant.utils import stats
-
-from confidant.authnz.errors import (
-    UserUnknownError,
-    AuthenticationError,
-    NotAuthorized,
-)
-from confidant.authnz import userauth
-
-_VALIDATOR = None
+from confidant.authnz.errors import AuthenticationError
+from confidant.authnz.errors import NotAuthorized
+from confidant.authnz.errors import UserUnknownError
 
 logger = logging.getLogger(__name__)
-user_mod = userauth.init_user_auth_class()
+
+_JWKS_CLIENT: PyJWKClient | None = None
 
 
-def _get_validator():
-    global _VALIDATOR
-    if _VALIDATOR is None:
-        _VALIDATOR = kmsauth.KMSTokenValidator(
-            settings.AUTH_KEY,
-            settings.USER_AUTH_KEY,
-            settings.AUTH_CONTEXT,
-            settings.AWS_DEFAULT_REGION,
-            auth_token_max_lifetime=settings.AUTH_TOKEN_MAX_LIFETIME,
-            minimum_token_version=settings.KMS_MINIMUM_TOKEN_VERSION,
-            maximum_token_version=settings.KMS_MAXIMUM_TOKEN_VERSION,
-            token_cache_size=settings.KMS_AUTH_TOKEN_CACHE_SIZE,
-            stats=stats,
-            endpoint_url=settings.KMS_URL,
-            max_pool_connections=settings.KMS_MAX_POOL_CONNECTIONS,
-            connect_timeout=settings.KMS_CONNECTION_TIMEOUT,
-            read_timeout=settings.KMS_READ_TIMEOUT,
+@dataclass(frozen=True)
+class RequestPrincipal:
+    user_type: str
+    username: str
+    email: str | None
+    tenant_id: str | None
+    jwt_claims: dict[str, Any]
+
+
+def _get_jwks_client() -> PyJWKClient:
+    global _JWKS_CLIENT
+    if _JWKS_CLIENT is None:
+        _JWKS_CLIENT = PyJWKClient(settings.JWKS_URL, cache_keys=True)
+    return _JWKS_CLIENT
+
+
+def _normalize_optional_string(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return value
+
+
+def _get_required_claim(payload: dict[str, Any], claim_name: str) -> str:
+    value = _normalize_optional_string(payload.get(claim_name))
+    if value is None:
+        raise AuthenticationError(f"Missing required JWT claim {claim_name!r}")
+    return value
+
+
+def _decode_jwt(token: str) -> dict[str, Any]:
+    client = _get_jwks_client()
+    signing_key = client.get_signing_key_from_jwt(token)
+    decode_kwargs: dict[str, Any] = {
+        "algorithms": settings.ALLOWED_JWT_ALGORITHMS,
+    }
+    if settings.JWT_ISSUER:
+        decode_kwargs["issuer"] = settings.JWT_ISSUER
+    if settings.JWT_AUDIENCE:
+        decode_kwargs["audience"] = settings.JWT_AUDIENCE
+    else:
+        decode_kwargs["options"] = {"verify_aud": False}
+    return jwt.decode(token, signing_key.key, **decode_kwargs)
+
+
+def _read_bearer_token_from_request() -> str | None:
+    header_name = settings.JWT_HEADER_NAME
+    raw_value = request.headers.get(header_name)
+    if raw_value is None:
+        return None
+    raw_value = raw_value.strip()
+    if not raw_value:
+        raise AuthenticationError(f"Empty JWT header {header_name!r}")
+
+    auth_scheme = f"{settings.JWT_HEADER_PREFIX} "
+    token_start = len(auth_scheme)
+    is_authorization_header = header_name.lower() == "authorization"
+    if is_authorization_header:
+        if not raw_value.lower().startswith(auth_scheme.lower()):
+            raise AuthenticationError("Authorization header must use Bearer.")
+        token = raw_value[token_start:].strip()
+        if not token:
+            raise AuthenticationError("Bearer token is missing.")
+        return token
+
+    if raw_value.lower().startswith(auth_scheme.lower()):
+        raw_value = raw_value[token_start:].strip()
+    if not raw_value:
+        raise AuthenticationError(
+            f"JWT header {header_name!r} did not include a token."
         )
-    return _VALIDATOR
+    return raw_value
+
+
+def _resolve_user_type(payload: dict[str, Any]) -> str:
+    user_type = _get_required_claim(payload, settings.JWT_PRINCIPAL_TYPE_CLAIM)
+    if user_type not in settings.JWT_ALLOWED_PRINCIPAL_TYPES:
+        raise AuthenticationError("JWT principal type is not allowed.")
+    return user_type
+
+
+def _resolve_username(payload: dict[str, Any], user_type: str) -> str:
+    claim_candidates = []
+    if user_type == settings.JWT_USER_TYPE_VALUE:
+        claim_candidates.extend(
+            [
+                settings.JWT_USER_PRINCIPAL_CLAIM,
+                settings.JWT_EMAIL_CLAIM,
+                settings.JWT_SUB_CLAIM,
+            ]
+        )
+    elif user_type == settings.JWT_SERVICE_TYPE_VALUE:
+        claim_candidates.extend(
+            [
+                settings.JWT_SERVICE_PRINCIPAL_CLAIM,
+                settings.JWT_SUB_CLAIM,
+                settings.JWT_EMAIL_CLAIM,
+            ]
+        )
+    else:
+        claim_candidates.extend(
+            [
+                settings.JWT_USER_PRINCIPAL_CLAIM,
+                settings.JWT_SERVICE_PRINCIPAL_CLAIM,
+                settings.JWT_SUB_CLAIM,
+                settings.JWT_EMAIL_CLAIM,
+            ]
+        )
+
+    seen = set()
+    for claim_name in claim_candidates:
+        if claim_name in seen:
+            continue
+        seen.add(claim_name)
+        value = _normalize_optional_string(payload.get(claim_name))
+        if value is not None:
+            return value
+
+    raise AuthenticationError(
+        "Could not resolve a principal identifier from JWT claims."
+    )
+
+
+def _principal_from_payload(payload: dict[str, Any]) -> RequestPrincipal:
+    user_type = _resolve_user_type(payload)
+    username = _resolve_username(payload, user_type)
+    email = _normalize_optional_string(payload.get(settings.JWT_EMAIL_CLAIM))
+    tenant_id_claim = settings.JWT_TENANT_ID_CLAIM
+    tenant_id = _normalize_optional_string(payload.get(tenant_id_claim))
+    return RequestPrincipal(
+        user_type=user_type,
+        username=username,
+        email=email,
+        tenant_id=tenant_id,
+        jwt_claims=payload,
+    )
+
+
+def _set_request_principal(principal: RequestPrincipal) -> None:
+    g.current_principal = principal
+    g.user_type = principal.user_type
+    g.auth_type = "jwt"
+    g.username = principal.username
+    g.jwt_claims = principal.jwt_claims
+    g.tenant_id = principal.tenant_id
+
+
+def _get_request_principal() -> RequestPrincipal:
+    principal = getattr(g, "current_principal", None)
+    if principal is None:
+        raise UserUnknownError()
+    return principal
 
 
 def get_logged_in_user():
-    '''
-    Retrieve logged-in user's email that is stored in cache
-    '''
-    if hasattr(g, 'username'):
-        return g.username
-    if user_mod.is_authenticated():
-        return user_mod.current_email()
-    raise UserUnknownError()
+    """
+    Retrieve the normalized principal name for the authenticated request.
+    """
+    if not settings.USE_AUTH:
+        return "unauthenticated user"
+    return _get_request_principal().username
+
+
+def get_logged_in_email() -> str | None:
+    if not settings.USE_AUTH:
+        return None
+    return _get_request_principal().email
 
 
 def get_tenant_id():
     if not settings.MULTI_TENANT:
         return "singletenant"
-    if hasattr(g, "tenant_id"):
-        tenant_id = g.tenant_id
-        if isinstance(tenant_id, str):
-            tenant_id = tenant_id.strip()
-        if tenant_id:
-            return tenant_id
-    if user_mod.is_authenticated():
-        current_user = user_mod.current_user()
-        if isinstance(current_user, dict):
-            tenant_id = current_user.get("tenant_id")
-            if isinstance(tenant_id, str):
-                tenant_id = tenant_id.strip()
-            if tenant_id:
-                return tenant_id
+    tenant_id = _normalize_optional_string(getattr(g, "tenant_id", None))
+    if tenant_id is not None:
+        return tenant_id
     raise UserUnknownError()
 
 
 def user_is_user_type(user_type):
     if not settings.USE_AUTH:
         return True
-    if user_type == g.user_type:
-        return True
-    return False
+    return getattr(g, "user_type", None) == user_type
 
 
 def user_is_service(service):
     if not settings.USE_AUTH:
         return True
-    if hasattr(g, 'username'):
-        if g.username == service:
-            return True
-    return False
+    return (
+        getattr(g, "user_type", None) == settings.JWT_SERVICE_TYPE_VALUE
+        and getattr(g, "username", None) == service
+    )
+
+
 def require_csrf_token(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # If we're not using auth, there's no point in checking csrf tokens.
-        if not settings.USE_AUTH:
-            return f(*args, **kwargs)
-        # KMS is username/password or header auth, so we don't need to check
-        # for csrf tokens.
-        if g.auth_type == 'kms':
-            return f(*args, **kwargs)
-        if user_mod.check_csrf_token():
-            return f(*args, **kwargs)
-        return abort(401)
+        return f(*args, **kwargs)
+
     return decorated
 
 
-def _get_kms_auth_data():
-    data = {}
-    auth = request.authorization
-    headers = request.headers
-    if auth and auth.get('username'):
-        if not auth.get('password'):
-            raise AuthenticationError('No password provided via basic auth.')
-        data['username'] = auth['username']
-        data['token'] = auth['password']
-    elif 'X-Auth-Token' in headers and 'X-Auth-From' in headers:
-        if not headers.get('X-Auth-Token'):
-            raise AuthenticationError(
-                'No X-Auth-Token provided via auth headers.'
-            )
-        data['username'] = headers['X-Auth-From']
-        data['token'] = headers['X-Auth-Token']
-    return data
-
-
 def log_in():
-    return user_mod.log_in()
+    return redirect(url_for("static_files.index"))
 
 
 def redirect_to_logout_if_no_auth(f):
-    """
-    Decorator for redirecting users to the logout page when they are
-    not authenticated.
-    """
     @wraps(f)
     def decorated(*args, **kwargs):
-        if user_mod.is_expired():
-            return user_mod.redirect_to_goodbye()
+        return f(*args, **kwargs)
 
-        if user_mod.is_authenticated():
-            return f(*args, **kwargs)
-        else:
-            return user_mod.redirect_to_goodbye()
     return decorated
 
 
@@ -150,80 +242,28 @@ def require_auth(f):
         if not settings.USE_AUTH:
             return f(*args, **kwargs)
 
-        # User suppplied basic auth info
+        if not settings.JWKS_URL:
+            logger.error("JWKS_URL required when USE_AUTH is enabled.")
+            return abort(500)
+
         try:
-            kms_auth_data = _get_kms_auth_data()
-        except AuthenticationError:
-            logger.exception('Failed to authenticate request.')
-            return abort(403)
-        if kms_auth_data:
-            validator = _get_validator()
-            _from = validator.extract_username_field(
-                    kms_auth_data['username'],
-                    'from',
-            )
-            _user_type = validator.extract_username_field(
-                    kms_auth_data['username'],
-                    'user_type',
-            )
-            try:
-                if _user_type not in settings.KMS_AUTH_USER_TYPES:
-                    msg = '{0} is not an allowed user type for KMS auth.'
-                    msg = msg.format(_user_type)
-                    logger.warning(msg)
-                    return abort(403)
-                with stats.timer('decrypt_token'):
-                    token_data = validator.decrypt_token(
-                        kms_auth_data['username'],
-                        kms_auth_data['token']
-                    )
-                logger.debug(
-                    'Auth request had the following token_data: {0}'.format(
-                        token_data
-                    )
-                )
-                msg = 'Authenticated {0} with user_type {1} via kms auth'
-                msg = msg.format(_from, _user_type)
-                logger.debug(msg)
-                g.user_type = _user_type
-                g.auth_type = 'kms'
-                g.username = _from
-                g.tenant_id = get_tenant_id()
-                return f(*args, **kwargs)
-            except kmsauth.TokenValidationError:
-                logger.exception('Failed to decrypt authentication token.')
-                msg = 'Access denied for {0}. Authentication Failed.'
-                msg = msg.format(_from)
-                logger.warning(msg)
-                return abort(403)
-
-        # If not using kms auth, require auth using the user_mod authn module.
-        else:
-            user_type = 'user'
-
-            if user_mod.is_expired():
+            token = _read_bearer_token_from_request()
+            if token is None:
                 return abort(401)
-
-            if user_mod.is_authenticated():
-                try:
-                    user_mod.check_authorization()
-                except NotAuthorized as e:
-                    logger.warning('Not authorized -- {}'.format(e))
-                    return abort(403)
-                else:
-                    # User took an action, extend the expiration time.
-                    user_mod.set_expiration()
-                    # auth-N and auth-Z are good, call the decorated function
-                    g.user_type = user_type
-                    g.auth_type = user_mod.auth_type
-                    g.tenant_id = get_tenant_id()
-                    # ensure that the csrf cookie value is set
-                    resp = make_response(f(*args, **kwargs))
-                    user_mod.set_csrf_token(resp)
-                    return resp
-
-            # Not authenticated
+            payload = _decode_jwt(token)
+            principal = _principal_from_payload(payload)
+            _set_request_principal(principal)
+        except AuthenticationError as exc:
+            logger.warning("Authentication failed: %s", exc)
             return abort(401)
+        except jwt.PyJWTError as exc:
+            logger.warning("JWT validation failed: %s", exc)
+            return abort(401)
+        except NotAuthorized as exc:
+            logger.warning("Not authorized -- %s", exc)
+            return abort(403)
+
+        return f(*args, **kwargs)
 
     return decorated
 
@@ -231,25 +271,6 @@ def require_auth(f):
 def require_logout_for_goodbye(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not settings.USE_AUTH:
-            return f(*args, **kwargs)
-
-        # ideally we would call check_csrf_token, but I don't think logout CSRF
-        # is a serious concern for this application
-
-        try:
-            get_logged_in_user()
-        except UserUnknownError:
-            # ok, not logged in
-            return f(*args, **kwargs)
-
-        logger.warning('require_logout(): calling log_out()')
-        resp = user_mod.log_out()
-
-        if resp.headers.get('Location') == url_for('static_files.goodbye'):
-            # avoid redirect loop and just render the page
-            return f(*args, **kwargs)
-        else:
-            return resp
+        return f(*args, **kwargs)
 
     return decorated
