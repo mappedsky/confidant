@@ -6,14 +6,11 @@ from flask import request
 
 from confidant import authnz
 from confidant import settings
+from confidant.schema.services import revisions_response_schema
+from confidant.schema.services import service_response_schema
 from confidant.schema.services import ServiceResponse
-from confidant.schema.services import (
-    service_response_schema,
-    services_response_schema,
-    revisions_response_schema,
-)
+from confidant.schema.services import services_response_schema
 from confidant.services import credentialmanager
-from confidant.services import iamrolemanager
 from confidant.services import servicemanager
 from confidant.utils import maintenance
 from confidant.utils import misc
@@ -24,18 +21,6 @@ logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("services", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
-
-
-@blueprint.route("/v1/roles", methods=["GET"])
-@authnz.require_auth
-def get_iam_roles_list():
-    if not acl_module_check(resource_type="service", action="list"):
-        msg = "{} does not have access to list services".format(
-            authnz.get_logged_in_user()
-        )
-        return jsonify({"error": msg}), 403
-    roles = iamrolemanager.get_iam_roles()
-    return jsonify({"roles": roles})
 
 
 @blueprint.route("/v1/services", methods=["GET"])
@@ -226,13 +211,15 @@ def map_service_credentials(id):
     return service_response_schema.dumps(expanded)
 
 
-@blueprint.route("/v1/services/<id>/versions/<int:version>/restore", methods=["POST"])
+@blueprint.route(
+    "/v1/services/<id>/versions/<int:version>/restore",
+    methods=["POST"],
+)
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def restore_service_version(id, version):
-    data = request.get_json() or {}
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
         resource_type="service",

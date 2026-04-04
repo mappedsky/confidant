@@ -1,23 +1,78 @@
+volumes:
+  authentik_postgres_data:
+  authentik_media:
+
 networks:
   confidant:
     name: confidant
 services:
-  saml-idp:
-    image: kristophjunge/test-saml-idp
-    env_file: ./config/development/saml-idp.env
+  authentik-postgresql:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: authentik
+    volumes:
+      - authentik_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_SECRET_KEY: confidant-dev-secret-change-in-production
+      AUTHENTIK_BOOTSTRAP_EMAIL: admin@localhost
+      AUTHENTIK_BOOTSTRAP_PASSWORD: devpassword
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+    volumes:
+      - authentik_media:/data
+      - ./.config/dev/authentik/blueprints:/blueprints/custom:ro
+    ports:
+      - "9000:9000"
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/lifecycle/ak", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
     networks:
       - default
       - confidant
-    ports:
-      - "8080:8080"
-      - "8443:8443"
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    restart: unless-stopped
+    command: worker
+    user: root
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_SECRET_KEY: confidant-dev-secret-change-in-production
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
     volumes:
-      - ./config/development/saml-authsources.php:/var/www/simplesamlphp/config/authsources.php
-    healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:8080/simplesaml/saml2/idp/metadata.php"]
-      interval: 5s
-      timeout: 2s
-      retries: 5
+      - authentik_media:/data
+      - ./.config/dev/authentik/blueprints:/blueprints/custom:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    networks:
+      - default
   dynamodb:
     image: amazon/dynamodb-local
     init: true
@@ -58,13 +113,12 @@ services:
         condition: service_healthy
       kms:
         condition: service_healthy
-      saml-idp:
+      authentik-server:
         condition: service_healthy
     env_file: ./config/development/confidant.env
     volumes:
       - .:/srv/confidant
       - ./config/development/logging.conf:/etc/confidant/logging.conf
-      - ./config/development/idp.crt:/etc/confidant/idp.crt
       - ./config/gunicorn.conf:/etc/confidant/gunicorn.conf
     command: "gunicorn --config /etc/confidant/gunicorn.conf confidant.wsgi:app --workers=2 -k gevent --reload --access-logfile=- --error-logfile=-"
   frontend:

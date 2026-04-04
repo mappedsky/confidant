@@ -40,13 +40,8 @@ In the same way you created a new credential, do the same thing, but now click
 on create service. This will bring up a new service resourse in the right
 panel.
 
-Services in Confidant are extensions of IAM roles, so the new service
-name that you create should match the IAM role you wish to map the credentials
-with. To make things a bit easier, Confidant will auto-complete the IAM role
-name as you type in the service name. Note that Confidant will allow you to
-create a service even if an IAM role with the matching name doesn't exist. This
-is a feature to allow you to map credentials to a service before it's been
-created.
+Services in Confidant use a user-defined service ID. Choose the identifier you
+want to use for credential mappings and create the service with that value.
 
 ### Finding credentials and services in the sidebar
 

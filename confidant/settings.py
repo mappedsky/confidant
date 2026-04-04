@@ -31,7 +31,7 @@ def bool_env(var_name, default=False):
     test_val = getenv(var_name, default)
     # Explicitly check for 'False', 'false', and '0' since all non-empty
     # string are normally coerced to True.
-    if test_val in ('False', 'false', '0'):
+    if test_val in ("False", "false", "0"):
         return False
     return bool(test_val)
 
@@ -54,7 +54,7 @@ def int_env(var_name, default=0):
     return int(getenv(var_name, default))
 
 
-def str_env(var_name, default=''):
+def str_env(var_name, default=""):
     """
     Get an environment variable as a string.
     This has the same arguments as bool_env.
@@ -62,25 +62,37 @@ def str_env(var_name, default=''):
     return getenv(var_name, default)
 
 
+def list_env(var_name, default=None):
+    """
+    Get a comma separated environment variable as a list of strings.
+    """
+    if default is None:
+        default = []
+    raw_value = getenv(var_name)
+    if raw_value is None:
+        return list(default)
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
 # Basic setup
 
 # Whether or not Confidant is run in debug mode. Never run confidant in debug
 # mode outside of development!
-DEBUG = bool_env('DEBUG', False)
+DEBUG = bool_env("DEBUG", False)
 # The host the WSGI app should use.
-HOST = str_env('HOST', '127.0.0.1')
+HOST = str_env("HOST", "127.0.0.1")
 # The port the WSGI app should use.
-PORT = int_env('PORT', 8080)
+PORT = int_env("PORT", 8080)
 # The directory to use for static content. To use minified resources, set this
 # to 'dist'.
-STATIC_FOLDER = str_env('STATIC_FOLDER', 'public')
+STATIC_FOLDER = str_env("STATIC_FOLDER", "public")
 
 # A custom endpoint url for KMS, for use in development
-KMS_URL = str_env('KMS_URL', None)
+KMS_URL = str_env("KMS_URL", None)
 
 # Whether Confidant should expect tenant-aware auth context. When disabled,
 # the application behaves as a single-tenant system and uses a fixed tenant id.
-MULTI_TENANT = bool_env('MULTI_TENANT', False)
+MULTI_TENANT = bool_env("MULTI_TENANT", False)
 
 # Bootstrapping
 
@@ -90,219 +102,95 @@ MULTI_TENANT = bool_env('MULTI_TENANT', False)
 # KMS_MASTER_KEY for decryption.
 # If SECRETS_BOOTSTRAP starts with file://, then it will load the blob from a
 # file, rather than reading the blob from the environment.
-SECRETS_BOOTSTRAP = str_env('SECRETS_BOOTSTRAP')
+SECRETS_BOOTSTRAP = str_env("SECRETS_BOOTSTRAP")
 encrypted_settings = EncryptedSettings(SECRETS_BOOTSTRAP, KMS_URL)
 
-# User authentication method switcher.
-# Supported methods:
-# - 'google' # Google OAuth
-# - 'saml'   # SAML Identity Provider
-# - 'header' # Header-based authentication
-USER_AUTH_MODULE = str_env('USER_AUTH_MODULE', 'google')
+# JWT authentication
 
-# An email suffix that can be used to restrict access to the web interface.
-# Example: @example.com
-# For backwards compatibility, also support setting this with
-# GOOGLE_AUTH_EMAIL_SUFFIX.
-USER_EMAIL_SUFFIX = (str_env('USER_EMAIL_SUFFIX', None) or
-                     str_env('GOOGLE_AUTH_EMAIL_SUFFIX', None))
-
-# A yaml file, with email: name mappings that can be used for restricting
-# access to the web interface. If this file is not set, then any user with
-# google/saml authentication access will be able to access/modify secrets.
-USERS_FILE = str_env('USERS_FILE')
-
-# SAML authentication
-# SP: Service Provider (i.e. Confidant)
-# IdP: Identity Provider
-#
-# When configuring SAML, the SAML_CONFIDANT_URL_ROOT is required. Other
-# configuration options are mostly used to populate the settings dict passed to
-# OneLogin_Saml2_Auth() for initialization. It is recommended to use the
-# various individual configuration flags, but if you know what you're doing and
-# need to configure more items in detail, use SAML_RAW_JSON_SETTINGS.
-
-# Root URL that browsers use to hit Confidant,
-# e.g. https://confidant.example.com/
-SAML_CONFIDANT_URL_ROOT = str_env('SAML_CONFIDANT_URL_ROOT')
-
-# Debug mode for python-saml library. Follows global DEBUG setting if not set.
-SAML_DEBUG = bool_env('SAML_DEBUG', None)
-
-# Pretend that all requests are HTTPS for purposes of SAML validation. This is
-# useful if your app is behind a weird load balancer and flask isn't respecting
-# X-Forwarded-Proto. For security, this flag will only be respected in debug
-# mode.
-SAML_FAKE_HTTPS = bool_env('SAML_FAKE_HTTPS', False)
-
-# Path to SP X.509 certificate file in PEM format
-SAML_SP_CERT_FILE = str_env('SAML_SP_CERT_FILE')
-# Raw X.509 certificate in PEM format
-SAML_SP_CERT = str_env('SAML_SP_CERT')
-
-# Path to SP private key file in PEM format
-SAML_SP_KEY_FILE = str_env('SAML_SP_KEY_FILE')
-# Password for the SAML_SP_KEY_FILE
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-SAML_SP_KEY_FILE_PASSWORD = encrypted_settings.register(
-    'SAML_SP_KEY_FILE_PASSWORD',
-    str_env('SAML_SP_KEY_FILE_PASSWORD', None)
+# Standard JWKS endpoint used to validate JWTs. Must be a JSON endpoint
+# returning a JWK set.
+JWKS_URL = str_env("JWKS_URL", "")
+# Algorithms we allow for JWT signing.
+ALLOWED_JWT_ALGORITHMS = list_env(
+    "ALLOWED_JWT_ALGORITHMS",
+    ["RS256", "ES256", "ES512"],
 )
-# Raw SP private key in PEM format
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-SAML_SP_KEY = encrypted_settings.register(
-    'SAML_SP_KEY',
-    str_env('SAML_SP_KEY')
+# The request header from which the JWT is read.
+JWT_HEADER_NAME = str_env("JWT_HEADER_NAME", "Authorization")
+# The auth scheme prefix expected in Authorization-style headers.
+JWT_HEADER_PREFIX = str_env("JWT_HEADER_PREFIX", "Bearer")
+# Optional issuer to validate in the JWT. Leave empty to skip issuer
+# validation.
+JWT_ISSUER = str_env("JWT_ISSUER", "")
+# Optional audience to validate in the JWT. Leave empty to skip audience
+# validation.
+JWT_AUDIENCE = str_env("JWT_AUDIENCE", "")
+# The JWT claim that contains the token issuer.
+JWT_ISS_CLAIM = str_env("JWT_ISS_CLAIM", "iss")
+# The JWT claim that contains the subject identifier.
+JWT_SUB_CLAIM = str_env("JWT_SUB_CLAIM", "sub")
+# The JWT claim that contains the user's email.
+JWT_EMAIL_CLAIM = str_env("JWT_EMAIL_CLAIM", "email")
+# The JWT claim that contains the tenant id in multi-tenant mode.
+JWT_TENANT_ID_CLAIM = str_env("JWT_TENANT_ID_CLAIM", "tenant_id")
+# The claim used to differentiate between end-user and service principals.
+JWT_PRINCIPAL_TYPE_CLAIM = str_env("JWT_PRINCIPAL_TYPE_CLAIM", "principal_type")
+# The principal type value that represents a user.
+JWT_USER_TYPE_VALUE = str_env("JWT_USER_TYPE_VALUE", "user")
+# The principal type value that represents a service.
+JWT_SERVICE_TYPE_VALUE = str_env("JWT_SERVICE_TYPE_VALUE", "service")
+# Allowed principal types.
+JWT_ALLOWED_PRINCIPAL_TYPES = list_env(
+    "JWT_ALLOWED_PRINCIPAL_TYPES",
+    [JWT_USER_TYPE_VALUE, JWT_SERVICE_TYPE_VALUE],
+)
+# The claim used as the normalized principal name for user tokens.
+JWT_USER_PRINCIPAL_CLAIM = str_env("JWT_USER_PRINCIPAL_CLAIM", JWT_EMAIL_CLAIM)
+# The claim used as the normalized principal name for service tokens.
+JWT_SERVICE_PRINCIPAL_CLAIM = str_env(
+    "JWT_SERVICE_PRINCIPAL_CLAIM",
+    JWT_SUB_CLAIM,
 )
 
-# SAML IdP Entity ID (typically a URL)
-SAML_IDP_ENTITY_ID = str_env('SAML_IDP_ENTITY_ID')
-# How SAML should derive tenant identity in multi-tenant mode.
-# Supported values:
-# - 'disabled': do not derive a tenant id from SAML
-# - 'entity_id': use the configured SAML IdP entity id
-# - 'attribute' or 'claim': use a SAML attribute specified by
-#   SAML_TENANT_ID_ATTRIBUTE
-SAML_TENANT_ID_SOURCE = str_env('SAML_TENANT_ID_SOURCE', 'disabled')
-# Attribute name to read when SAML_TENANT_ID_SOURCE is 'attribute' or
-# 'claim'. Defaults to a conventional tenant_id claim.
-SAML_TENANT_ID_ATTRIBUTE = str_env('SAML_TENANT_ID_ATTRIBUTE', 'tenant_id')
-# SAML IdP Single Sign On URL (HTTP-REDIRECT binding only)
-SAML_IDP_SIGNON_URL = str_env('SAML_IDP_SIGNON_URL')
-# SAML IdP Single Logout URL, optional, only if IDP supports it
-# (HTTP-REDIRECT binding only)
-SAML_IDP_LOGOUT_URL = str_env('SAML_IDP_LOGOUT_URL')
-
-# SAML IdP X.509 certificate in PEM format
-SAML_IDP_CERT = str_env('SAML_IDP_CERT')
-# SAML IdP X.509 certificate file in PEM format
-SAML_IDP_CERT_FILE = str_env('SAML_IDP_CERT_FILE')
-
-# SAML security settings. You will very likely want at least one of
-# SAML_SECURITY_MESSAGES_SIGNED or SAML_SECURITY_ASSERTIONS_SIGNED to be True.
-#
-# Algorithm used for SAML signing
-# default: http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
-# see also: http://www.w3.org/2000/09/xmldsig#rsa-sha1
-SAML_SECURITY_SIG_ALGO = str_env(
-    'SAML_SECURITY_SIG_ALGO',
-    'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
-# Whether to require signatures on SLO responses
-SAML_SECURITY_SLO_RESP_SIGNED = bool_env('SAML_SECURITY_SLO_RESP_SIGNED', True)
-# Whether to require signatures on full SAML response messages
-SAML_SECURITY_MESSAGES_SIGNED = bool_env('SAML_SECURITY_MESSAGES_SIGNED', True)
-# Whether to require signatures on individual SAML response assertion fields
-SAML_SECURITY_ASSERTIONS_SIGNED = bool_env('SAML_SECURITY_ASSERTIONS_SIGNED',
-                                           False)
-# Whether you want an attribute statement from the SAML assertion
-SAML_WANT_ATTRIBUTE_STATEMENT = bool_env('SAML_WANT_ATTRIBUTE_STATEMENT', True)
-
-# Catchall to provide JSON directly to override SAML settings. Will be provided
-# to OneLogin_Saml2_Auth() for initialization, merging into values set by the
-# other SAML settings.
-SAML_RAW_JSON_SETTINGS = json.loads(str_env('SAML_RAW_JSON_SETTINGS', 'null'))
-
-# Google authentication
-
-# The client ID provided by Google's developer console.
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-GOOGLE_OAUTH_CLIENT_ID = encrypted_settings.register(
-    'GOOGLE_OAUTH_CLIENT_ID',
-    str_env('GOOGLE_OAUTH_CLIENT_ID')
-)
-# The consumer secret provided by Google's developer console.
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-GOOGLE_OAUTH_CONSUMER_SECRET = encrypted_settings.register(
-    'GOOGLE_OAUTH_CONSUMER_SECRET',
-    str_env('GOOGLE_OAUTH_CONSUMER_SECRET')
-)
-# A randomly generated string that can be used as a salt for the OAuth2 flow.
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-AUTHOMATIC_SALT = encrypted_settings.register(
-    'AUTHOMATIC_SALT',
-    str_env('AUTHOMATIC_SALT')
-)
-
-# Header-based authentication
-
-# The name of the header that will contain the username.  Required if using
-# header authentication.
-HEADER_AUTH_USERNAME_HEADER = str_env('HEADER_AUTH_USERNAME_HEADER')
-# The name of the header that will contain the user's email.  Required if using
-# header authentication.
-HEADER_AUTH_EMAIL_HEADER = str_env('HEADER_AUTH_EMAIL_HEADER')
-# The name of the header that will contain the user's first name.  Optional.
-HEADER_AUTH_FIRST_NAME_HEADER = str_env('HEADER_AUTH_FIRST_NAME_HEADER')
-# The name of the header that will contain the user's last name.  Optional.
-HEADER_AUTH_LAST_NAME_HEADER = str_env('HEADER_AUTH_LAST_NAME_HEADER')
-
-# KMS service authentication
-
-# The 'to' context used in KMS auth. This should be set to the name of the IAM
-# role of the confidant server.
-AUTH_CONTEXT = str_env('AUTH_CONTEXT')
-# The alias of the KMS key being used for authentication. This can be the same
-# as KMS_MASTER_KEY, but it's highly recommended to use a different key for
-# authentication and at-rest encryption. This key is specifically for the
-# 'service' role.
-# If a key alias is used, rather than an ARN, it must be prefixed with: alias/
-# Example: alias/mykmskey
-AUTH_KEY = str_env('AUTH_KEY')
-# The alias of the KMS key being used for authentication that is specifically
-# for the 'user' role. This should not be the same key as AUTH_KEY if your
-# kms token version is < 2, as it would allow services to masquerade as users.
-# If a key alias is used, rather than an ARN, it must be prefixed with: alias/
-# Example: alias/mykmskey
-USER_AUTH_KEY = str_env('USER_AUTH_KEY')
-# The maximum lifetime of an authentication token in minutes.
-AUTH_TOKEN_MAX_LIFETIME = int_env('AUTH_TOKEN_MAX_LIFETIME', 60)
-# The maximum version of the authentication token accepted.
-KMS_MAXIMUM_TOKEN_VERSION = int_env('KMS_MAXIMUM_TOKEN_VERSION', 2)
-# The minimum version of the authentication token accepted.
-KMS_MINIMUM_TOKEN_VERSION = int_env('KMS_MINIMUM_TOKEN_VERSION', 1)
-# Comma separated list of user types allowed to auth via KMS.
-KMS_AUTH_USER_TYPES = str_env('KMS_AUTH_USER_TYPES', 'service').split(',')
-# Number of tokens to cache for authentication. This should be roughly
-# equivalent to the number of tokens you expect to generate within the lifetime
-# of your tokens.
-KMS_AUTH_TOKEN_CACHE_SIZE = int_env('KMS_AUTH_TOKEN_CACHE_SIZE', 4096)
-# See also KMS_URL, defined above, for use in the EncryptedSettings
-# initialization, which can be used to point boto at a local KMS.
+# OIDC configuration surfaced to the frontend so it can acquire JWTs.
+OIDC_AUTHORITY = str_env("OIDC_AUTHORITY", "")
+OIDC_CLIENT_ID = str_env("OIDC_CLIENT_ID", "")
+OIDC_REDIRECT_URI = str_env("OIDC_REDIRECT_URI", "")
+OIDC_SCOPE = str_env("OIDC_SCOPE", "openid email")
 
 # SSL redirection and HSTS
 
 # Whether or not to redirect to https and to set HSTS. It's highly recommended
 # to run confidant with HTTPS or behind an ELB with SSL termination enabled.
-SSLIFY = bool_env('SSLIFY', True)
+SSLIFY = bool_env("SSLIFY", True)
 
 # Cookie settings
 
 # Cookie name for the session.
-SESSION_COOKIE_NAME = str_env('SESSION_COOKIE_NAME', 'confidant_session')
+SESSION_COOKIE_NAME = str_env("SESSION_COOKIE_NAME", "confidant_session")
 
 # Cookie name for the XSRF token
-XSRF_COOKIE_NAME = str_env('XSRF_COOKIE_NAME', 'XSRF-TOKEN')
+XSRF_COOKIE_NAME = str_env("XSRF_COOKIE_NAME", "XSRF-TOKEN")
 
 # Session cache
 # Mutually exclusive with secure cookie session settings.
 
 # A redis connection url to store flask sessions.
 # Example: redis://localhost:6379
-REDIS_URL_FLASK_SESSIONS = str_env('REDIS_URL_FLASK_SESSIONS')
+REDIS_URL_FLASK_SESSIONS = str_env("REDIS_URL_FLASK_SESSIONS")
 # The session type for Flask-Session. Currenty only redis is supported.
-SESSION_TYPE = str_env('SESSION_TYPE', 'redis')
+SESSION_TYPE = str_env("SESSION_TYPE", "redis")
 # The key prefix to use in redis. Can be used to run multiple applications on
 # the same redis server.
-SESSION_KEY_PREFIX = str_env('SESSION_KEY_PREFIX', 'confidant:')
+SESSION_KEY_PREFIX = str_env("SESSION_KEY_PREFIX", "confidant:")
 # Whether or not to sign the session cookie sid; see the Flask-Session docs
 # for more information:
 #   http://pythonhosted.org/Flask-Session/#configuration
-SESSION_USE_SIGNER = bool_env('SESSION_USE_SIGNER', True)
+SESSION_USE_SIGNER = bool_env("SESSION_USE_SIGNER", True)
 # A long randomly generated string.
 # This setting can be loaded from the SECRETS_BOOTSTRAP.
 SESSION_SECRET = encrypted_settings.register(
-    'SESSION_SECRET',
-    str_env('SESSION_SECRET')
+    "SESSION_SECRET", str_env("SESSION_SECRET")
 )
 
 # Secure cookie sessions
@@ -315,7 +203,7 @@ SESSION_SECRET = encrypted_settings.register(
 # permanent. User actions will extend the permanent session lifetime, so this
 # setting can be relatively small. Default is 43200 seconds (12 hours).
 # To disable permanent cookies, set this to 0.
-PERMANENT_SESSION_LIFETIME = int_env('PERMANENT_SESSION_LIFETIME', 43200)
+PERMANENT_SESSION_LIFETIME = int_env("PERMANENT_SESSION_LIFETIME", 43200)
 # Set a maximum lifetime of a session, when using 'permanent' cookies. User
 # actions extend the lifetime of a session cookie, but they will not be
 # extended past this maximum time. This setting should be equal to or larger
@@ -323,8 +211,8 @@ PERMANENT_SESSION_LIFETIME = int_env('PERMANENT_SESSION_LIFETIME', 43200)
 # will be equal to PERMANENT_SESSION_LIFETIME. Default is 86400 seconds (24
 # hours).
 MAX_PERMANENT_SESSION_LIFETIME = int_env(
-    'MAX_PERMANENT_SESSION_LIFETIME',
-    86400
+    "MAX_PERMANENT_SESSION_LIFETIME",
+    86400,
 )
 
 # General storage
@@ -332,24 +220,24 @@ MAX_PERMANENT_SESSION_LIFETIME = int_env(
 # Set the DynamoDB to something non-standard. This can be used for local
 # development. Doesn't normally need to be set.
 # Example: http://localhost:8000
-DYNAMODB_URL = str_env('DYNAMODB_URL')
+DYNAMODB_URL = str_env("DYNAMODB_URL")
 # The DynamoDB table to use for storage.
 # Example: mydynamodbtable
-DYNAMODB_TABLE = str_env('DYNAMODB_TABLE')
+DYNAMODB_TABLE = str_env("DYNAMODB_TABLE")
 # The DynamoDB table to use for permanently archiving old credentials and
 # services.
 # Example: mydynamodbtable-archive
-DYNAMODB_TABLE_ARCHIVE = str_env('DYNAMODB_TABLE_ARCHIVE')
+DYNAMODB_TABLE_ARCHIVE = str_env("DYNAMODB_TABLE_ARCHIVE")
 # Have PynamoDB automatically generate the DynamoDB table if it doesn't exist.
 # Note that you need to give Confidant's IAM user or role enough privileges for
 # this to occur.
-DYNAMODB_CREATE_TABLE = bool_env('DYNAMODB_CREATE_TABLE', False)
+DYNAMODB_CREATE_TABLE = bool_env("DYNAMODB_CREATE_TABLE", False)
 # Connection pool size for PynamoDB connections to DynamoDB
-PYNAMO_CONNECTION_POOL_SIZE = int_env('PYNAMO_CONNECTION_POOL_SIZE', 100)
-PYNAMO_CONNECT_TIMEOUT_SECONDS = int_env('PYNAMO_CONNECT_TIMEOUT_SECONDS', 1)
-PYNAMO_READ_TIMEOUT_SECONDS = int_env('PYNAMO_READ_TIMEOUT_SECONDS', 1)
+PYNAMO_CONNECTION_POOL_SIZE = int_env("PYNAMO_CONNECTION_POOL_SIZE", 100)
+PYNAMO_CONNECT_TIMEOUT_SECONDS = int_env("PYNAMO_CONNECT_TIMEOUT_SECONDS", 1)
+PYNAMO_READ_TIMEOUT_SECONDS = int_env("PYNAMO_READ_TIMEOUT_SECONDS", 1)
 # page limit size for history API endpoints listing
-HISTORY_PAGE_LIMIT = int_env('HISTORY_PAGE_LIMIT')
+HISTORY_PAGE_LIMIT = int_env("HISTORY_PAGE_LIMIT")
 if HISTORY_PAGE_LIMIT == 0:
     HISTORY_PAGE_LIMIT = None
 
@@ -357,68 +245,64 @@ if HISTORY_PAGE_LIMIT == 0:
 
 # The KMS key to use for at-rest encryption for secrets in DynamoDB.
 # If a key alias is used, rather than an ARN, it must be prefixed with: alias/
-KMS_MASTER_KEY = str_env('KMS_MASTER_KEY')
+KMS_MASTER_KEY = str_env("KMS_MASTER_KEY")
 
 # Graphite events
 
 # A graphite events URL.
 # Example: https://graphite.example.com/events/
-GRAPHITE_EVENT_URL = str_env('GRAPHITE_EVENT_URL')
+GRAPHITE_EVENT_URL = str_env("GRAPHITE_EVENT_URL")
 # A basic auth username.
 # Example: mygraphiteuser
 # This setting can be loaded from the SECRETS_BOOTSTRAP.
 GRAPHITE_USERNAME = encrypted_settings.register(
-    'GRAPHITE_USERNAME',
-    str_env('GRAPHITE_USERNAME')
+    "GRAPHITE_USERNAME", str_env("GRAPHITE_USERNAME")
 )
 # A basic auth password:
 # Example: mylongandsupersecuregraphitepassword
 # This setting can be loaded from the SECRETS_BOOTSTRAP.
 GRAPHITE_PASSWORD = encrypted_settings.register(
-    'GRAPHITE_PASSWORD',
-    str_env('GRAPHITE_PASSWORD')
+    "GRAPHITE_PASSWORD", str_env("GRAPHITE_PASSWORD")
 )
 
 # Statsd metrics
 
 # A statsd host
-STATSD_HOST = str_env('STATSD_HOST', 'localhost')
+STATSD_HOST = str_env("STATSD_HOST", "localhost")
 # A statsd port
-STATSD_PORT = int_env('STATSD_PORT', 8125)
+STATSD_PORT = int_env("STATSD_PORT", 8125)
 
 # Webhook configuration
 
 # Endpoint URL to send webhook events to.
-WEBHOOK_URL = str_env('WEBHOOK_URL')
+WEBHOOK_URL = str_env("WEBHOOK_URL")
 # A basic auth username.
 # Example: myhookuser
 # This setting can be loaded from the SECRETS_BOOTSTRAP.
 WEBHOOK_USERNAME = encrypted_settings.register(
-    'WEBHOOK_USERNAME',
-    str_env('WEBHOOK_USERNAME')
+    "WEBHOOK_USERNAME", str_env("WEBHOOK_USERNAME")
 )
 # A basic auth password:
 # Example: mylongandsupersecurehookpassword
 # This setting can be loaded from the SECRETS_BOOTSTRAP.
 WEBHOOK_PASSWORD = encrypted_settings.register(
-    'WEBHOOK_PASSWORD',
-    str_env('WEBHOOK_PASSWORD')
+    "WEBHOOK_PASSWORD", str_env("WEBHOOK_PASSWORD")
 )
 
 # Ignore conflicts of credential names in a service
 # This is used if you don't mind having more than one of the same key name
 # in different credentials associated with a service.
-IGNORE_CONFLICTS = bool_env('IGNORE_CONFLICTS', False)
+IGNORE_CONFLICTS = bool_env("IGNORE_CONFLICTS", False)
 
 # Customization
 
 # Directory for customization of AngularJS frontend.
-CUSTOM_FRONTEND_DIRECTORY = str_env('CUSTOM_FRONTEND_DIRECTORY')
+CUSTOM_FRONTEND_DIRECTORY = str_env("CUSTOM_FRONTEND_DIRECTORY")
 
 # Custom configuration to bootstrap confidant clients. This
 # configuration is in JSON format and can contain anything you'd like to pass
 # to the clients.
-CLIENT_CONFIG = json.loads(str_env('CLIENT_CONFIG', '{}'))
+CLIENT_CONFIG = json.loads(str_env("CLIENT_CONFIG", "{}"))
 
 # Maintenance mode
 
@@ -428,18 +312,18 @@ CLIENT_CONFIG = json.loads(str_env('CLIENT_CONFIG', '{}'))
 # either through the MAINTENANCE_MODE_ENABLED configuration option, or through
 # a touch file specified via the MAINTENANCE_MODE_TOUCH_FILE configuration
 # option.
-MAINTENANCE_MODE = bool_env('MAINTENANCE_MODE', False)
-MAINTENANCE_MODE_TOUCH_FILE = str_env('MAINTENANCE_MODE_TOUCH_FILE')
+MAINTENANCE_MODE = bool_env("MAINTENANCE_MODE", False)
+MAINTENANCE_MODE_TOUCH_FILE = str_env("MAINTENANCE_MODE_TOUCH_FILE")
 
 # Enforce users to add documentation to their credentials on how to rotate
 # them, for easier rotation in the case a credential is expired or compromised.
-ENFORCE_DOCUMENTATION = bool_env('ENFORCE_DOCUMENTATION', False)
+ENFORCE_DOCUMENTATION = bool_env("ENFORCE_DOCUMENTATION", False)
 
 # Test/Development
 
 # Whether or not authentication is required. Unless doing testing or
 # development, this should always be set to True.
-USE_AUTH = bool_env('USE_AUTH', True)
+USE_AUTH = bool_env("USE_AUTH", True)
 # A boolean to enable/disable encryption. This is meant to be used for
 # test and development only. If this is disabled it will store unencrypted
 # content, rather than encrypted content. This allows you to test
@@ -447,22 +331,22 @@ USE_AUTH = bool_env('USE_AUTH', True)
 # development purposes, it's possible to avoid using this setting, by exposing
 # AWS credentials to Confidant and giving it access to a KMS key.
 # DO NOT DISABLE THIS EXCEPT FOR TEST AND DEVELOPMENT PURPOSES!
-USE_ENCRYPTION = bool_env('USE_ENCRYPTION', True)
+USE_ENCRYPTION = bool_env("USE_ENCRYPTION", True)
 
 # boto3 configuration
 
 # Timeout settings for connecting to KMS (see:
 # https://botocore.readthedocs.io/en/stable/reference/config.html)
-KMS_CONNECTION_TIMEOUT = int_env('KMS_CONNECTION_TIMEOUT', 1)
+KMS_CONNECTION_TIMEOUT = int_env("KMS_CONNECTION_TIMEOUT", 1)
 # Timeout settings for reading from KMS (see:
 # https://botocore.readthedocs.io/en/stable/reference/config.html)
-KMS_READ_TIMEOUT = int_env('KMS_READ_TIMEOUT', 1)
+KMS_READ_TIMEOUT = int_env("KMS_READ_TIMEOUT", 1)
 # Connection pool settings for connecting to KMS (see:
 # https://botocore.readthedocs.io/en/stable/reference/config.html)
-KMS_MAX_POOL_CONNECTIONS = int_env('KMS_MAX_POOL_CONNECTIONS', 100)
+KMS_MAX_POOL_CONNECTIONS = int_env("KMS_MAX_POOL_CONNECTIONS", 100)
 
 # Must be set to the region the server is running.
-AWS_DEFAULT_REGION = str_env('AWS_DEFAULT_REGION', 'us-east-1')
+AWS_DEFAULT_REGION = str_env("AWS_DEFAULT_REGION", "us-east-1")
 
 # gevent configuration
 
@@ -472,42 +356,21 @@ AWS_DEFAULT_REGION = str_env('AWS_DEFAULT_REGION', 'us-east-1')
 #
 # GEVENT_RESOLVER='ares'
 
-# IAM role cache configuration
-
-# Whether or not we keep a hot in-process cache of IAM roles, refreshed by a
-# gevent thread.
-BACKGROUND_CACHE_IAM_ROLES = bool_env('BACKGROUND_CACHE_IAM_ROLES', True)
-# Number of seconds between calls to refresh the IAM role cache. Calls will be
-# randomized +/- by BACKGROUND_CACHE_IAM_ROLE_JITTER seconds,
-# to randomize calls across processes. Minimum value for
-# this setting is 60.
-BACKGROUND_CACHE_IAM_ROLE_REFRESH_RATE = int_env(
-    'BACKGROUND_CACHE_IAM_ROLE_REFRESH_RATE',
-    600
-)
-
-# Seconds to add as jitter to ensure all processes do not refresh at
-# the same time which can cause AWS ratelimits to be hit.
-# Default to 20 seconds
-BACKGROUND_CACHE_IAM_ROLE_JITTER = int_env(
-    'BACKGROUND_CACHE_IAM_ROLE_JITTER',
-    20
-)
-
-MAXIMUM_ROTATION_DAYS = int_env('MAXIMUM_ROTATION_DAYS')
+MAXIMUM_ROTATION_DAYS = int_env("MAXIMUM_ROTATION_DAYS")
 # Credentials can be "tagged" (eg: FINANCIALLY_SENSITIVE or ADMIN_PRIV)
 # Certain tags might never need to be rotated
-TAGS_EXCLUDING_ROTATION = json.loads(str_env('TAGS_EXCLUDING_ROTATION', '[]'))
+TAGS_EXCLUDING_ROTATION = json.loads(str_env("TAGS_EXCLUDING_ROTATION", "[]"))
 # Credentials with different tags might have different rotation schedules
 # We use this config to specify how many days each type of credential should
 # be rotated
-ROTATION_DAYS_CONFIG = json.loads(str_env('ROTATION_DAYS_CONFIG', '{}'))
+ROTATION_DAYS_CONFIG = json.loads(str_env("ROTATION_DAYS_CONFIG", "{}"))
 
 # If this is eanbled, update credential.last_decrypted_date
 # when credential.credential_pairs is sent back to the client
 # in GET /v1/credentials/<ID> to keep track of when a human
 # last saw a credential pair
-ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env('ENABLE_SAVE_LAST_DECRYPTION_TIME')
+ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env("ENABLE_SAVE_LAST_DECRYPTION_TIME")
+
 
 def get(name, default=None):
     """
@@ -519,4 +382,4 @@ def get(name, default=None):
 
 
 # Module that will perform an external ACL check on API endpoints
-ACL_MODULE = str_env('ACL_MODULE', 'confidant.authnz.rbac:default_acl')
+ACL_MODULE = str_env("ACL_MODULE", "confidant.authnz.rbac:default_acl")

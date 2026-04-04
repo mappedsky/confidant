@@ -3,18 +3,35 @@ import {
   ApiErrorData,
   ClientConfigResponse,
   CredentialDetail,
+  CredentialVersionsResponse,
   CredentialsListResponse,
   CredentialServicesResponse,
   GenerateValueResponse,
+  ServiceVersionsResponse,
   ServicesListResponse,
   ServiceDetail,
   UserEmailResponse,
 } from './types/api';
 
 let xsrfCookieName: string | null = null;
+let accessTokenGetter: (() => string | null) | null = null;
+let unauthorizedHandler: (() => Promise<unknown> | unknown) | null = null;
+
+interface CursorPageParams {
+  limit?: number;
+  page?: string | null;
+}
 
 export function setXsrfCookieName(name: string) {
   xsrfCookieName = name;
+}
+
+export function setAccessTokenGetter(getter: (() => string | null) | null) {
+  accessTokenGetter = getter;
+}
+
+export function setUnauthorizedHandler(handler: (() => Promise<unknown> | unknown) | null) {
+  unauthorizedHandler = handler;
 }
 
 function getCookie(name: string): string | null {
@@ -29,6 +46,10 @@ function getCookie(name: string): string | null {
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
+  const accessToken = accessTokenGetter?.();
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
   if (xsrfCookieName) {
     const token = getCookie(xsrfCookieName);
     if (token) {
@@ -37,8 +58,10 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) {
-    if (window.location.pathname !== '/v1/login') {
-      window.location.href = '/v1/login';
+    if (unauthorizedHandler) {
+      await unauthorizedHandler();
+    } else if (window.location.pathname !== '/') {
+      window.location.href = '/';
     }
     return new Promise<T>(() => {});
   }
@@ -57,11 +80,29 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+function withCursorParams(url: string, params?: CursorPageParams): string {
+  if (!params) {
+    return url;
+  }
+
+  const searchParams = new URLSearchParams();
+  if (params.limit != null) {
+    searchParams.set('limit', String(params.limit));
+  }
+  if (params.page) {
+    searchParams.set('page', params.page);
+  }
+
+  const query = searchParams.toString();
+  return query ? `${url}?${query}` : url;
+}
+
 export const api = {
   getClientConfig: () => request<ClientConfigResponse>('/v1/client_config'),
   getUserEmail: () => request<UserEmailResponse>('/v1/user/email'),
 
-  getCredentials: () => request<CredentialsListResponse>('/v1/credentials'),
+  getCredentials: (params?: CursorPageParams) =>
+    request<CredentialsListResponse>(withCursorParams('/v1/credentials', params)),
   getCredential: (id: string, metadataOnly = true) =>
     request<CredentialDetail>(`/v1/credentials/${id}?metadata_only=${metadataOnly}`),
   createCredential: (data: unknown) =>
@@ -76,16 +117,17 @@ export const api = {
     }),
   getCredentialServices: (id: string) =>
     request<CredentialServicesResponse>(`/v1/credentials/${id}/services`),
-  getCredentialRevisions: (id: string) =>
-    request<CredentialsListResponse>(`/v1/archive/credentials/${id}`),
-  getCredentialDiff: (id: string, oldRev: number | string, newRev: number | string) =>
-    request<CredentialDetail>(`/v1/credentials/${id}/${oldRev}/${newRev}`),
-  revertCredential: (id: string, revision: number | string) =>
-    request<CredentialDetail>(`/v1/credentials/${id}/${revision}`, {
-      method: 'PUT',
+  getCredentialVersions: (id: string) =>
+    request<CredentialVersionsResponse>(`/v1/credentials/${id}/versions`),
+  getCredentialVersion: (id: string, version: number | string) =>
+    request<CredentialDetail>(`/v1/credentials/${id}/versions/${version}`),
+  restoreCredentialVersion: (id: string, version: number | string) =>
+    request<CredentialDetail>(`/v1/credentials/${id}/versions/${version}/restore`, {
+      method: 'POST',
     }),
 
-  getServices: () => request<ServicesListResponse>('/v1/services'),
+  getServices: (params?: CursorPageParams) =>
+    request<ServicesListResponse>(withCursorParams('/v1/services', params)),
   getService: (id: string) =>
     request<ServiceDetail>(`/v1/services/${id}`),
   createService: (id: string, data: unknown) =>
@@ -98,16 +140,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  getServiceRevisions: (id: string) =>
-    request<ServicesListResponse>(`/v1/archive/services/${id}`),
-  getServiceDiff: (id: string, oldRev: number | string, newRev: number | string) =>
-    request<ServiceDetail>(`/v1/services/${id}/${oldRev}/${newRev}`),
-  revertService: (id: string, revision: number | string) =>
-    request<ServiceDetail>(`/v1/services/${id}/${revision}`, {
-      method: 'PUT',
+  getServiceVersions: (id: string) =>
+    request<ServiceVersionsResponse>(`/v1/services/${id}/versions`),
+  getServiceVersion: (id: string, version: number | string) =>
+    request<ServiceDetail>(`/v1/services/${id}/versions/${version}`),
+  restoreServiceVersion: (id: string, version: number | string) =>
+    request<ServiceDetail>(`/v1/services/${id}/versions/${version}/restore`, {
+      method: 'POST',
     }),
-
-  getRoles: () => request<{ roles: string[] }>('/v1/roles'),
-
   generateValue: () => request<GenerateValueResponse>('/v1/value_generator'),
 };

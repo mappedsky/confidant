@@ -20,7 +20,6 @@ import {
   Link,
   Chip,
   Stack,
-  Autocomplete,
   Paper,
   Table,
   TableBody,
@@ -33,6 +32,8 @@ import type { SelectChangeEvent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HistoryIcon from '@mui/icons-material/History';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
@@ -80,25 +81,29 @@ interface ServiceFormCredential {
   isNew?: boolean;
 }
 
-type ServiceDetailParams = { id?: string };
+type ServiceDetailParams = { id?: string; version?: string };
 
 export default function ServiceDetailPage() {
-  const { id } = useParams<ServiceDetailParams>();
+  const { id, version } = useParams<ServiceDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
+  const versionNumber = version ? Number(version) : null;
+  const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
 
   const permissions = clientConfig?.generated?.permissions;
 
   const [service, setService] = useState<ServiceDetail | null>(null);
   const [allCredentials, setAllCredentials] = useState<CredentialSummary[]>([]);
-  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(isNew);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
+  const [latestRevision, setLatestRevision] = useState<number | null>(null);
+  const [canRestore, setCanRestore] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
@@ -121,24 +126,57 @@ export default function ServiceDetailPage() {
       .then((data) => setAllCredentials(data.credentials ?? []))
       .catch(() => {});
 
-    api.getRoles()
-      .then((data) => setRoles(data.roles ?? []))
-      .catch(() => {});
-
     if (isNew) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    setError(null);
+    setLatestRevision(null);
+    setCanRestore(false);
+
+    if (isVersionView && id && versionNumber !== null) {
+      Promise.all([api.getServiceVersion(id, versionNumber), api.getService(id)])
+        .then(([svc, current]) => {
+          setService(svc);
+          populateForm(svc);
+          setLatestRevision(current.revision);
+          setCanRestore(current.permissions?.update ?? false);
+        })
+        .catch((err: Error) => setError(err.message))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     api.getService(id)
       .then((svc) => {
         setService(svc);
         populateForm(svc);
+        setLatestRevision(svc.revision);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, isNew, populateForm]);
+  }, [id, isNew, isVersionView, populateForm, versionNumber]);
+
+  useEffect(() => {
+    if (allCredentials.length === 0) {
+      return;
+    }
+
+    setFormCredentials((previous) => previous.map((credential) => {
+      const match = allCredentials.find((item) => item.id === credential.id);
+      if (!match) {
+        return credential;
+      }
+      return {
+        ...credential,
+        name: match.name,
+        revision: credential.revision ?? match.revision,
+        enabled: credential.enabled ?? match.enabled,
+      };
+    }));
+  }, [allCredentials]);
 
   const handleAddCredential = () => {
     setFormCredentials((prev) => [...prev, { id: '', name: '', isNew: true }]);
@@ -236,6 +274,23 @@ export default function ServiceDetailPage() {
     setEditing(false);
   };
 
+  const handleRestoreVersion = async () => {
+    if (!id || versionNumber === null) {
+      return;
+    }
+
+    setSaveError(null);
+    setRestoring(true);
+    try {
+      const restored = await api.restoreServiceVersion(id, versionNumber);
+      navigate(`/services/${restored.id}`);
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
@@ -259,23 +314,72 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const canEdit = isNew
+  const canEdit = !isVersionView && (isNew
     ? permissions?.services?.create
-    : service?.permissions?.update;
+    : service?.permissions?.update);
+  const restoreDisabled = versionNumber === latestRevision || !canRestore || restoring;
+  const restoreTooltip = versionNumber === latestRevision
+    ? 'This is already the current version.'
+    : !canRestore
+      ? 'You do not have permission to restore this service.'
+      : '';
 
   return (
     <Box>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/services')}
-        sx={{ mb: 2 }}
-      >
-        Back to Services
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Box>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(isVersionView ? `/services/${id}/history` : '/services')}
+            sx={{ mb: 2 }}
+          >
+            {isVersionView ? 'Back to History' : 'Back to Services'}
+          </Button>
 
-      <Typography variant="h5" fontWeight={600} mb={3}>
-        {isNew ? 'New Service' : service?.id || id}
-      </Typography>
+          <Typography variant="h5" fontWeight={600}>
+            {isNew ? 'New Service' : service?.id || id}
+          </Typography>
+        </Box>
+
+        {!isNew && (
+          <Stack direction="row" spacing={1} alignItems="flex-start" flexWrap="wrap">
+            {isVersionView ? (
+              <>
+                <Button variant="outlined" onClick={() => navigate(`/services/${id}`)}>
+                  View Current
+                </Button>
+                <Tooltip title={restoreTooltip}>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      startIcon={<RestoreIcon />}
+                      onClick={handleRestoreVersion}
+                      disabled={restoreDisabled}
+                    >
+                      {restoring ? 'Restoring…' : 'Restore'}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </>
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<HistoryIcon />}
+                onClick={() => navigate(`/services/${id}/history`)}
+              >
+                History
+              </Button>
+            )}
+          </Stack>
+        )}
+      </Box>
+
+      {isVersionView && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Viewing service version v{versionNumber}
+          {latestRevision === versionNumber ? ' (current)' : ''}
+        </Alert>
+      )}
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -307,20 +411,13 @@ export default function ServiceDetailPage() {
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={3}>
             {isNew ? (
-              <Autocomplete
-                freeSolo
-                options={roles}
+              <TextField
+                label="Service ID"
+                size="small"
+                required
                 value={formId}
-                onInputChange={(_, value) => setFormId(value)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Service ID"
-                    size="small"
-                    required
-                    placeholder="Enter or select IAM role"
-                  />
-                )}
+                onChange={(event) => setFormId(event.target.value)}
+                placeholder="Enter a service ID"
               />
             ) : (
               <ReadOnlyField label="Service ID" value={service?.id} valueSx={{ fontFamily: 'monospace' }} />

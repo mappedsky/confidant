@@ -34,7 +34,7 @@ __archive-credential__
 
 __service__
 
-* id: user-defined name (should match IAM role) (string)
+* id: user-defined service identifier (string)
 * data-type: 'service' (string)
 * revision: incrementing integer (integer)
 * credentials: list of credential ids (string set)
@@ -43,7 +43,7 @@ __service__
 
 __archive-service__
 
-* id: user-defined name (should match IAM role) (string)
+* id: user-defined service identifier (string)
 * data-type: 'service' (string)
 * revision: incrementing integer (current revision + 1) (integer)
 * credentials: list of credential ids (string set)

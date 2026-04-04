@@ -224,10 +224,9 @@ rotating their authentication tokens.
 ### IAM policy configuration for service-to-service auth
 
 Service-to-service authentication is managed through IAM policy. An assumption
-of this example is that a confidant service (serviceA-production) maps
-directly to an IAM role (serviceA-production) and your confidant service is
-confidant-production. Let's add a policy to the service, to allow
-authentication:
+of this example is that a confidant service identifier is
+serviceA-production and your confidant service is confidant-production. Let's
+add a policy to the service, to allow authentication:
 
 ```json
 {

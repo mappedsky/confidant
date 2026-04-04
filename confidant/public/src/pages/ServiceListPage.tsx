@@ -1,124 +1,146 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
   Button,
   Alert,
   Chip,
+  Link,
 } from '@mui/material';
 import {
   DataGrid,
   GridToolbar,
   GridColDef,
-  GridRowParams,
+  GridRenderCellParams,
 } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { useNavigate } from 'react-router-dom';
+import HistoryIcon from '@mui/icons-material/History';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
 import { ServiceSummary } from '../types/api';
-
-const columns: GridColDef<ServiceSummary>[] = [
-  { field: 'id', headerName: 'Service ID', flex: 1, minWidth: 220 },
-  {
-    field: 'enabled',
-    headerName: 'Status',
-    type: 'boolean',
-    width: 120,
-    headerAlign: 'left',
-    align: 'left',
-    renderCell: (params) => (
-      <Chip
-        label={params.value ? 'Enabled' : 'Disabled'}
-        size="small"
-        color={params.value ? 'success' : 'default'}
-        variant="outlined"
-      />
-    ),
-  },
-  { field: 'revision', headerName: 'Revision', type: 'number', width: 105, headerAlign: 'left', align: 'left' },
-  {
-    field: 'modified_date',
-    headerName: 'Modified',
-    width: 180,
-    valueFormatter: (value) => (value ? new Date(value as string).toLocaleString() : '—'),
-  },
-  { field: 'modified_by', headerName: 'Modified By', flex: 1, minWidth: 160 },
-  {
-    field: '__action',
-    headerName: '',
-    width: 50,
-    sortable: false,
-    filterable: false,
-    renderCell: () => <ChevronRightIcon fontSize="small" sx={{ color: 'text.secondary' }} />,
-  },
-];
-
-const dataGridSx = {
-  border: 'none',
-  '& .MuiDataGrid-row': { cursor: 'pointer' },
-  // Header
-  '& .MuiDataGrid-columnHeader': {
-    bgcolor: 'primary.main',
-    color: 'primary.contrastText',
-  },
-  '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
-    outline: 'none',
-  },
-  '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
-  '& .MuiDataGrid-sortIcon': { color: 'primary.contrastText', opacity: '1 !important' },
-  '& .MuiDataGrid-menuIconButton': { color: 'primary.contrastText' },
-  '& .MuiDataGrid-columnSeparator': { color: 'rgba(255,255,255,0.35)' },
-  // Fill the empty header area to the right of the last column
-  '& .MuiDataGrid-filler': { bgcolor: 'primary.main' },
-  // Icon-only toolbar buttons: fontSize 0 hides text nodes (which inherit font size),
-  // while MUI icons keep their size via absolute rem-based classes.
-  '& .MuiDataGrid-toolbarContainer': {
-    px: 1,
-    py: 0.5,
-    gap: 0.5,
-    borderBottom: '1px solid',
-    borderColor: 'divider',
-  },
-  '& .MuiDataGrid-toolbarContainer .MuiButton-root': {
-    minWidth: 'unset',
-    px: 1,
-    fontSize: 0,
-    color: 'text.primary',
-  },
-  '& .MuiDataGrid-toolbarContainer .MuiButton-root .MuiButton-startIcon': {
-    mr: 0,
-    ml: 0,
-  },
-  // Chip cells — vertically centre
-  '& .MuiDataGrid-cell': {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-    outline: 'none',
-  },
-};
+import ActionsMenu from '../components/ActionsMenu';
+import { baseDataGridSx } from '../components/dataGridStyles';
+import { useAllCursorPages } from '../hooks/useAllCursorPages';
 
 export default function ServiceListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
-  const [services, setServices] = useState<ServiceSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const permissions = clientConfig?.generated?.permissions;
+  const {
+    rows: services,
+    loading,
+    error,
+  } = useAllCursorPages<ServiceSummary, { services: ServiceSummary[]; next_page?: string | null }>({
+    fetchPage: (page) => api.getServices({ page }),
+    getRows: (response) => response.services || [],
+  });
 
-  useEffect(() => {
-    api.getServices()
-      .then((data) => setServices(data.services || []))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+  const columns: GridColDef<ServiceSummary>[] = [
+    {
+      field: 'id',
+      headerName: 'Service ID',
+      flex: 1,
+      minWidth: 240,
+      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+        <Link
+          component={RouterLink}
+          to={`/services/${params.row.id}`}
+          underline="hover"
+          sx={{ fontFamily: 'monospace' }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {params.value}
+        </Link>
+      ),
+    },
+    {
+      field: 'enabled',
+      headerName: 'Status',
+      type: 'boolean',
+      width: 120,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Enabled' : 'Disabled'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'revision',
+      headerName: 'Revision',
+      type: 'number',
+      width: 105,
+      headerAlign: 'left',
+      align: 'left',
+    },
+    {
+      field: 'credentials',
+      headerName: 'Credentials',
+      width: 120,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<ServiceSummary, string[]>) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.value?.length ?? 0}
+        </Typography>
+      ),
+    },
+    {
+      field: 'modified_date',
+      headerName: 'Modified',
+      width: 190,
+      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.value ? new Date(params.value).toLocaleString() : '—'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'modified_by',
+      headerName: 'Modified By',
+      flex: 1,
+      minWidth: 160,
+      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.value || '—'}
+        </Typography>
+      ),
+    },
+    {
+      field: '__actions',
+      headerName: '',
+      width: 60,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      align: 'right',
+      renderCell: (params: GridRenderCellParams<ServiceSummary>) => (
+        <ActionsMenu
+          items={[
+            {
+              label: 'View',
+              icon: <VisibilityIcon fontSize="small" />,
+              onClick: () => navigate(`/services/${params.row.id}`),
+            },
+            {
+              label: 'History',
+              icon: <HistoryIcon fontSize="small" />,
+              onClick: () => navigate(`/services/${params.row.id}/history`),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 
   return (
-    <Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
           Services
@@ -137,26 +159,33 @@ export default function ServiceListPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <DataGrid
-        rows={services}
-        columns={columns}
-        loading={loading}
-        autoHeight
-        density="compact"
-        onRowClick={(params: GridRowParams<ServiceSummary>) =>
-          navigate(`/services/${params.row.id}`)
-        }
-        slots={{ toolbar: GridToolbar }}
-        slotProps={{ toolbar: { showQuickFilter: true } }}
-        initialState={{
-          filter: {
-            filterModel: {
-              items: [{ field: 'enabled', operator: 'is', value: 'true' }],
+      <Box sx={{ flex: 1, minHeight: 420 }}>
+        <DataGrid
+          rows={services}
+          columns={columns}
+          loading={loading}
+          density="compact"
+          pagination
+          pageSizeOptions={[25, 50, 100]}
+          disableRowSelectionOnClick
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{ toolbar: { showQuickFilter: true } }}
+          initialState={{
+            pagination: {
+              paginationModel: {
+                page: 0,
+                pageSize: 25,
+              },
             },
-          },
-        }}
-        sx={dataGridSx}
-      />
+            filter: {
+              filterModel: {
+                items: [{ field: 'enabled', operator: 'is', value: 'true' }],
+              },
+            },
+          }}
+          sx={baseDataGridSx}
+        />
+      </Box>
     </Box>
   );
 }
