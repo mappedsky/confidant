@@ -4,7 +4,7 @@ import { resolve } from 'path';
 import type { Proxy } from 'http-proxy';
 
 // Rewrite any bare http://localhost/ redirects from the backend to port 3000
-// so the SAML auth flow lands back on the Vite dev server.
+// so OIDC/logout redirects land back on the Vite dev server.
 function rewriteLocalhostRedirects(proxy: Proxy) {
   proxy.on('proxyRes', (proxyRes) => {
     const location = proxyRes.headers['location'];
