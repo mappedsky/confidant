@@ -12,6 +12,11 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Tooltip,
   Select,
@@ -28,6 +33,10 @@ import LockIcon from '@mui/icons-material/Lock';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import HistoryIcon from '@mui/icons-material/History';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import KeyValueTable, { KeyValueRow } from '../components/KeyValueTable';
 import { api } from '../api';
@@ -64,13 +73,15 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-type CredentialDetailParams = { id?: string };
+type CredentialDetailParams = { id?: string; version?: string };
 
 export default function CredentialDetailPage() {
-  const { id } = useParams<CredentialDetailParams>();
+  const { id, version } = useParams<CredentialDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
+  const versionNumber = version ? Number(version) : null;
+  const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
 
   const permissions = clientConfig?.generated?.permissions;
   const definedTags = clientConfig?.generated?.defined_tags ?? [];
@@ -87,6 +98,11 @@ export default function CredentialDetailPage() {
   const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
   const [showValues, setShowValues] = useState(false);
   const [decrypted, setDecrypted] = useState(false);
+  const [latestRevision, setLatestRevision] = useState<number | null>(null);
+  const [canRestore, setCanRestore] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
 
   const [formName, setFormName] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
@@ -121,20 +137,56 @@ export default function CredentialDetailPage() {
       setLoading(false);
       return;
     }
+
+    setShowValues(false);
+    setDecrypted(isVersionView);
+    setLatestRevision(null);
+    setCanRestore(false);
+    setVersionRevisions([]);
     setLoading(true);
+    setError(null);
+
+    if (isVersionView && id && versionNumber !== null) {
+      Promise.all([
+        api.getCredentialVersion(id, versionNumber),
+        api.getCredential(id, true),
+        api.getCredentialVersions(id),
+      ])
+        .then(([cred, current, history]) => {
+          setCredential(cred);
+          populateForm(cred);
+          setCredentialServices([]);
+          setLatestRevision(current.revision);
+          setCanRestore(current.permissions?.update ?? false);
+          setVersionRevisions(
+            [...(history.versions ?? [])]
+              .map((item) => item.revision)
+              .sort((a, b) => a - b),
+          );
+        })
+        .catch((err: Error) => setError(err.message))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     Promise.all([api.getCredential(id, true), api.getCredentialServices(id)])
       .then(([cred, svcData]) => {
         setCredential(cred);
         populateForm(cred);
         setCredentialServices(svcData.services ?? []);
+        setLatestRevision(cred.revision);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, isNew, populateForm]);
+  }, [id, isNew, isVersionView, populateForm, versionNumber]);
 
   const handleToggleShow = async () => {
     if (showValues) {
       setShowValues(false);
+      return;
+    }
+    if (isVersionView) {
+      setShowValues(true);
       return;
     }
     if (!decrypted && id) {
@@ -152,6 +204,9 @@ export default function CredentialDetailPage() {
   };
 
   const handleEdit = async () => {
+    if (isVersionView) {
+      return;
+    }
     if (!decrypted && id) {
       try {
         const full = await api.getCredential(id, false);
@@ -166,6 +221,23 @@ export default function CredentialDetailPage() {
     setSaveError(null);
     setConflicts(null);
     setEditing(true);
+  };
+
+  const handleRestoreVersion = async () => {
+    if (!id || versionNumber === null) {
+      return;
+    }
+
+    setSaveError(null);
+    setRestoring(true);
+    try {
+      const restored = await api.restoreCredentialVersion(id, versionNumber);
+      navigate(`/credentials/${restored.id}`);
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const handleCancel = () => {
@@ -274,27 +346,140 @@ export default function CredentialDetailPage() {
     );
   }
 
-  const canEdit = isNew ? permissions?.credentials?.create : credential?.permissions?.update;
+  const canEdit = !isVersionView && (isNew ? permissions?.credentials?.create : credential?.permissions?.update);
   const daysTillRotation =
     credential?.next_rotation_date
       ? Math.round(
           (new Date(credential.next_rotation_date).getTime() - Date.now()) / 86400000,
         )
       : null;
+  const currentVersionIdx = versionNumber !== null
+    ? versionRevisions.indexOf(versionNumber)
+    : -1;
+  const prevVersion = currentVersionIdx > 0 ? versionRevisions[currentVersionIdx - 1] : null;
+  const nextVersion = currentVersionIdx !== -1 && currentVersionIdx < versionRevisions.length - 1
+    ? versionRevisions[currentVersionIdx + 1]
+    : null;
+  const restoreDisabled = versionNumber === latestRevision || !canRestore || restoring;
+  const restoreTooltip = versionNumber === latestRevision
+    ? 'This is already the current version.'
+    : !canRestore
+      ? 'You do not have permission to restore this credential.'
+      : '';
 
   return (
     <Box>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/credentials')}
-        sx={{ mb: 2 }}
-      >
-        Back to Credentials
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Box>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(isVersionView ? `/credentials/${id}/history` : '/credentials')}
+            sx={{ mb: 2 }}
+          >
+            {isVersionView ? 'Back to History' : 'Back to Credentials'}
+          </Button>
 
-      <Typography variant="h5" fontWeight={600} mb={3}>
-        {isNew ? 'New Credential' : credential?.name || id}
-      </Typography>
+          <Typography variant="h5" fontWeight={600}>
+            {isNew ? 'New Credential' : credential?.name || id}
+          </Typography>
+        </Box>
+
+        {!isNew && (
+          <Stack direction="row" spacing={1} alignItems="flex-start" flexWrap="wrap">
+            {isVersionView ? (
+              <>
+                <Tooltip title={prevVersion === null ? 'No older version' : ''}>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      startIcon={<NavigateBeforeIcon />}
+                      disabled={prevVersion === null}
+                      onClick={() => navigate(`/credentials/${id}/versions/${prevVersion}`)}
+                    >
+                      {prevVersion !== null ? `v${prevVersion}` : 'Older'}
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title={nextVersion === null ? 'No newer version' : ''}>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      endIcon={<NavigateNextIcon />}
+                      disabled={nextVersion === null}
+                      onClick={() => navigate(`/credentials/${id}/versions/${nextVersion}`)}
+                    >
+                      {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title={restoreTooltip}>
+                  <span>
+                    <Button
+                      variant="contained"
+                      startIcon={<RestoreIcon />}
+                      sx={{
+                        bgcolor: '#6bdfab',
+                        color: '#424554',
+                        '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                      }}
+                      onClick={() => setRestoreDialogOpen(true)}
+                      disabled={restoreDisabled}
+                    >
+                      {restoring ? 'Restoring…' : 'Restore'}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </>
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<HistoryIcon />}
+                onClick={() => navigate(`/credentials/${id}/history`)}
+              >
+                History
+              </Button>
+            )}
+          </Stack>
+        )}
+      </Box>
+
+      {isVersionView && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Viewing credential version v{versionNumber}
+          {latestRevision === versionNumber ? ' (current)' : ''}
+        </Alert>
+      )}
+
+      <Dialog open={restoreDialogOpen} onClose={() => !restoring && setRestoreDialogOpen(false)}>
+        <DialogTitle>Restore this version?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will restore credential version v{versionNumber} as the current version.
+            The current value will be replaced, and a new version will be created.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRestoreDialogOpen(false)} disabled={restoring}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: '#6bdfab',
+              color: '#424554',
+              '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+            }}
+            startIcon={restoring ? <CircularProgress size={16} color="inherit" /> : <RestoreIcon />}
+            onClick={async () => {
+              await handleRestoreVersion();
+              setRestoreDialogOpen(false);
+            }}
+            disabled={restoreDisabled || restoring}
+          >
+            {restoring ? 'Restoring…' : 'Restore'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -534,7 +719,7 @@ export default function CredentialDetailPage() {
                   />
                 </Stack>
 
-                {credentialServices.length > 0 && (
+                {!isVersionView && credentialServices.length > 0 && (
                   <Box>
                     <SectionLabel>Services Using This Credential</SectionLabel>
                     <Stack spacing={0.5}>
@@ -564,7 +749,7 @@ export default function CredentialDetailPage() {
         </CardContent>
 
         <CardActions sx={{ px: 3, pb: 3, pt: 0, gap: 1 }}>
-          {!editing ? (
+          {!isVersionView && (!editing ? (
             canEdit ? (
               <Button
                 variant="contained"
@@ -602,7 +787,7 @@ export default function CredentialDetailPage() {
                 Cancel
               </Button>
             </>
-          )}
+          ))}
         </CardActions>
       </Card>
     </Box>

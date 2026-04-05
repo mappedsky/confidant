@@ -11,8 +11,10 @@ import { AuthConfigResponse, OidcConfig } from './types/api';
 import { createUserManager } from './userManager';
 import CredentialListPage from './pages/CredentialListPage';
 import CredentialDetailPage from './pages/CredentialDetailPage';
+import CredentialHistoryPage from './pages/CredentialHistoryPage';
 import ServiceListPage from './pages/ServiceListPage';
 import ServiceDetailPage from './pages/ServiceDetailPage';
+import ServiceHistoryPage from './pages/ServiceHistoryPage';
 
 type ColorScheme = 'light' | 'dark';
 
@@ -82,9 +84,13 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/credentials" replace />} />
                         <Route path="/credentials" element={<CredentialListPage />} />
                         <Route path="/credentials/new" element={<CredentialDetailPage />} />
+                        <Route path="/credentials/:id/history" element={<CredentialHistoryPage />} />
+                        <Route path="/credentials/:id/versions/:version" element={<CredentialDetailPage />} />
                         <Route path="/credentials/:id" element={<CredentialDetailPage />} />
                         <Route path="/services" element={<ServiceListPage />} />
                         <Route path="/services/new" element={<ServiceDetailPage />} />
+                        <Route path="/services/:id/history" element={<ServiceHistoryPage />} />
+                        <Route path="/services/:id/versions/:version" element={<ServiceDetailPage />} />
                         <Route path="/services/:id" element={<ServiceDetailPage />} />
                         <Route path="*" element={<Navigate to="/credentials" replace />} />
                       </Routes>

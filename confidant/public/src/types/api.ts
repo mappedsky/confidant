@@ -1,3 +1,5 @@
+import type { OidcMetadata } from 'oidc-client-ts';
+
 export interface EntityPermissions {
   metadata?: boolean;
   read?: boolean;
@@ -24,6 +26,7 @@ export interface OidcConfig {
   client_id: string;
   redirect_uri: string;
   scope: string;
+  metadata?: Partial<OidcMetadata>;
 }
 
 export interface ClientConfigGenerated {
@@ -81,6 +84,12 @@ export interface CredentialDetail extends CredentialBase {
 
 export interface CredentialsListResponse {
   credentials: CredentialSummary[];
+  next_page?: string | null;
+}
+
+export interface CredentialVersionsResponse {
+  versions: CredentialSummary[];
+  next_page?: string | null;
 }
 
 export interface CredentialServicesResponse {
@@ -106,6 +115,12 @@ export interface ServiceDetail extends ServiceBase {
 
 export interface ServicesListResponse {
   services: ServiceSummary[];
+  next_page?: string | null;
+}
+
+export interface ServiceVersionsResponse {
+  versions: ServiceSummary[];
+  next_page?: string | null;
 }
 
 export interface GenerateValueResponse {

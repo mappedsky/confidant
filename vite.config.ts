@@ -36,6 +36,7 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     proxy: {
+      '/application/o': { target: 'http://authentik-server:9000' },
       '/v1': { target: backendTarget, configure: rewriteLocalhostRedirects },
       '/healthcheck': { target: backendTarget, configure: rewriteLocalhostRedirects },
       '/loggedout': { target: backendTarget, configure: rewriteLocalhostRedirects },

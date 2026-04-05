@@ -356,27 +356,6 @@ AWS_DEFAULT_REGION = str_env("AWS_DEFAULT_REGION", "us-east-1")
 #
 # GEVENT_RESOLVER='ares'
 
-# IAM role cache configuration
-
-# Whether or not we keep a hot in-process cache of IAM roles, refreshed by a
-# gevent thread.
-BACKGROUND_CACHE_IAM_ROLES = bool_env("BACKGROUND_CACHE_IAM_ROLES", True)
-# Number of seconds between calls to refresh the IAM role cache. Calls will be
-# randomized +/- by BACKGROUND_CACHE_IAM_ROLE_JITTER seconds,
-# to randomize calls across processes. Minimum value for
-# this setting is 60.
-BACKGROUND_CACHE_IAM_ROLE_REFRESH_RATE = int_env(
-    "BACKGROUND_CACHE_IAM_ROLE_REFRESH_RATE", 600
-)
-
-# Seconds to add as jitter to ensure all processes do not refresh at
-# the same time which can cause AWS ratelimits to be hit.
-# Default to 20 seconds
-BACKGROUND_CACHE_IAM_ROLE_JITTER = int_env(
-    "BACKGROUND_CACHE_IAM_ROLE_JITTER",
-    20,
-)
-
 MAXIMUM_ROTATION_DAYS = int_env("MAXIMUM_ROTATION_DAYS")
 # Credentials can be "tagged" (eg: FINANCIALLY_SENSITIVE or ADMIN_PRIV)
 # Certain tags might never need to be rotated

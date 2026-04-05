@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What Confidant Is
 
-A secret management system that stores credentials (key/value pairs) in DynamoDB, encrypted at rest via AWS KMS. Services (identified by IAM role ARN) are mapped to credentials; when a service authenticates, it receives only its mapped credentials. The web UI (React) and REST API (`/v1/*`) let operators manage credentials and service mappings.
+A secret management system that stores credentials (key/value pairs) in DynamoDB, encrypted at rest via AWS KMS. Services are mapped to credentials by a user-defined service ID; when a service authenticates, it receives only its mapped credentials. The web UI (React) and REST API (`/v1/*`) let operators manage credentials and service mappings.
 
 ## Commands
 

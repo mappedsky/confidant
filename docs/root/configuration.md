@@ -84,11 +84,15 @@ that token against a JWKS endpoint. The browser UI uses OIDC Authorization Code
 with PKCE to acquire the token. Any standard OIDC provider can be used; the local
 development stack ships with Authentik.
 
+The backend owns the OIDC settings and exposes them to the SPA through
+`GET /v1/auth_config` and `GET /v1/client_config`. The frontend should not
+hardcode provider-specific endpoints.
+
 ```bash
 # JWKS endpoint used by the backend to validate JWTs
 export JWKS_URL='https://idp.example.com/application/o/confidant/jwks/'
 
-# Browser OIDC settings exposed to the frontend
+# OIDC settings used by the backend and exposed to the frontend via the API
 export OIDC_AUTHORITY='https://idp.example.com/application/o/confidant'
 export OIDC_CLIENT_ID='confidant'
 export OIDC_REDIRECT_URI='https://confidant.example.com/auth/callback'
@@ -406,7 +410,7 @@ above configuration. Note the following:
 1. The "Allow use of the key" policy ensures that confidant can use the key.
 1. The "Allow attachment of persistent resources" policy ensures that confidant
    can add and revoke grants for the auth key, which is necessary to give
-   access to context specific encrypt and decrypt calls for service IAM roles.
+   access to context specific encrypt and decrypt calls for service principals.
 
 
 ```json
@@ -441,31 +445,6 @@ above configuration. Note the following:
 "kms:DescribeKey", "kms:Encrypt" ],
     "Resource" : "*"
   } ]
-}
-```
-
-## Confidant IAM role configuration
-
-Confidant needs some IAM policies to properly function. Here's some example
-policies, based on the above configuration:
-
-A policy to find instance profiles, so that Confidant can know which IAM roles
-exist. This is to make it easier for users to find which services they can
-create.
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "iam:ListRoles",
-                "iam:GetRole"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        }
-    ]
 }
 ```
 
