@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What Confidant Is
 
-A secret management system that stores credentials (key/value pairs) in DynamoDB, encrypted at rest via AWS KMS. Services are mapped to credentials by a user-defined service ID; when a service authenticates, it receives only its mapped credentials. The web UI (React) and REST API (`/v1/*`) let operators manage credentials and service mappings.
+A secret management system that stores secrets (key/value pairs) in DynamoDB, encrypted at rest via AWS KMS. Groups are mapped to secrets by a user-defined group ID; when a service authenticates, it receives only its mapped secrets. The web UI (React) and REST API (`/v1/*`) let operators manage secrets and group mappings.
 
 ## Commands
 
@@ -13,8 +13,8 @@ A secret management system that stores credentials (key/value pairs) in DynamoDB
 docker compose exec confidant pipenv install               # install dependencies
 docker compose exec confidant make test_unit               # run unit tests
 docker compose exec confidant make test_integration        # run integration tests (requires DynamoDB + KMS locally)
-docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/credentials_test.py -v   # single test file
-docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/credentials_test.py::test_name -v  # single test
+docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/secrets_test.py -v   # single test file
+docker compose exec confidant pipenv run pytest tests/unit/confidant/routes/secrets_test.py::test_name -v  # single test
 docker compose exec confidant pipenv run confidant-admin   # management CLI
 ```
 
@@ -31,7 +31,7 @@ docker compose up    # starts: app (port 80), frontend (port 3000), dynamodb-loc
 docker compose down
 ```
 
-Use `localhost:3000` (the Vite dev server) during development, not port 80. The OIDC callback is configured to round-trip through port 3000. Authentik runs at `http://localhost:9000` with dev credentials `akadmin/devpassword`, `developer/devpassword`, and `confidant-development/devpassword` for service-principal testing.
+Use `localhost:3000` (the Vite dev server) during development, not port 80. The OIDC callback is configured to round-trip through port 3000. Authentik runs at `http://localhost:9000` with dev secrets `akadmin/devpassword`, `developer/devpassword`, and `confidant-development/devpassword` for service-principal testing.
 Prefer running Bun and Pipenv commands through `docker compose`; avoid host-installed toolchains so the local environment matches the containers used for builds and tests.
 
 ## Architecture
@@ -39,9 +39,9 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 ### Backend
 - **Flask app** (`confidant/app.py`) with blueprints registered from `confidant/routes/`
 - **Auth** (`confidant/authnz/`): JWT-only. The backend validates Bearer tokens against `JWKS_URL`, derives `user` vs `service` from a JWT claim (`JWT_PRINCIPAL_TYPE_CLAIM`), and populates `flask.g` with a normalized request principal. Browser login is handled by the React app via OIDC PKCE against Authentik.
-- **Models** (`confidant/models/`): PynamoDB (DynamoDB ORM). `Credential` stores `credential_pairs` as KMS-encrypted blobs. `Service` stores a list of credential IDs.
-- **Services layer** (`confidant/services/`): business logic; `credentialmanager` and `servicemanager` handle ACL checks and call `keymanager`/`ciphermanager` for encryption.
-- **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `CredentialResponse` has both `credential_keys` (always populated — the key names) and `credential_pairs` (only populated when `metadata_only=False` — the decrypted values). Service responses expose credential IDs only; credential payloads are returned from the credential endpoints after ACL and mapped-service authorization checks.
+- **Models** (`confidant/models/`): PynamoDB (DynamoDB ORM). `Secret` stores `secret_pairs` as KMS-encrypted blobs. `Group` stores a list of secret IDs.
+- **Groups layer** (`confidant/groups/`): business logic; `secretmanager` and `groupmanager` handle ACL checks and call `keymanager`/`ciphermanager` for encryption.
+- **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `SecretResponse` has both `secret_keys` (always populated — the key names) and `secret_pairs` (only populated when `metadata_only=False` — the decrypted values). Group responses expose secret IDs only; secret payloads are returned from the secret endpoints after ACL and mapped-service authorization checks.
 - **Settings** (`confidant/settings.py`): all configuration via environment variables.
 
 ### Frontend
@@ -50,20 +50,20 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 - **Theme**: `src/theme.ts` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
 - **API client**: `src/api.ts` — wraps `fetch`; attaches a Bearer token supplied by the OIDC auth provider and redirects back into the OIDC flow on 401s.
 - **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags, xsrf_cookie_name) and `userEmail` once on mount.
-- **Credential detail flow**: on initial load, `getCredential(id, metadata_only=true)` returns `credential_keys` (names only) but not values. `populateForm` uses `credential_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers a second fetch with `metadata_only=false` to decrypt. Services no longer hydrate credentials in service detail responses.
+- **Secret detail flow**: on initial load, `getSecret(id, metadata_only=true)` returns `secret_keys` (names only) but not values. `populateForm` uses `secret_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers a second fetch with `metadata_only=false` to decrypt. Groups no longer hydrate secrets in group detail responses.
 - **View vs edit rendering**: detail pages use a local `ReadOnlyField` component (label + Typography) for view mode, and `TextField`/`Select` for edit mode. Never use `InputProps={{ readOnly }}` on TextField for display — it looks editable.
 - **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` so OIDC/logout redirects return to the Vite dev server cleanly.
 
-### Key data flow: credential decryption
+### Key data flow: secret decryption
 ```
-GET /v1/credentials/{id}?metadata_only=false
+GET /v1/secrets/{id}?metadata_only=false
   → route checks ACL (action='get')
-  → CredentialResponse.from_credential(..., include_credential_pairs=True)
-  → credential.decrypted_credential_pairs  (KMS decrypt)
-  → JSON response with credential_pairs populated
+  → SecretResponse.from_secret(..., include_secret_pairs=True)
+  → secret.decrypted_secret_pairs  (KMS decrypt)
+  → JSON response with secret_pairs populated
 ```
 
 ## Testing notes
 - `pytest.ini` sets env vars (fake KMS key, DynamoDB table names, session secret, `DYNAMODB_CREATE_TABLE=False`) so unit tests don't need running infrastructure.
-- Integration tests require the services in `docker-compose.integration.yml`.
+- Integration tests require the groups in `docker-compose.integration.yml`.
 - Backend line length limit is 80 chars (`setup.cfg`).

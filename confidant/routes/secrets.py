@@ -6,34 +6,32 @@ from flask import request
 
 from confidant import authnz
 from confidant import settings
-from confidant.schema.credentials import (
-    credential_response_schema,
-    credentials_response_schema,
-    revisions_response_schema,
-)
-from confidant.services import credentialmanager
-from confidant.services import servicemanager
+from confidant.schema.secrets import revisions_response_schema
+from confidant.schema.secrets import secret_response_schema
+from confidant.schema.secrets import secrets_response_schema
+from confidant.services import groupmanager
+from confidant.services import secretmanager
 from confidant.utils import maintenance
 from confidant.utils import misc
 from confidant.utils import stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
 logger = logging.getLogger(__name__)
-blueprint = blueprints.Blueprint("credentials", __name__)
+blueprint = blueprints.Blueprint("secrets", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
 
 
-def _service_has_credential_access(tenant_id, credential_id):
+def _service_has_secret_access(tenant_id, secret_id):
     if not settings.USE_AUTH or not authnz.user_is_user_type("service"):
         return False
-    service = servicemanager.get_service_latest(
+    group = groupmanager.get_group_latest(
         tenant_id,
         authnz.get_logged_in_user(),
     )
-    if not service:
+    if not group:
         return False
-    return credential_id in (service.credentials or [])
+    return secret_id in (group.secrets or [])
 
 
 def _read_action_for_request():
@@ -46,31 +44,31 @@ def _should_alert_on_read():
     return _read_action_for_request() == "read_with_alert"
 
 
-def _can_view_credential_metadata(tenant_id, credential_id):
-    if _can_read_credential(tenant_id, credential_id, "metadata"):
+def _can_view_secret_metadata(tenant_id, secret_id):
+    if _can_read_secret(tenant_id, secret_id, "metadata"):
         return True
-    if _can_read_credential(tenant_id, credential_id, "read"):
+    if _can_read_secret(tenant_id, secret_id, "read"):
         return True
-    return _can_read_credential(tenant_id, credential_id, "read_with_alert")
+    return _can_read_secret(tenant_id, secret_id, "read_with_alert")
 
 
-def _can_read_credential(tenant_id, credential_id, action):
+def _can_read_secret(tenant_id, secret_id, action):
     if acl_module_check(
-        resource_type="credential",
+        resource_type="secret",
         action=action,
-        resource_id=credential_id,
+        resource_id=secret_id,
     ):
         return True
-    return _service_has_credential_access(tenant_id, credential_id)
+    return _service_has_secret_access(tenant_id, secret_id)
 
 
-@blueprint.route("/v1/credentials", methods=["GET"])
+@blueprint.route("/v1/secrets", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_credential_list():
-    with stats.timer("list_credentials"):
-        if not acl_module_check(resource_type="credential", action="list"):
-            msg = "{} does not have access to list credentials".format(
+def get_secret_list():
+    with stats.timer("list_secrets"):
+        if not acl_module_check(resource_type="secret", action="list"):
+            msg = "{} does not have access to list secrets".format(
                 authnz.get_logged_in_user()
             )
             return jsonify({"error": msg}), 403
@@ -83,34 +81,34 @@ def get_credential_list():
             except Exception:
                 logger.exception("Failed to parse provided page")
                 return jsonify({"error": "Failed to parse page"}), 400
-        response = credentialmanager.list_credentials(
+        response = secretmanager.list_secrets(
             tenant_id,
             limit=limit,
             page=page,
         )
-        return credentials_response_schema.dumps(response)
+        return secrets_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>", methods=["GET"])
+@blueprint.route("/v1/secrets/<id>", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_credential(id):
-    with stats.timer("get_credential_by_id"):
+def get_secret(id):
+    with stats.timer("get_secret_by_id"):
         tenant_id = authnz.get_tenant_id()
         metadata_only = misc.get_boolean(request.args.get("metadata_only"))
         action = "metadata" if metadata_only else _read_action_for_request()
         can_access = (
-            _can_view_credential_metadata(tenant_id, id)
+            _can_view_secret_metadata(tenant_id, id)
             if metadata_only
-            else _can_read_credential(tenant_id, id, action)
+            else _can_read_secret(tenant_id, id, action)
         )
         if not can_access:
-            msg = "{} does not have access to credential {}".format(
+            msg = "{} does not have access to secret {}".format(
                 authnz.get_logged_in_user(),
                 id,
             )
             return jsonify({"error": msg, "reference": id}), 403
-        response = credentialmanager.get_credential_latest(
+        response = secretmanager.get_secret_latest(
             tenant_id,
             id,
             metadata_only=metadata_only,
@@ -119,50 +117,50 @@ def get_credential(id):
         if not response:
             return jsonify({}), 404
         if metadata_only:
-            response.credential_pairs = {}
+            response.secret_pairs = {}
         response.permissions = {
             "metadata": True,
             "read": not metadata_only and not _should_alert_on_read(),
             "read_with_alert": not metadata_only and _should_alert_on_read(),
             "update": acl_module_check(
-                resource_type="credential",
+                resource_type="secret",
                 action="update",
                 resource_id=id,
             ),
         }
-        return credential_response_schema.dumps(response)
+        return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>/versions", methods=["GET"])
+@blueprint.route("/v1/secrets/<id>/versions", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def list_credential_versions(id):
+def list_secret_versions(id):
     tenant_id = authnz.get_tenant_id()
-    if not _can_view_credential_metadata(tenant_id, id):
-        msg = "{} does not have access to credential {} versions".format(
+    if not _can_view_secret_metadata(tenant_id, id):
+        msg = "{} does not have access to secret {} versions".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg}), 403
-    response = credentialmanager.list_credential_versions(tenant_id, id)
+    response = secretmanager.list_secret_versions(tenant_id, id)
     if not response.versions:
         return jsonify({}), 404
     return revisions_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>/versions/<int:version>", methods=["GET"])
+@blueprint.route("/v1/secrets/<id>/versions/<int:version>", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_credential_version(id, version):
+def get_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
     read_action = _read_action_for_request()
-    if not _can_read_credential(tenant_id, id, read_action):
-        msg = "{} does not have access to credential {}".format(
+    if not _can_read_secret(tenant_id, id, read_action):
+        msg = "{} does not have access to secret {}".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg}), 403
-    response = credentialmanager.get_credential_version(
+    response = secretmanager.get_secret_version(
         tenant_id,
         id,
         version,
@@ -175,38 +173,42 @@ def get_credential_version(id, version):
         "read": not _should_alert_on_read(),
         "read_with_alert": _should_alert_on_read(),
         "update": acl_module_check(
-            resource_type="credential",
+            resource_type="secret",
             action="update",
             resource_id=id,
         ),
     }
-    return credential_response_schema.dumps(response)
+    return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials", methods=["POST"])
+@blueprint.route("/v1/secrets", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
-def create_credential():
-    with stats.timer("create_credential"):
-        if not acl_module_check(resource_type="credential", action="create"):
-            msg = f"{authnz.get_logged_in_user()} does not have access to create credentials"
+def create_secret():
+    with stats.timer("create_secret"):
+        if not acl_module_check(resource_type="secret", action="create"):
+            msg = (
+                f"{authnz.get_logged_in_user()} does not have access "
+                "to create secrets"
+            )
             return jsonify({"error": msg}), 403
         data = request.get_json() or {}
         tenant_id = authnz.get_tenant_id()
-        if not data.get("documentation") and settings.get("ENFORCE_DOCUMENTATION"):
+        enforce_documentation = settings.get("ENFORCE_DOCUMENTATION")
+        if not data.get("documentation") and enforce_documentation:
             return jsonify({"error": "documentation is a required field"}), 400
         if not data.get("name"):
             return jsonify({"error": "name is a required field"}), 400
-        if not data.get("credential_pairs"):
-            return jsonify({"error": "credential_pairs is a required field"}), 400
+        if not data.get("secret_pairs"):
+            return jsonify({"error": "secret_pairs is a required field"}), 400
         if not isinstance(data.get("metadata", {}), dict):
             return jsonify({"error": "metadata must be a dict"}), 400
-        response, error = credentialmanager.create_credential(
+        response, error = secretmanager.create_secret(
             tenant_id=tenant_id,
             name=data.get("name"),
-            credential_pairs=data["credential_pairs"],
+            secret_pairs=data["secret_pairs"],
             created_by=authnz.get_logged_in_user(),
             enabled=data.get("enabled", True),
             metadata=data.get("metadata"),
@@ -221,34 +223,40 @@ def create_credential():
             "read_with_alert": True,
             "update": True,
         }
-        return credential_response_schema.dumps(response)
+        return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>", methods=["PUT"])
-@blueprint.route("/v1/credentials/<id>/versions", methods=["POST"])
+@blueprint.route("/v1/secrets/<id>", methods=["PUT"])
+@blueprint.route("/v1/secrets/<id>/versions", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
-def update_credential(id):
-    with stats.timer("update_credential"):
+def update_secret(id):
+    with stats.timer("update_secret"):
         if not acl_module_check(
-            resource_type="credential",
+            resource_type="secret",
             action="update",
             resource_id=id,
         ):
-            msg = f"{authnz.get_logged_in_user()} does not have access to update credential {id}"
+            msg = (
+                f"{authnz.get_logged_in_user()} does not have access "
+                f"to update secret {id}"
+            )
             return jsonify({"error": msg, "reference": id}), 403
         data = request.get_json() or {}
         tenant_id = authnz.get_tenant_id()
-        if not isinstance(data.get("metadata", {}), dict) and data.get("metadata") is not None:
+        if (
+            not isinstance(data.get("metadata", {}), dict)
+            and data.get("metadata") is not None
+        ):
             return jsonify({"error": "metadata must be a dict"}), 400
-        response, error = credentialmanager.update_credential(
+        response, error = secretmanager.update_secret(
             tenant_id=tenant_id,
-            credential_id=id,
+            secret_id=id,
             name=data.get("name"),
             created_by=authnz.get_logged_in_user(),
-            credential_pairs=data.get("credential_pairs"),
+            secret_pairs=data.get("secret_pairs"),
             enabled=data.get("enabled"),
             metadata=data.get("metadata"),
             documentation=data.get("documentation"),
@@ -262,26 +270,32 @@ def update_credential(id):
             "read_with_alert": True,
             "update": True,
         }
-        return credential_response_schema.dumps(response)
+        return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>/versions/<int:version>/restore", methods=["POST"])
+@blueprint.route(
+    "/v1/secrets/<id>/versions/<int:version>/restore",
+    methods=["POST"],
+)
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
-def restore_credential_version(id, version):
+def restore_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
-        resource_type="credential",
+        resource_type="secret",
         action="update",
         resource_id=id,
     ):
-        msg = f"{authnz.get_logged_in_user()} does not have access to update credential {id}"
+        msg = (
+            f"{authnz.get_logged_in_user()} does not have access "
+            f"to update secret {id}"
+        )
         return jsonify({"error": msg, "reference": id}), 403
-    response = credentialmanager.restore_credential_version(
+    response = secretmanager.restore_secret_version(
         tenant_id=tenant_id,
-        credential_id=id,
+        secret_id=id,
         version=version,
         created_by=authnz.get_logged_in_user(),
     )
@@ -293,18 +307,16 @@ def restore_credential_version(id, version):
         "read_with_alert": True,
         "update": True,
     }
-    return credential_response_schema.dumps(response)
+    return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/credentials/<id>/services", methods=["GET"])
+@blueprint.route("/v1/secrets/<id>/groups", methods=["GET"])
 @authnz.require_auth
-def get_credential_dependencies(id):
+def get_secret_dependencies(id):
     tenant_id = authnz.get_tenant_id()
-    if not _can_view_credential_metadata(tenant_id, id):
-        msg = "{} does not have access to get dependencies for credential {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+    if not _can_view_secret_metadata(tenant_id, id):
+        user = authnz.get_logged_in_user()
+        msg = f"{user} does not have access to get dependencies for secret {id}"
         return jsonify({"error": msg, "reference": id}), 403
-    services = credentialmanager.get_credential_dependencies(tenant_id, id)
-    return jsonify({"services": services})
+    groups = secretmanager.get_secret_dependencies(tenant_id, id)
+    return jsonify({"groups": groups})

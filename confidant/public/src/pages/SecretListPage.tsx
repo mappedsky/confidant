@@ -19,41 +19,51 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
-import { ServiceSummary } from '../types/api';
+import { SecretSummary } from '../types/api';
 import ActionsMenu from '../components/ActionsMenu';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { useAllCursorPages } from '../hooks/useAllCursorPages';
 
-export default function ServiceListPage() {
+export default function SecretListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
 
   const permissions = clientConfig?.generated?.permissions;
   const {
-    rows: services,
+    rows: secrets,
     loading,
     error,
-  } = useAllCursorPages<ServiceSummary, { services: ServiceSummary[]; next_page?: string | null }>({
-    fetchPage: (page) => api.getServices({ page }),
-    getRows: (response) => response.services || [],
+  } = useAllCursorPages<SecretSummary, { secrets: SecretSummary[]; next_page?: string | null }>({
+    fetchPage: (page) => api.getSecrets({ page }),
+    getRows: (response) => response.secrets || [],
   });
 
-  const columns: GridColDef<ServiceSummary>[] = [
+  const columns: GridColDef<SecretSummary>[] = [
     {
-      field: 'id',
-      headerName: 'Service ID',
+      field: 'name',
+      headerName: 'Name',
       flex: 1,
-      minWidth: 240,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+      minWidth: 220,
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Link
           component={RouterLink}
-          to={`/services/${params.row.id}`}
+          to={`/secrets/${params.row.id}`}
           underline="hover"
-          sx={{ fontFamily: 'monospace' }}
           onClick={(event) => event.stopPropagation()}
         >
-          {params.value}
+          {params.value || params.row.id}
         </Link>
+      ),
+    },
+    {
+      field: 'id',
+      headerName: 'ID',
+      flex: 1,
+      minWidth: 220,
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+          {params.value}
+        </Typography>
       ),
     },
     {
@@ -81,21 +91,10 @@ export default function ServiceListPage() {
       align: 'left',
     },
     {
-      field: 'credentials',
-      headerName: 'Credentials',
-      width: 120,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string[]>) => (
-        <Typography variant="body2" color="text.secondary">
-          {params.value?.length ?? 0}
-        </Typography>
-      ),
-    },
-    {
       field: 'modified_date',
       headerName: 'Modified',
       width: 190,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value ? new Date(params.value).toLocaleString() : '—'}
         </Typography>
@@ -106,7 +105,7 @@ export default function ServiceListPage() {
       headerName: 'Modified By',
       flex: 1,
       minWidth: 160,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value || '—'}
         </Typography>
@@ -120,18 +119,18 @@ export default function ServiceListPage() {
       filterable: false,
       disableColumnMenu: true,
       align: 'right',
-      renderCell: (params: GridRenderCellParams<ServiceSummary>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary>) => (
         <ActionsMenu
           items={[
             {
               label: 'View',
               icon: <VisibilityIcon fontSize="small" />,
-              onClick: () => navigate(`/services/${params.row.id}`),
+              onClick: () => navigate(`/secrets/${params.row.id}`),
             },
             {
               label: 'History',
               icon: <HistoryIcon fontSize="small" />,
-              onClick: () => navigate(`/services/${params.row.id}/history`),
+              onClick: () => navigate(`/secrets/${params.row.id}/history`),
             },
           ]}
         />
@@ -143,16 +142,16 @@ export default function ServiceListPage() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
-          Services
+          Secrets
         </Typography>
-        {permissions?.services?.create && (
+        {permissions?.secrets?.create && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/services/new')}
+            onClick={() => navigate('/secrets/new')}
             sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
           >
-            New Service
+            New Secret
           </Button>
         )}
       </Box>
@@ -161,7 +160,7 @@ export default function ServiceListPage() {
 
       <Box sx={{ flex: 1, minHeight: 420 }}>
         <DataGrid
-          rows={services}
+          rows={secrets}
           columns={columns}
           loading={loading}
           density="compact"

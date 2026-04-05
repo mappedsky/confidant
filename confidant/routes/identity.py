@@ -101,17 +101,17 @@ def get_client_config():
     :statuscode 200: Success
     """
     permissions = {
-        "credentials": {
-            "list": acl_module_check(resource_type="credential", action="list"),
+        "secrets": {
+            "list": acl_module_check(resource_type="secret", action="list"),
             "create": acl_module_check(
-                resource_type="credential",
+                resource_type="secret",
                 action="create",
             ),
         },
-        "services": {
-            "list": acl_module_check(resource_type="service", action="list"),
+        "groups": {
+            "list": acl_module_check(resource_type="group", action="list"),
             "create": acl_module_check(
-                resource_type="service",
+                resource_type="group",
                 action="create",
             ),
         },

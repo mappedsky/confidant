@@ -6,30 +6,30 @@ from flask import request
 
 from confidant import authnz
 from confidant import settings
-from confidant.schema.services import revisions_response_schema
-from confidant.schema.services import service_response_schema
-from confidant.schema.services import ServiceResponse
-from confidant.schema.services import services_response_schema
-from confidant.services import credentialmanager
-from confidant.services import servicemanager
+from confidant.schema.groups import group_response_schema
+from confidant.schema.groups import GroupResponse
+from confidant.schema.groups import groups_response_schema
+from confidant.schema.groups import revisions_response_schema
+from confidant.services import groupmanager
+from confidant.services import secretmanager
 from confidant.utils import maintenance
 from confidant.utils import misc
 from confidant.utils import stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
 logger = logging.getLogger(__name__)
-blueprint = blueprints.Blueprint("services", __name__)
+blueprint = blueprints.Blueprint("groups", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
 
 
-@blueprint.route("/v1/services", methods=["GET"])
+@blueprint.route("/v1/groups", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_service_list():
-    with stats.timer("list_services"):
-        if not acl_module_check(resource_type="service", action="list"):
-            msg = "{} does not have access to list services".format(
+def get_group_list():
+    with stats.timer("list_groups"):
+        if not acl_module_check(resource_type="group", action="list"):
+            msg = "{} does not have access to list groups".format(
                 authnz.get_logged_in_user()
             )
             return jsonify({"error": msg}), 403
@@ -42,207 +42,207 @@ def get_service_list():
             except Exception:
                 logger.exception("Failed to parse provided page")
                 return jsonify({"error": "Failed to parse page"}), 400
-        response = servicemanager.list_services(
+        response = groupmanager.list_groups(
             tenant_id,
             limit=limit,
             page=page,
         )
-        return services_response_schema.dumps(response)
+        return groups_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/services/<id>", methods=["GET"])
+@blueprint.route("/v1/groups/<id>", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_service(id):
-    with stats.timer("get_service_by_id"):
+def get_group(id):
+    with stats.timer("get_group_by_id"):
         tenant_id = authnz.get_tenant_id()
         permissions = {
             "get": acl_module_check(
-                resource_type="service",
+                resource_type="group",
                 action="get",
                 resource_id=id,
             )
         }
         if not permissions["get"]:
-            msg = "{} does not have access to get service {}".format(
+            msg = "{} does not have access to get group {}".format(
                 authnz.get_logged_in_user(),
                 id,
             )
             return jsonify({"error": msg, "reference": id}), 403
 
-        service = servicemanager.get_service_latest(tenant_id, id)
-        if not service:
+        group = groupmanager.get_group_latest(tenant_id, id)
+        if not group:
             return jsonify({}), 404
         if authnz.user_is_user_type("user"):
             permissions["update"] = acl_module_check(
-                resource_type="service",
+                resource_type="group",
                 action="update",
                 resource_id=id,
                 kwargs={
-                    "credential_ids": list(service.credentials),
+                    "secret_ids": list(group.secrets),
                 },
             )
 
-        response = ServiceResponse.from_service(service)
+        response = GroupResponse.from_group(group)
         response.permissions = permissions
-        return service_response_schema.dumps(response)
+        return group_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/services/<id>/versions", methods=["GET"])
+@blueprint.route("/v1/groups/<id>/versions", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def list_service_versions(id):
+def list_group_versions(id):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
-        resource_type="service",
+        resource_type="group",
         action="metadata",
         resource_id=id,
     ):
-        msg = "{} does not have access to service {} versions".format(
+        msg = "{} does not have access to group {} versions".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg}), 403
-    response = servicemanager.list_service_versions(tenant_id, id)
+    response = groupmanager.list_group_versions(tenant_id, id)
     if not response.versions:
         return jsonify({}), 404
     return revisions_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/services/<id>/versions/<int:version>", methods=["GET"])
+@blueprint.route("/v1/groups/<id>/versions/<int:version>", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-def get_service_version(id, version):
+def get_group_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
-        resource_type="service",
+        resource_type="group",
         action="get",
         resource_id=id,
     ):
-        msg = "{} does not have access to service {}".format(
+        msg = "{} does not have access to group {}".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg, "reference": id}), 403
-    response = servicemanager.get_service_version(tenant_id, id, version)
+    response = groupmanager.get_group_version(tenant_id, id, version)
     if not response:
         return jsonify({}), 404
-    expanded = ServiceResponse.from_service(response)
+    expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "get": True,
         "update": acl_module_check(
-            resource_type="service",
+            resource_type="group",
             action="update",
             resource_id=id,
         ),
     }
-    return service_response_schema.dumps(expanded)
+    return group_response_schema.dumps(expanded)
 
 
-@blueprint.route("/v1/services/<id>", methods=["PUT"])
-@blueprint.route("/v1/services/<id>/versions", methods=["POST"])
+@blueprint.route("/v1/groups/<id>", methods=["PUT"])
+@blueprint.route("/v1/groups/<id>/versions", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
-def map_service_credentials(id):
+def update_group(id):
     data = request.get_json() or {}
     tenant_id = authnz.get_tenant_id()
-    existing = servicemanager.get_service_latest(tenant_id, id)
-    credentials = data.get("credentials", [])
-    if not isinstance(credentials, list):
-        return jsonify({"error": "credentials must be a list"}), 400
+    existing = groupmanager.get_group_latest(tenant_id, id)
+    secrets = data.get("secrets", [])
+    if not isinstance(secrets, list):
+        return jsonify({"error": "secrets must be a list"}), 400
 
-    creds = credentialmanager.get_credentials(
+    found_secrets = secretmanager.get_secrets(
         tenant_id,
-        credentials,
-        include_credential_keys=True,
-        include_credential_pairs=True,
+        secrets,
+        include_secret_keys=True,
+        include_secret_pairs=True,
     )
-    if len(creds) != len(credentials):
-        return jsonify({"error": "Credential not found."}), 404
+    if len(found_secrets) != len(secrets):
+        return jsonify({"error": "Secret not found."}), 404
 
     if existing is None:
         create_allowed = acl_module_check(
-            resource_type="service",
+            resource_type="group",
             action="create",
             resource_id=id,
         )
         if not create_allowed:
-            msg = "{} does not have access to create service {}".format(
+            msg = "{} does not have access to create group {}".format(
                 authnz.get_logged_in_user(),
                 id,
             )
             return jsonify({"error": msg, "reference": id}), 403
-        response, error = servicemanager.create_service(
+        response, error = groupmanager.create_group(
             tenant_id=tenant_id,
-            service_id=id,
-            credentials=[cred.id for cred in creds],
+            group_id=id,
+            secrets=[secret.id for secret in found_secrets],
             created_by=authnz.get_logged_in_user(),
             enabled=data.get("enabled", True),
         )
     else:
         if not acl_module_check(
-            resource_type="service",
+            resource_type="group",
             action="update",
             resource_id=id,
         ):
-            msg = "{} does not have access to update service {}".format(
+            msg = "{} does not have access to update group {}".format(
                 authnz.get_logged_in_user(),
                 id,
             )
             return jsonify({"error": msg, "reference": id}), 403
-        response, error = servicemanager.update_service(
+        response, error = groupmanager.update_group(
             tenant_id=tenant_id,
-            service_id=id,
-            credentials=[cred.id for cred in creds],
+            group_id=id,
+            secrets=[secret.id for secret in found_secrets],
             created_by=authnz.get_logged_in_user(),
             enabled=data.get("enabled"),
         )
     if error:
         return jsonify(error), 400
-    expanded = ServiceResponse.from_service(response)
+    expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "create": existing is None,
         "metadata": True,
         "get": True,
         "update": True,
     }
-    return service_response_schema.dumps(expanded)
+    return group_response_schema.dumps(expanded)
 
 
 @blueprint.route(
-    "/v1/services/<id>/versions/<int:version>/restore",
+    "/v1/groups/<id>/versions/<int:version>/restore",
     methods=["POST"],
 )
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
-def restore_service_version(id, version):
+def restore_group_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not acl_module_check(
-        resource_type="service",
+        resource_type="group",
         action="revert",
         resource_id=id,
     ):
-        msg = "{} does not have access to revert service {}".format(
+        msg = "{} does not have access to revert group {}".format(
             authnz.get_logged_in_user(),
             id,
         )
         return jsonify({"error": msg, "reference": id}), 403
-    response = servicemanager.restore_service_version(
+    response = groupmanager.restore_group_version(
         tenant_id=tenant_id,
-        service_id=id,
+        group_id=id,
         version=version,
         created_by=authnz.get_logged_in_user(),
     )
     if not response:
         return jsonify({}), 404
-    expanded = ServiceResponse.from_service(response)
+    expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "metadata": True,
         "get": True,
         "update": True,
     }
-    return service_response_schema.dumps(expanded)
+    return group_response_schema.dumps(expanded)

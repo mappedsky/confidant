@@ -11,11 +11,11 @@ export interface EntityPermissions {
 }
 
 export interface ClientConfigPermissions {
-  credentials: {
+  secrets: {
     list: boolean;
     create: boolean;
   };
-  services: {
+  groups: {
     list: boolean;
     create: boolean;
   };
@@ -53,12 +53,12 @@ export interface UserEmailResponse {
   email: string | null;
 }
 
-export interface CredentialIdentifier {
+export interface SecretIdentifier {
   id: string;
   enabled?: boolean;
 }
 
-export interface CredentialBase {
+export interface SecretBase {
   id: string;
   name: string;
   revision: number;
@@ -70,33 +70,33 @@ export interface CredentialBase {
   permissions?: EntityPermissions;
 }
 
-export interface CredentialSummary extends CredentialBase {
+export interface SecretSummary extends SecretBase {
   metadata?: Record<string, string>;
 }
 
-export interface CredentialDetail extends CredentialBase {
-  credential_keys: string[];
-  credential_pairs: Record<string, string>;
+export interface SecretDetail extends SecretBase {
+  secret_keys: string[];
+  secret_pairs: Record<string, string>;
   metadata: Record<string, string>;
   last_rotation_date?: string | null;
   next_rotation_date?: string | null;
 }
 
-export interface CredentialsListResponse {
-  credentials: CredentialSummary[];
+export interface SecretsListResponse {
+  secrets: SecretSummary[];
   next_page?: string | null;
 }
 
-export interface CredentialVersionsResponse {
-  versions: CredentialSummary[];
+export interface SecretVersionsResponse {
+  versions: SecretSummary[];
   next_page?: string | null;
 }
 
-export interface CredentialServicesResponse {
-  services: CredentialIdentifier[];
+export interface SecretGroupsResponse {
+  groups: SecretIdentifier[];
 }
 
-export interface ServiceBase {
+export interface GroupBase {
   id: string;
   revision: number;
   enabled: boolean;
@@ -105,21 +105,21 @@ export interface ServiceBase {
   permissions?: EntityPermissions;
 }
 
-export interface ServiceSummary extends ServiceBase {
-  credentials: string[];
+export interface GroupSummary extends GroupBase {
+  secrets: string[];
 }
 
-export interface ServiceDetail extends ServiceBase {
-  credentials: string[];
+export interface GroupDetail extends GroupBase {
+  secrets: string[];
 }
 
-export interface ServicesListResponse {
-  services: ServiceSummary[];
+export interface GroupsListResponse {
+  groups: GroupSummary[];
   next_page?: string | null;
 }
 
-export interface ServiceVersionsResponse {
-  versions: ServiceSummary[];
+export interface GroupVersionsResponse {
+  versions: GroupSummary[];
   next_page?: string | null;
 }
 
@@ -128,8 +128,8 @@ export interface GenerateValueResponse {
 }
 
 export type ConflictInfo = {
-  credentials?: string[];
-  services?: string[];
+  secrets?: string[];
+  groups?: string[];
 };
 
 export type ConflictMap = Record<string, ConflictInfo>;

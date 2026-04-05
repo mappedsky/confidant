@@ -7,9 +7,9 @@ from flask import Flask
 from flask_sslify import SSLify
 
 from confidant import settings
-from confidant.routes import credentials
+from confidant.routes import groups
 from confidant.routes import identity
-from confidant.routes import services
+from confidant.routes import secrets
 from confidant.routes import static_files
 from confidant.utils.dynamodb import create_dynamodb_tables
 
@@ -64,9 +64,9 @@ def create_app():
     if settings.DYNAMODB_CREATE_TABLE:
         create_dynamodb_tables()
 
-    app.register_blueprint(credentials.blueprint)
+    app.register_blueprint(secrets.blueprint)
     app.register_blueprint(identity.blueprint)
-    app.register_blueprint(services.blueprint)
+    app.register_blueprint(groups.blueprint)
     app.register_blueprint(static_files.blueprint)
 
     return app

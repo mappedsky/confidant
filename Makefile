@@ -10,6 +10,11 @@ up:
 down:
 	docker compose down
 
+drop_db:
+	docker compose stop dynamodb
+	docker compose run --rm --no-deps --entrypoint sh dynamodb -c \
+		'rm -rf /home/dynamodblocal/data/*'
+
 docker_build: clean
 	DOCKER_BUILDKIT=0 docker build -t mappedsky/confidant .
 
@@ -37,6 +42,8 @@ test_unit: clean
 .PHONY: compile_deps # Update Pipfile.lock
 compile_deps:
 	pipenv lock
+
+.PHONY: drop_db
 
 .PHONY: docs
 docs:

@@ -42,8 +42,8 @@ import KeyValueTable, { KeyValueRow } from '../components/KeyValueTable';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
 import {
-  CredentialDetail,
-  CredentialServicesResponse,
+  SecretDetail,
+  SecretGroupsResponse,
   ConflictMap,
 } from '../types/api';
 
@@ -73,10 +73,10 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-type CredentialDetailParams = { id?: string; version?: string };
+type SecretDetailParams = { id?: string; version?: string };
 
-export default function CredentialDetailPage() {
-  const { id, version } = useParams<CredentialDetailParams>();
+export default function SecretDetailPage() {
+  const { id, version } = useParams<SecretDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
@@ -86,9 +86,9 @@ export default function CredentialDetailPage() {
   const permissions = clientConfig?.generated?.permissions;
   const definedTags = clientConfig?.generated?.defined_tags ?? [];
 
-  const [credential, setCredential] = useState<CredentialDetail | null>(null);
-  const [credentialServices, setCredentialServices] = useState<
-    CredentialServicesResponse['services']
+  const [secret, setSecret] = useState<SecretDetail | null>(null);
+  const [secretGroups, setSecretGroups] = useState<
+    SecretGroupsResponse['groups']
   >([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -111,17 +111,17 @@ export default function CredentialDetailPage() {
   const [formTags, setFormTags] = useState<string[]>([]);
   const [formDocumentation, setFormDocumentation] = useState('');
 
-  const populateForm = useCallback((cred: CredentialDetail) => {
+  const populateForm = useCallback((cred: SecretDetail) => {
     setFormName(cred.name ?? '');
     setFormEnabled(cred.enabled ?? true);
-    const pairs = Object.entries(cred.credential_pairs ?? {}).map(([key, value]) => ({
+    const pairs = Object.entries(cred.secret_pairs ?? {}).map(([key, value]) => ({
       key,
       value,
     }));
     if (pairs.length) {
       setFormPairs(pairs);
-    } else if ((cred.credential_keys ?? []).length) {
-      setFormPairs(cred.credential_keys.map((key) => ({ key, value: '' })));
+    } else if ((cred.secret_keys ?? []).length) {
+      setFormPairs(cred.secret_keys.map((key) => ({ key, value: '' })));
     } else {
       setFormPairs([{ key: '', value: '' }]);
     }
@@ -148,14 +148,14 @@ export default function CredentialDetailPage() {
 
     if (isVersionView && id && versionNumber !== null) {
       Promise.all([
-        api.getCredentialVersion(id, versionNumber),
-        api.getCredential(id, true),
-        api.getCredentialVersions(id),
+        api.getSecretVersion(id, versionNumber),
+        api.getSecret(id, true),
+        api.getSecretVersions(id),
       ])
         .then(([cred, current, history]) => {
-          setCredential(cred);
+          setSecret(cred);
           populateForm(cred);
-          setCredentialServices([]);
+          setSecretGroups([]);
           setLatestRevision(current.revision);
           setCanRestore(current.permissions?.update ?? false);
           setVersionRevisions(
@@ -169,11 +169,11 @@ export default function CredentialDetailPage() {
       return;
     }
 
-    Promise.all([api.getCredential(id, true), api.getCredentialServices(id)])
+    Promise.all([api.getSecret(id, true), api.getSecretGroups(id)])
       .then(([cred, svcData]) => {
-        setCredential(cred);
+        setSecret(cred);
         populateForm(cred);
-        setCredentialServices(svcData.services ?? []);
+        setSecretGroups(svcData.groups ?? []);
         setLatestRevision(cred.revision);
       })
       .catch((err: Error) => setError(err.message))
@@ -191,8 +191,8 @@ export default function CredentialDetailPage() {
     }
     if (!decrypted && id) {
       try {
-        const full = await api.getCredential(id, false);
-        setCredential(full);
+        const full = await api.getSecret(id, false);
+        setSecret(full);
         populateForm(full);
         setDecrypted(true);
       } catch (err) {
@@ -209,8 +209,8 @@ export default function CredentialDetailPage() {
     }
     if (!decrypted && id) {
       try {
-        const full = await api.getCredential(id, false);
-        setCredential(full);
+        const full = await api.getSecret(id, false);
+        setSecret(full);
         populateForm(full);
         setDecrypted(true);
       } catch (err) {
@@ -231,8 +231,8 @@ export default function CredentialDetailPage() {
     setSaveError(null);
     setRestoring(true);
     try {
-      const restored = await api.restoreCredentialVersion(id, versionNumber);
-      navigate(`/credentials/${restored.id}`);
+      const restored = await api.restoreSecretVersion(id, versionNumber);
+      navigate(`/secrets/${restored.id}`);
     } catch (err) {
       setSaveError((err as Error).message);
     } finally {
@@ -242,11 +242,11 @@ export default function CredentialDetailPage() {
 
   const handleCancel = () => {
     if (isNew) {
-      navigate('/credentials');
+      navigate('/secrets');
       return;
     }
-    if (credential) {
-      populateForm(credential);
+    if (secret) {
+      populateForm(secret);
     }
     setSaveError(null);
     setConflicts(null);
@@ -268,7 +268,7 @@ export default function CredentialDetailPage() {
 
     const pairKeys = formPairs.map((p) => p.key);
     if (new Set(pairKeys).size !== pairKeys.length) {
-      setSaveError('Credential pair keys must be unique.');
+      setSaveError('Secret pair keys must be unique.');
       return;
     }
     const metaKeys = formMetadata.map((m) => m.key);
@@ -281,7 +281,7 @@ export default function CredentialDetailPage() {
       name: formName,
       enabled: formEnabled,
       documentation: formDocumentation,
-      credential_pairs: Object.fromEntries(
+      secret_pairs: Object.fromEntries(
         formPairs
           .filter((p) => p.key)
           .map((p) => [p.key, p.value]),
@@ -296,21 +296,21 @@ export default function CredentialDetailPage() {
 
     setSaving(true);
     try {
-      let saved: CredentialDetail;
+      let saved: SecretDetail;
       if (isNew) {
-        saved = await api.createCredential(payload);
+        saved = await api.createSecret(payload);
         if (!saved.id) {
-          throw new Error('Credential was created, but no credential ID was returned.');
+          throw new Error('Secret was created, but no secret ID was returned.');
         }
-        window.location.replace(`/credentials/${saved.id}`);
+        window.location.replace(`/secrets/${saved.id}`);
         return;
       } else if (id) {
-        saved = await api.updateCredential(id, payload);
-        setCredential(saved);
+        saved = await api.updateSecret(id, payload);
+        setSecret(saved);
         populateForm(saved);
         setEditing(false);
       } else {
-        throw new Error('Missing credential ID');
+        throw new Error('Missing secret ID');
       }
     } catch (err: unknown) {
       const error = err as { message: string; data?: { conflicts?: ConflictMap } };
@@ -336,21 +336,21 @@ export default function CredentialDetailPage() {
       <Box>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/credentials')}
+          onClick={() => navigate('/secrets')}
           sx={{ mb: 2 }}
         >
-          Back to Credentials
+          Back to Secrets
         </Button>
         <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
-  const canEdit = !isVersionView && (isNew ? permissions?.credentials?.create : credential?.permissions?.update);
+  const canEdit = !isVersionView && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
   const daysTillRotation =
-    credential?.next_rotation_date
+    secret?.next_rotation_date
       ? Math.round(
-          (new Date(credential.next_rotation_date).getTime() - Date.now()) / 86400000,
+          (new Date(secret.next_rotation_date).getTime() - Date.now()) / 86400000,
         )
       : null;
   const currentVersionIdx = versionNumber !== null
@@ -364,7 +364,7 @@ export default function CredentialDetailPage() {
   const restoreTooltip = versionNumber === latestRevision
     ? 'This is already the current version.'
     : !canRestore
-      ? 'You do not have permission to restore this credential.'
+      ? 'You do not have permission to restore this secret.'
       : '';
 
   return (
@@ -373,14 +373,14 @@ export default function CredentialDetailPage() {
         <Box>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(isVersionView ? `/credentials/${id}/history` : '/credentials')}
+            onClick={() => navigate(isVersionView ? `/secrets/${id}/history` : '/secrets')}
             sx={{ mb: 2 }}
           >
-            {isVersionView ? 'Back to History' : 'Back to Credentials'}
+            {isVersionView ? 'Back to History' : 'Back to Secrets'}
           </Button>
 
           <Typography variant="h5" fontWeight={600}>
-            {isNew ? 'New Credential' : credential?.name || id}
+            {isNew ? 'New Secret' : secret?.name || id}
           </Typography>
         </Box>
 
@@ -394,7 +394,7 @@ export default function CredentialDetailPage() {
                       variant="outlined"
                       startIcon={<NavigateBeforeIcon />}
                       disabled={prevVersion === null}
-                      onClick={() => navigate(`/credentials/${id}/versions/${prevVersion}`)}
+                      onClick={() => navigate(`/secrets/${id}/versions/${prevVersion}`)}
                     >
                       {prevVersion !== null ? `v${prevVersion}` : 'Older'}
                     </Button>
@@ -406,7 +406,7 @@ export default function CredentialDetailPage() {
                       variant="outlined"
                       endIcon={<NavigateNextIcon />}
                       disabled={nextVersion === null}
-                      onClick={() => navigate(`/credentials/${id}/versions/${nextVersion}`)}
+                      onClick={() => navigate(`/secrets/${id}/versions/${nextVersion}`)}
                     >
                       {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
                     </Button>
@@ -434,7 +434,7 @@ export default function CredentialDetailPage() {
               <Button
                 variant="outlined"
                 startIcon={<HistoryIcon />}
-                onClick={() => navigate(`/credentials/${id}/history`)}
+                onClick={() => navigate(`/secrets/${id}/history`)}
               >
                 History
               </Button>
@@ -445,7 +445,7 @@ export default function CredentialDetailPage() {
 
       {isVersionView && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Viewing credential version v{versionNumber}
+          Viewing secret version v{versionNumber}
           {latestRevision === versionNumber ? ' (current)' : ''}
         </Alert>
       )}
@@ -454,7 +454,7 @@ export default function CredentialDetailPage() {
         <DialogTitle>Restore this version?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This will restore credential version v{versionNumber} as the current version.
+            This will restore secret version v{versionNumber} as the current version.
             The current value will be replaced, and a new version will be created.
           </DialogContentText>
         </DialogContent>
@@ -486,22 +486,22 @@ export default function CredentialDetailPage() {
           {saveError}
           {conflicts && (
             <Box mt={1}>
-              <Typography variant="body2">Conflicting credential pair keys:</Typography>
+              <Typography variant="body2">Conflicting secret pair keys:</Typography>
               {Object.entries(conflicts).map(([key, info]) => (
                 <Box key={key} ml={2}>
                   <Typography variant="body2"><strong>{key}</strong></Typography>
-                  {info.credentials?.map((cid) => (
+                  {info.secrets?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
-                      Credential:{' '}
-                      <Link component={RouterLink} to={`/credentials/${cid}`}>
+                      Secret:{' '}
+                      <Link component={RouterLink} to={`/secrets/${cid}`}>
                         {cid}
                       </Link>
                     </Typography>
                   ))}
-                  {info.services?.map((sid) => (
+                  {info.groups?.map((sid) => (
                     <Typography key={sid} variant="body2" ml={2}>
-                      Service:{' '}
-                      <Link component={RouterLink} to={`/services/${sid}`}>
+                      Group:{' '}
+                      <Link component={RouterLink} to={`/groups/${sid}`}>
                         {sid}
                       </Link>
                     </Typography>
@@ -509,7 +509,7 @@ export default function CredentialDetailPage() {
                 </Box>
               ))}
               <Typography variant="body2" mt={1}>
-                Please ensure credential pair keys are unique for mapped services, then try again.
+                Please ensure secret pair keys are unique for mapped groups, then try again.
               </Typography>
             </Box>
           )}
@@ -521,7 +521,7 @@ export default function CredentialDetailPage() {
           <Stack spacing={3}>
             {editing ? (
               <TextField
-                label="Credential Name"
+                label="Secret Name"
                 size="small"
                 fullWidth
                 required
@@ -529,7 +529,7 @@ export default function CredentialDetailPage() {
                 onChange={(e) => setFormName(e.target.value)}
               />
             ) : (
-              <ReadOnlyField label="Credential Name" value={credential?.name} />
+              <ReadOnlyField label="Secret Name" value={secret?.name} />
             )}
 
             {!isNew && (
@@ -547,9 +547,9 @@ export default function CredentialDetailPage() {
                 <Box>
                   <SectionLabel>Status</SectionLabel>
                   <Chip
-                    label={credential?.enabled ? 'Enabled' : 'Disabled'}
+                    label={secret?.enabled ? 'Enabled' : 'Disabled'}
                     size="small"
-                    color={credential?.enabled ? 'success' : 'default'}
+                    color={secret?.enabled ? 'success' : 'default'}
                     variant="outlined"
                   />
                 </Box>
@@ -558,7 +558,7 @@ export default function CredentialDetailPage() {
 
             <Box>
               <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
-                <SectionLabel>Credential Pairs</SectionLabel>
+                <SectionLabel>Secret Pairs</SectionLabel>
                 <LockIcon sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: '2px' }} />
                 {!editing && (
                   <Tooltip
@@ -584,12 +584,12 @@ export default function CredentialDetailPage() {
                 showValues={showValues || editing}
                 editable={editing}
                 onGenerate={handleGenerate}
-                isCredentialPairs
+                isSecretPairs
               />
             </Box>
 
             <Box>
-              <SectionLabel>Credential Metadata</SectionLabel>
+              <SectionLabel>Secret Metadata</SectionLabel>
               <KeyValueTable
                 rows={formMetadata}
                 onChange={setFormMetadata}
@@ -660,10 +660,10 @@ export default function CredentialDetailPage() {
               </Box>
             )}
 
-            {!isNew && credential?.next_rotation_date && (
+            {!isNew && secret?.next_rotation_date && (
               <ReadOnlyField
                 label="Next Rotation Date"
-                value={`${credential.next_rotation_date}${
+                value={`${secret.next_rotation_date}${
                   daysTillRotation !== null ? ` (${daysTillRotation} days)` : ''
                 }`}
               />
@@ -678,7 +678,7 @@ export default function CredentialDetailPage() {
                 minRows={3}
                 value={formDocumentation}
                 onChange={(e) => setFormDocumentation(e.target.value)}
-                placeholder="Add documentation for how to rotate this credential. Add a link to a runbook if relevant."
+                placeholder="Add documentation for how to rotate this secret. Add a link to a runbook if relevant."
               />
             ) : formDocumentation ? (
               <ReadOnlyField label="Rotation Documentation" value={formDocumentation} />
@@ -689,8 +689,8 @@ export default function CredentialDetailPage() {
                 <Divider />
                 <Stack direction="row" flexWrap="wrap" gap={2}>
                   <ReadOnlyField
-                    label="Credential ID"
-                    value={credential?.id}
+                    label="Secret ID"
+                    value={secret?.id}
                     sx={{ flex: '2 1 220px' }}
                     valueSx={{
                       fontFamily: 'monospace',
@@ -700,32 +700,32 @@ export default function CredentialDetailPage() {
                   />
                   <ReadOnlyField
                     label="Revision"
-                    value={credential?.revision?.toString() ?? '—'}
+                    value={secret?.revision?.toString() ?? '—'}
                     sx={{ flex: '0 1 100px' }}
                   />
                   <ReadOnlyField
                     label="Modified"
                     value={
-                      credential?.modified_date
-                        ? new Date(credential.modified_date).toLocaleString()
+                      secret?.modified_date
+                        ? new Date(secret.modified_date).toLocaleString()
                         : '—'
                     }
                     sx={{ flex: '1 1 200px' }}
                   />
                   <ReadOnlyField
                     label="Modified By"
-                    value={credential?.modified_by}
+                    value={secret?.modified_by}
                     sx={{ flex: '1 1 180px' }}
                   />
                 </Stack>
 
-                {!isVersionView && credentialServices.length > 0 && (
+                {!isVersionView && secretGroups.length > 0 && (
                   <Box>
-                    <SectionLabel>Services Using This Credential</SectionLabel>
+                    <SectionLabel>Groups Using This Secret</SectionLabel>
                     <Stack spacing={0.5}>
-                      {credentialServices.map((svc) => (
+                      {secretGroups.map((svc) => (
                         <Box key={svc.id}>
-                          <Link component={RouterLink} to={`/services/${svc.id}`}>
+                          <Link component={RouterLink} to={`/groups/${svc.id}`}>
                             {svc.id}
                           </Link>
                           {!svc.enabled && (
@@ -763,7 +763,7 @@ export default function CredentialDetailPage() {
                 Edit
               </Button>
             ) : (
-              <Tooltip title="You do not have edit permission for this credential.">
+              <Tooltip title="You do not have edit permission for this secret.">
                 <span>
                   <Button variant="outlined" disabled>Edit</Button>
                 </span>

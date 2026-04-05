@@ -23,17 +23,17 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import ActionsMenu from '../components/ActionsMenu';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { api } from '../api';
-import { ServiceDetail, ServiceSummary } from '../types/api';
+import { GroupDetail, GroupSummary } from '../types/api';
 
 type RouteParams = {
   id?: string;
 };
 
-export default function ServiceHistoryPage() {
+export default function GroupHistoryPage() {
   const { id } = useParams<RouteParams>();
   const navigate = useNavigate();
-  const [versions, setVersions] = useState<ServiceSummary[]>([]);
-  const [currentService, setCurrentService] = useState<ServiceDetail | null>(null);
+  const [versions, setVersions] = useState<GroupSummary[]>([]);
+  const [currentGroup, setCurrentGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function ServiceHistoryPage() {
 
   useEffect(() => {
     if (!id) {
-      setError('Missing service ID.');
+      setError('Missing group ID.');
       setLoading(false);
       return;
     }
@@ -49,20 +49,20 @@ export default function ServiceHistoryPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      api.getServiceVersions(id),
-      api.getService(id),
+      api.getGroupVersions(id),
+      api.getGroup(id),
     ])
       .then(([history, current]) => {
         const sorted = [...(history.versions || [])].sort((a, b) => b.revision - a.revision);
         setVersions(sorted);
-        setCurrentService(current);
+        setCurrentGroup(current);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const latestRevision = currentService?.revision ?? versions[0]?.revision;
-  const canRestore = currentService?.permissions?.update ?? false;
+  const latestRevision = currentGroup?.revision ?? versions[0]?.revision;
+  const canRestore = currentGroup?.permissions?.update ?? false;
 
   const handleRestore = async (revision: number) => {
     if (!id) {
@@ -72,8 +72,8 @@ export default function ServiceHistoryPage() {
     setRestoreError(null);
     setRestoringRevision(revision);
     try {
-      await api.restoreServiceVersion(id, revision);
-      navigate(`/services/${id}`);
+      await api.restoreGroupVersion(id, revision);
+      navigate(`/groups/${id}`);
     } catch (err) {
       setRestoreError((err as Error).message);
     } finally {
@@ -81,18 +81,18 @@ export default function ServiceHistoryPage() {
     }
   };
 
-  const columns: GridColDef<ServiceSummary>[] = [
+  const columns: GridColDef<GroupSummary>[] = [
     {
       field: 'revision',
       headerName: 'Version',
       width: 150,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, number>) => {
+      renderCell: (params: GridRenderCellParams<GroupSummary, number>) => {
         const isCurrent = params.row.revision === latestRevision;
         return (
           <Stack direction="row" spacing={1} alignItems="center">
             <Link
               component={RouterLink}
-              to={`/services/${id}/versions/${params.row.revision}`}
+              to={`/groups/${id}/versions/${params.row.revision}`}
               underline="hover"
               onClick={(event) => event.stopPropagation()}
             >
@@ -117,11 +117,11 @@ export default function ServiceHistoryPage() {
       ),
     },
     {
-      field: 'credentials',
-      headerName: 'Credentials',
+      field: 'secrets',
+      headerName: 'Secrets',
       width: 140,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string[]>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary, string[]>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value?.length ?? 0}
         </Typography>
@@ -131,7 +131,7 @@ export default function ServiceHistoryPage() {
       field: 'modified_date',
       headerName: 'Saved',
       width: 190,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value ? new Date(params.value).toLocaleString() : '—'}
         </Typography>
@@ -142,7 +142,7 @@ export default function ServiceHistoryPage() {
       headerName: 'Author',
       flex: 1,
       minWidth: 180,
-      renderCell: (params: GridRenderCellParams<ServiceSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value || '—'}
         </Typography>
@@ -156,13 +156,13 @@ export default function ServiceHistoryPage() {
       filterable: false,
       disableColumnMenu: true,
       align: 'right',
-      renderCell: (params: GridRenderCellParams<ServiceSummary>) => {
+      renderCell: (params: GridRenderCellParams<GroupSummary>) => {
         const isCurrent = params.row.revision === latestRevision;
         const restoreDisabled = restoringRevision !== null || isCurrent || !canRestore;
         const restoreTooltip = isCurrent
           ? 'This is already the current version.'
           : !canRestore
-            ? 'You do not have permission to restore this service.'
+            ? 'You do not have permission to restore this group.'
             : '';
 
         return (
@@ -171,7 +171,7 @@ export default function ServiceHistoryPage() {
               {
                 label: 'View',
                 icon: <VisibilityIcon fontSize="small" />,
-                onClick: () => navigate(`/services/${id}/versions/${params.row.revision}`),
+                onClick: () => navigate(`/groups/${id}/versions/${params.row.revision}`),
               },
               {
                 label: restoringRevision === params.row.revision ? 'Restoring…' : 'Restore',
@@ -191,16 +191,16 @@ export default function ServiceHistoryPage() {
     <Box>
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/services/${id}`)}
+        onClick={() => navigate(`/groups/${id}`)}
         sx={{ mb: 2 }}
       >
-        Back to Service
+        Back to Group
       </Button>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <HistoryIcon color="action" />
         <Typography variant="h5" fontWeight={600}>
-          Service History{currentService?.id ? ` · ${currentService.id}` : ''}
+          Group History{currentGroup?.id ? ` · ${currentGroup.id}` : ''}
         </Typography>
       </Box>
 

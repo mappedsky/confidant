@@ -123,11 +123,11 @@ sessions or CSRF cookies. The remaining Flask session
 settings are only relevant to the application's general cookie/session
 configuration and are not part of the authentication flow.
 
-### Disabling credential conflict checks
+### Disabling secret conflict checks
 
-By default confidant will ensure that credentials mapped to a service don't
-have any conflicting credential pair keys. These checks occur when mapping
-credentials to a service, or when modifying credentials that are mapped to a
+By default confidant will ensure that secrets mapped to a service don't
+have any conflicting secret pair keys. These checks occur when mapping
+secrets to a service, or when modifying secrets that are mapped to a
 service. To disable this check:
 
 ```bash
@@ -191,7 +191,7 @@ export STATIC_FOLDER='dist'
 ```
 
 It's possible to customize portions of the angularjs application.
-Currently you can add a documentation section to the credential details view.
+Currently you can add a documentation section to the secret details view.
 We'd like to make more customization available. Please open a github issue with
 specific customizations you'd like focused on first. The custom js/css/html
 will be served from a directory you specify:
@@ -244,7 +244,7 @@ Confidant exposes some data to its clients via a flask endpoint. It's possible
 to expose additional custom data to clients through the server's configuration:
 
 ```bash
-export CLIENT_CONFIG='{"cipher_type":"fernet","cipher_version":"2","store_credential_keys":true}'
+export CLIENT_CONFIG='{"cipher_type":"fernet","cipher_version":"2","store_secret_keys":true}'
 ```
 
 The native client, or custom clients can use this data to help configure
@@ -285,7 +285,7 @@ rm /run/confidant/maintenance
 
 Confidant comes setup to perform well by default, but it's possible you may
 find some of these settings too aggressive, or you may have enough clients or
-services that the defaults aren't high enough.
+groups that the defaults aren't high enough.
 
 The primary performance setting is for authentication token caching, and is set
 to 4096. This should be set to something near your total number of clients with
@@ -337,10 +337,10 @@ export KMS_MAX_POOL_CONNECTIONS=100
 
 ### Settings for local development
 
-It's possible to point confidant at local versions of AWS services for testing.
+It's possible to point confidant at local versions of AWS groups for testing.
 
 ```
-# The local versions of the AWS services don't use real AWS credentials, so
+# The local versions of the AWS groups don't use real AWS secrets, so
 # you probably want to fake these
 AWS_ACCESS_KEY_ID=1
 AWS_SECRET_ACCESS_KEY=1

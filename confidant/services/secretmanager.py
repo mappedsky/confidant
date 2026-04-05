@@ -1,5 +1,5 @@
-import copy
 import base64
+import copy
 import json
 import logging
 import re
@@ -9,9 +9,9 @@ from datetime import timedelta
 from datetime import timezone
 
 from confidant import settings
-from confidant.schema.credentials import CredentialResponse
-from confidant.schema.credentials import CredentialsResponse
-from confidant.schema.credentials import RevisionsResponse
+from confidant.schema.secrets import RevisionsResponse
+from confidant.schema.secrets import SecretResponse
+from confidant.schema.secrets import SecretsResponse
 from confidant.services import keymanager
 from confidant.services.ciphermanager import CipherManager
 from confidant.services.dynamodbstore import store
@@ -82,10 +82,10 @@ def _next_rotation_date(item):
     return last_rotation_date + timedelta(days=days)
 
 
-def _credential_response_from_item(
+def _secret_response_from_item(
     item,
-    include_credential_keys=False,
-    include_credential_pairs=False,
+    include_secret_keys=False,
+    include_secret_pairs=False,
 ):
     data = {
         "tenant_id": item["tenant_id"],
@@ -107,20 +107,20 @@ def _credential_response_from_item(
         data["last_rotation_date"] = _as_datetime(item["last_rotation_date"])
     data["next_rotation_date"] = _next_rotation_date(item)
 
-    if include_credential_keys:
-        data["credential_keys"] = item.get("credential_keys", [])
-    if include_credential_pairs:
-        data["credential_pairs"] = _decrypt_credential_pairs(item)
-    return CredentialResponse(**data)
+    if include_secret_keys:
+        data["secret_keys"] = item.get("secret_keys", [])
+    if include_secret_pairs:
+        data["secret_pairs"] = _decrypt_secret_pairs(item)
+    return SecretResponse(**data)
 
 
-def _save_last_decryption_time(tenant_id, credential_id, item=None):
+def _save_last_decryption_time(tenant_id, secret_id, item=None):
     if not settings.ENABLE_SAVE_LAST_DECRYPTION_TIME:
         return item
     last_decrypted_date = datetime.now(timezone.utc).isoformat()
-    store.update_credential_last_decrypted_date(
+    store.update_secret_last_decrypted_date(
         tenant_id,
-        credential_id,
+        secret_id,
         last_decrypted_date,
     )
     if item is not None:
@@ -129,8 +129,8 @@ def _save_last_decryption_time(tenant_id, credential_id, item=None):
     return item
 
 
-def _decrypt_credential_pairs(item):
-    if not item.get("credential_pairs"):
+def _decrypt_secret_pairs(item):
+    if not item.get("secret_pairs"):
         return {}
     data_key = item["data_key"]
     if isinstance(data_key, str):
@@ -144,16 +144,16 @@ def _decrypt_credential_pairs(item):
         encryption_context=context,
     )
     cipher = CipherManager(data_key, item.get("cipher_version"))
-    decrypted = cipher.decrypt(item["credential_pairs"])
+    decrypted = cipher.decrypt(item["secret_pairs"])
     return json.loads(decrypted)
 
 
-def _encrypt_credential_pairs(tenant_id, credential_id, credential_pairs):
+def _encrypt_secret_pairs(tenant_id, secret_id, secret_pairs):
     data_key = keymanager.create_datakey(
-        encryption_context={"id": credential_id, "tenant_id": tenant_id}
+        encryption_context={"id": secret_id, "tenant_id": tenant_id}
     )
     cipher = CipherManager(data_key["plaintext"], version=2)
-    encrypted_pairs = cipher.encrypt(json.dumps(credential_pairs))
+    encrypted_pairs = cipher.encrypt(json.dumps(secret_pairs))
     if isinstance(data_key["ciphertext"], bytes):
         data_key = base64.b64encode(data_key["ciphertext"]).decode("UTF-8")
     else:
@@ -161,124 +161,124 @@ def _encrypt_credential_pairs(tenant_id, credential_id, credential_pairs):
     return encrypted_pairs, data_key, 2
 
 
-def get_credentials(
+def get_secrets(
     tenant_id,
-    credential_ids,
-    include_credential_keys=False,
-    include_credential_pairs=False,
+    secret_ids,
+    include_secret_keys=False,
+    include_secret_pairs=False,
 ):
-    with stats.timer("service_batch_get_credentials"):
-        _credential_ids = copy.deepcopy(credential_ids)
-        credentials = []
-        for credential_id in _credential_ids:
-            item = store.get_credential_latest(tenant_id, credential_id)
+    with stats.timer("service_batch_get_secrets"):
+        _secret_ids = copy.deepcopy(secret_ids)
+        secrets = []
+        for secret_id in _secret_ids:
+            item = store.get_secret_latest(tenant_id, secret_id)
             if item:
-                credentials.append(
-                    _credential_response_from_item(
+                secrets.append(
+                    _secret_response_from_item(
                         item,
-                        include_credential_keys=include_credential_keys,
-                        include_credential_pairs=include_credential_pairs,
+                        include_secret_keys=include_secret_keys,
+                        include_secret_pairs=include_secret_pairs,
                     )
                 )
-        return credentials
+        return secrets
 
 
-def list_credentials(tenant_id, limit=None, page=None):
-    results = store.list_credentials(
+def list_secrets(tenant_id, limit=None, page=None):
+    results = store.list_secrets(
         tenant_id,
         limit=limit,
         last_evaluated_key=page,
     )
-    credentials = [
-        _credential_response_from_item(item)
-        for item in results.get("Items", [])
-    ]
-    return CredentialsResponse.from_credentials(
-        credentials,
+    items = results.get("Items", [])
+    secrets = [_secret_response_from_item(item) for item in items]
+    return SecretsResponse.from_secrets(
+        secrets,
         next_page=results.get("LastEvaluatedKey"),
     )
-def get_credential_latest(
+
+
+def get_secret_latest(
     tenant_id,
-    credential_id,
+    secret_id,
     metadata_only=False,
     alert_on_access=False,
 ):
     item = (
-        store.get_credential_metadata(tenant_id, credential_id)
+        store.get_secret_metadata(tenant_id, secret_id)
         if metadata_only
-        else store.get_credential_latest(tenant_id, credential_id)
+        else store.get_secret_latest(tenant_id, secret_id)
     )
     if not item:
         return None
     if not metadata_only and alert_on_access:
-        item = _save_last_decryption_time(tenant_id, credential_id, item)
-    return _credential_response_from_item(
+        item = _save_last_decryption_time(tenant_id, secret_id, item)
+    return _secret_response_from_item(
         item,
-        include_credential_keys=True,
-        include_credential_pairs=not metadata_only,
+        include_secret_keys=True,
+        include_secret_pairs=not metadata_only,
     )
 
 
-def list_credential_versions(tenant_id, credential_id):
-    items = store.list_credential_versions(tenant_id, credential_id)
-    credentials = [
-        _credential_response_from_item(
+def list_secret_versions(tenant_id, secret_id):
+    items = store.list_secret_versions(tenant_id, secret_id)
+    secrets = [
+        _secret_response_from_item(
             item,
-            include_credential_keys=True,
-            include_credential_pairs=False,
+            include_secret_keys=True,
+            include_secret_pairs=False,
         )
         for item in items
     ]
-    return RevisionsResponse.from_credentials(credentials)
+    return RevisionsResponse.from_secrets(secrets)
 
 
-def get_credential_version(tenant_id, credential_id, version, alert_on_access=False):
-    item = store.get_credential_version(tenant_id, credential_id, version)
+def get_secret_version(tenant_id, secret_id, version, alert_on_access=False):
+    item = store.get_secret_version(tenant_id, secret_id, version)
     if not item:
         return None
     if alert_on_access:
-        item = _save_last_decryption_time(tenant_id, credential_id, item)
-    return _credential_response_from_item(
+        item = _save_last_decryption_time(tenant_id, secret_id, item)
+    return _secret_response_from_item(
         item,
-        include_credential_keys=True,
-        include_credential_pairs=True,
+        include_secret_keys=True,
+        include_secret_pairs=True,
     )
 
 
-def check_credential_pair_values(credential_pairs):
-    for key, val in credential_pairs.items():
+def check_secret_pair_values(secret_pairs):
+    for key, val in secret_pairs.items():
         if isinstance(val, dict) or isinstance(val, list):
-            ret = {"error": "credential pairs must be key: value"}
+            ret = {"error": "secret pairs must be key: value"}
             return (False, ret)
         if re.search(r"\s", key):
-            ret = {"error": "credential key must not contain whitespace"}
+            ret = {"error": "secret key must not contain whitespace"}
             return (False, ret)
     return (True, {})
 
 
-def lowercase_credential_pairs(credential_pairs):
-    return {i.lower(): j for i, j in credential_pairs.items()}
+def lowercase_secret_pairs(secret_pairs):
+    return {i.lower(): j for i, j in secret_pairs.items()}
 
 
-def get_revision_ids_for_credential(credential):
-    _range = range(1, credential.revision + 1)
+def get_revision_ids_for_secret(secret):
+    _range = range(1, secret.revision + 1)
     ids = []
     for i in _range:
-        ids.append("{0}-{1}".format(credential.id, i))
+        ids.append(f"{secret.id}-{i}")
     return ids
 
 
-def get_latest_credential_revision(_id, revision):
+def get_latest_secret_revision(_id, revision):
     return revision + 1
 
 
-def _build_credential_items(
+def _build_secret_items(
     tenant_id,
-    credential_id,
+    secret_id,
     name,
     revision,
-    credential_keys,
-    credential_pairs,
+    secret_keys,
+    secret_pairs,
     data_key,
     cipher_version,
     metadata,
@@ -293,7 +293,7 @@ def _build_credential_items(
 ):
     base = {
         "tenant_id": tenant_id,
-        "id": credential_id,
+        "id": secret_id,
         "name": name,
         "revision": revision,
         "enabled": enabled,
@@ -304,31 +304,31 @@ def _build_credential_items(
         "tags": tags,
         "last_decrypted_date": last_decrypted_date,
         "last_rotation_date": last_rotation_date,
-        "credential_keys": list(credential_keys),
-        "credential_pairs": credential_pairs,
+        "secret_keys": list(secret_keys),
+        "secret_pairs": secret_pairs,
         "data_key": data_key,
         "cipher_version": cipher_version,
     }
     metadata_item = {
-        "PK": f"TENANT#{tenant_id}#CREDENTIAL#{credential_id}",
+        "PK": f"TENANT#{tenant_id}#SECRET#{secret_id}",
         "SK": "#METADATA",
         **base,
     }
     latest_item = {
-        "PK": f"TENANT#{tenant_id}#CREDENTIAL#{credential_id}",
+        "PK": f"TENANT#{tenant_id}#SECRET#{secret_id}",
         "SK": "#LATEST",
         **base,
     }
     version_item = {
-        "PK": f"TENANT#{tenant_id}#CREDENTIAL#{credential_id}",
+        "PK": f"TENANT#{tenant_id}#SECRET#{secret_id}",
         "SK": f"VERSION#{revision:010d}",
         **base,
     }
     list_item = {
-        "PK": f"TENANT#{tenant_id}#CREDENTIAL_LIST",
-        "SK": f"CREDENTIAL#{credential_id}",
+        "PK": f"TENANT#{tenant_id}#SECRET_LIST",
+        "SK": f"SECRET#{secret_id}",
         "tenant_id": tenant_id,
-        "id": credential_id,
+        "id": secret_id,
         "name": name,
         "revision": revision,
         "enabled": enabled,
@@ -339,7 +339,7 @@ def _build_credential_items(
         "tags": tags,
         "last_decrypted_date": last_decrypted_date,
         "last_rotation_date": last_rotation_date,
-        "credential_keys": list(credential_keys),
+        "secret_keys": list(secret_keys),
     }
     if previous_created_at is not None:
         metadata_item["created_at"] = previous_created_at
@@ -361,39 +361,39 @@ def _sanitize_write_items(items):
     return sanitized
 
 
-def create_credential(
+def create_secret(
     tenant_id,
     name,
-    credential_pairs,
+    secret_pairs,
     created_by,
     enabled=True,
     metadata=None,
     documentation=None,
     tags=None,
 ):
-    credential_id = str(uuid.uuid4()).replace("-", "")
+    secret_id = str(uuid.uuid4()).replace("-", "")
     revision = 1
-    credential_pairs = lowercase_credential_pairs(credential_pairs)
-    ok, ret = check_credential_pair_values(credential_pairs)
+    secret_pairs = lowercase_secret_pairs(secret_pairs)
+    ok, ret = check_secret_pair_values(secret_pairs)
     if not ok:
         return None, ret
-    encrypted_pairs, data_key, cipher_version = _encrypt_credential_pairs(
+    encrypted_pairs, data_key, cipher_version = _encrypt_secret_pairs(
         tenant_id,
-        credential_id,
-        credential_pairs,
+        secret_id,
+        secret_pairs,
     )
     now = datetime.now(timezone.utc).isoformat()
     metadata = metadata or {}
     tags = tags or []
     last_decrypted_date = None
     last_rotation_date = now
-    credential_keys = list(credential_pairs)
-    metadata_item, latest_item, version_item, list_item = _build_credential_items(
+    secret_keys = list(secret_pairs)
+    metadata_item, latest_item, version_item, list_item = _build_secret_items(
         tenant_id,
-        credential_id,
+        secret_id,
         name,
         revision,
-        credential_keys,
+        secret_keys,
         encrypted_pairs,
         data_key,
         cipher_version,
@@ -412,46 +412,49 @@ def create_credential(
     store.put_version_bundle(
         _sanitize_write_items(
             [
-            {
-                "Item": metadata_item,
-                "ConditionExpression": "attribute_not_exists(PK)",
-            },
-            {
-                "Item": latest_item,
-                "ConditionExpression": "attribute_not_exists(PK)",
-            },
-            {
-                "Item": version_item,
-                "ConditionExpression": "attribute_not_exists(PK)",
-            },
-            {
-                "Item": list_item,
-                "ConditionExpression": "attribute_not_exists(PK)",
-            },
+                {
+                    "Item": metadata_item,
+                    "ConditionExpression": "attribute_not_exists(PK)",
+                },
+                {
+                    "Item": latest_item,
+                    "ConditionExpression": "attribute_not_exists(PK)",
+                },
+                {
+                    "Item": version_item,
+                    "ConditionExpression": "attribute_not_exists(PK)",
+                },
+                {
+                    "Item": list_item,
+                    "ConditionExpression": "attribute_not_exists(PK)",
+                },
             ]
         )
     )
-    return _credential_response_from_item(
-        latest_item,
-        include_credential_keys=True,
-        include_credential_pairs=True,
-    ), None
+    return (
+        _secret_response_from_item(
+            latest_item,
+            include_secret_keys=True,
+            include_secret_pairs=True,
+        ),
+        None,
+    )
 
 
-def update_credential(
+def update_secret(
     tenant_id,
-    credential_id,
+    secret_id,
     name,
     created_by,
-    credential_pairs=None,
+    secret_pairs=None,
     enabled=None,
     metadata=None,
     documentation=None,
     tags=None,
 ):
-    current = store.get_credential_latest(tenant_id, credential_id)
+    current = store.get_secret_latest(tenant_id, secret_id)
     if not current:
-        return None, {"error": "Credential not found."}
+        return None, {"error": "Secret not found."}
 
     metadata = current.get("metadata", {}) if metadata is None else metadata
     if enabled is None:
@@ -461,36 +464,40 @@ def update_credential(
     if tags is None:
         tags = current.get("tags", [])
 
-    current_credential_pairs = current.get("credential_pairs")
+    current_secret_pairs = current.get("secret_pairs")
     data_key = current.get("data_key")
     cipher_version = current.get("cipher_version")
     last_decrypted_date = current.get("last_decrypted_date")
     last_rotation_date = current.get("last_rotation_date")
 
-    if credential_pairs is not None:
-        credential_pairs = lowercase_credential_pairs(credential_pairs)
-        ok, ret = check_credential_pair_values(credential_pairs)
+    if secret_pairs is not None:
+        secret_pairs = lowercase_secret_pairs(secret_pairs)
+        ok, ret = check_secret_pair_values(secret_pairs)
         if not ok:
             return None, ret
-        if credential_pairs != _decrypt_credential_pairs(current):
+        if secret_pairs != _decrypt_secret_pairs(current):
             last_rotation_date = datetime.now(timezone.utc).isoformat()
-        encrypted_pairs, data_key, cipher_version = _encrypt_credential_pairs(
+        encrypted_pairs, data_key, cipher_version = _encrypt_secret_pairs(
             tenant_id,
-            credential_id,
-            credential_pairs,
+            secret_id,
+            secret_pairs,
         )
     else:
-        encrypted_pairs = current_credential_pairs
+        encrypted_pairs = current_secret_pairs
 
     revision = int(current["revision"]) + 1
     now = datetime.now(timezone.utc).isoformat()
-    credential_keys = list(credential_pairs) if credential_pairs is not None else current.get("credential_keys", [])
-    metadata_item, latest_item, version_item, list_item = _build_credential_items(
+    secret_keys = (
+        list(secret_pairs)
+        if secret_pairs is not None
+        else current.get("secret_keys", [])
+    )
+    metadata_item, latest_item, version_item, list_item = _build_secret_items(
         tenant_id,
-        credential_id,
+        secret_id,
         name or current["name"],
         revision,
-        credential_keys,
+        secret_keys,
         encrypted_pairs,
         data_key,
         cipher_version,
@@ -507,52 +514,55 @@ def update_credential(
     store.put_version_bundle(
         _sanitize_write_items(
             [
-            {
-                "Item": version_item,
-                "ConditionExpression": "attribute_not_exists(PK)",
-            },
-            {
-                "Item": latest_item,
-                "ConditionExpression": "attribute_exists(PK)",
-            },
-            {
-                "Item": metadata_item,
-                "ConditionExpression": "revision = :expected",
-                "ExpressionAttributeValues": {
-                    ":expected": int(current["revision"]),
+                {
+                    "Item": version_item,
+                    "ConditionExpression": "attribute_not_exists(PK)",
                 },
-            },
-            {
-                "Item": list_item,
-                "ConditionExpression": "attribute_exists(PK)",
-            },
+                {
+                    "Item": latest_item,
+                    "ConditionExpression": "attribute_exists(PK)",
+                },
+                {
+                    "Item": metadata_item,
+                    "ConditionExpression": "revision = :expected",
+                    "ExpressionAttributeValues": {
+                        ":expected": int(current["revision"]),
+                    },
+                },
+                {
+                    "Item": list_item,
+                    "ConditionExpression": "attribute_exists(PK)",
+                },
             ]
         )
     )
-    return _credential_response_from_item(
-        latest_item,
-        include_credential_keys=True,
-        include_credential_pairs=True,
-    ), None
+    return (
+        _secret_response_from_item(
+            latest_item,
+            include_secret_keys=True,
+            include_secret_pairs=True,
+        ),
+        None,
+    )
 
 
-def restore_credential_version(
+def restore_secret_version(
     tenant_id,
-    credential_id,
+    secret_id,
     version,
     created_by,
     comment=None,
 ):
-    current = store.get_credential_latest(tenant_id, credential_id)
-    source = store.get_credential_version(tenant_id, credential_id, version)
+    current = store.get_secret_latest(tenant_id, secret_id)
+    source = store.get_secret_version(tenant_id, secret_id, version)
     if not current or not source:
         return None
-    return update_credential(
+    return update_secret(
         tenant_id=tenant_id,
-        credential_id=credential_id,
+        secret_id=secret_id,
         name=current["name"],
         created_by=created_by,
-        credential_pairs=_decrypt_credential_pairs(source),
+        secret_pairs=_decrypt_secret_pairs(source),
         enabled=source.get("enabled", True),
         metadata=source.get("metadata", {}),
         documentation=source.get("documentation"),
@@ -560,7 +570,14 @@ def restore_credential_version(
     )[0]
 
 
-def get_credential_dependencies(tenant_id, credential_id):
-    services = store.list_services_for_credential(tenant_id, credential_id)
-    _services = [{"id": x["id"], "enabled": x.get("enabled", True)} for x in services]
-    return _services
+def get_secret_dependencies(tenant_id, secret_id):
+    groups = store.list_groups_for_secret(tenant_id, secret_id)
+    dependencies = []
+    for item in groups:
+        dependencies.append(
+            {
+                "id": item["id"],
+                "enabled": item.get("enabled", True),
+            }
+        )
+    return dependencies

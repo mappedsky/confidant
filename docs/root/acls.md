@@ -6,7 +6,7 @@ The design for managing fine-grained ACLs in confidant is relatively simple. Hoo
 
 ```python
 check = acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='metadata',
     resource_id=id,
 )
@@ -18,11 +18,11 @@ Some hookpoints include extra information, via kwargs:
 
 ```python
 check = acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='update',
     resource_id=id,
     kwargs={
-        'credential_ids': combined_cred_ids,
+        'secret_ids': combined_cred_ids,
     },
 )
 if not check:
@@ -34,7 +34,7 @@ These hookpoints all call back to the same function, which by default is:
 ```python
 def default_acl(*args, **kwargs):
     """ Default ACLs for confidant: always return true for users, but enforce
-    ACLs for services, restricting access to:
+    ACLs for groups, restricting access to:
     * resource_type: service
       actions: metadata, get
     """
@@ -51,7 +51,7 @@ def default_acl(*args, **kwargs):
             # Does the resource ID match the authenticated username?
             if authnz.user_is_service(resource_id):
                 return True
-        # We currently only allow services to access service get/metadata
+        # We currently only allow groups to access service get/metadata
         return False
     else:
         # This should never happen, but paranoia wins out
@@ -66,95 +66,95 @@ When implementing a new ACL module, remember that there are two principal types:
 
 The following hookpoints are currently available:
 
-### Credentials
+### Secrets
 
-#### List credentials
+#### List secrets
 
 ```python
-acl_module_check(resource_type='credential', action='list')
+acl_module_check(resource_type='secret', action='list')
 ```
 
-This check controls access to lists of credential metadata.
+This check controls access to lists of secret metadata.
 
-#### Get credential metadata
+#### Get secret metadata
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='metadata',
     resource_id=id,
 )
 ```
 
-This check controls access to specific credential metadata, which does not include credential pairs. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific secret metadata, which does not include secret pairs. Fine-grained controls can be applied using the provided `resource_id`.
 
-#### Get credential
+#### Get secret
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='read',
     resource_id=id,
 )
 ```
 
-This check controls access to specific credentials without triggering rotation alerting side effects. This is intended for service reads that fetch credential pairs. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific secrets without triggering rotation alerting side effects. This is intended for service reads that fetch secret pairs. Fine-grained controls can be applied using the provided `resource_id`.
 
-#### Get credential with alert
+#### Get secret with alert
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='read_with_alert',
     resource_id=id,
 )
 ```
 
-This check controls access to specific credentials and allows the read path to update `last_decrypted_date`, which can affect required rotation timing. This is intended for human users that fetch credential pairs.
+This check controls access to specific secrets and allows the read path to update `last_decrypted_date`, which can affect required rotation timing. This is intended for human users that fetch secret pairs.
 
-#### Create credential
+#### Create secret
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='create',
 )
 ```
 
-This check controls create access to credentials. This is a global permission, so no fine-grained ID is provided.
+This check controls create access to secrets. This is a global permission, so no fine-grained ID is provided.
 
-#### Update credential
+#### Update secret
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='update',
     resource_id=id,
 )
 ```
 
-This check controls update access to specific credentials. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Revert credential](#revert-credential).
+This check controls update access to specific secrets. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Revert secret](#revert-secret).
 
-#### Revert credential
+#### Revert secret
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='revert',
     resource_id=id,
 )
 ```
 
-This check controls revert access to specific credentials. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Update credential](#update-credential).
+This check controls revert access to specific secrets. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Update secret](#update-secret).
 
-This action does not require access to view or edit credential pairs, so it can be used to allow folks to rollback changes to resources without access to view/edit them.
+This action does not require access to view or edit secret pairs, so it can be used to allow folks to rollback changes to resources without access to view/edit them.
 
-### Services
+### Groups
 
-#### List services
+#### List groups
 
 ```python
-acl_module_check(resource_type='service', action='list')
+acl_module_check(resource_type='group', action='list')
 ```
 
 This check controls access to lists of service metadata.
@@ -163,74 +163,74 @@ This check controls access to lists of service metadata.
 
 ```python
 acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='metadata',
     resource_id=id,
 )
 ```
 
-This check controls access to specific service metadata. Service reads no longer expand mapped credentials; credential payloads are fetched from the credential endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific service metadata. Service reads no longer expand mapped secrets; secret payloads are fetched from the secret endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
 
 #### Get service
 
 ```python
 acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='get',
     resource_id=id,
 )
 ```
 
-This check controls access to specific service data. Service reads no longer expand mapped credentials; credential payloads are fetched from the credential endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific service data. Service reads no longer expand mapped secrets; secret payloads are fetched from the secret endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
 
-#### Get credential via mapped service
+#### Get secret via mapped service
 
-Credential read endpoints also allow access when the authenticated service is mapped to the requested credential:
+Credential read endpoints also allow access when the authenticated service is mapped to the requested secret:
 
 ```python
 acl_module_check(
-    resource_type='credential',
+    resource_type='secret',
     action='read',
     resource_id=id,
 )
 ```
 
-The default ACL module continues to handle human users. Credential routes add a service-mapping authorization check before returning credential metadata or pairs. Mapped service reads use `read`; interactive user reads use `read_with_alert`.
+The default ACL module continues to handle human users. Credential routes add a service-mapping authorization check before returning secret metadata or pairs. Mapped service reads use `read`; interactive user reads use `read_with_alert`.
 
 #### Create service
 
 ```python
 acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='create',
     resource_id=id,
 )
 ```
 
-This check controls create access to specific services. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls create access to specific groups. Fine-grained controls can be applied using the provided `resource_id`.
 
 #### Update service
 
 ```python
 acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='update',
     resource_id=id,
 )
 ```
 
-This check controls update access to specific services. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Revert service](#revert-service).
+This check controls update access to specific groups. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Revert service](#revert-service).
 
 #### Revert service
 
 ```python
 acl_module_check(
-    resource_type='service',
+    resource_type='group',
     action='revert',
     resource_id=id,
 )
 ```
 
-This check controls revert access to specific services. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Update service](#update-service).
+This check controls revert access to specific groups. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Update service](#update-service).
 
-This action does not require access to view or update services, so it can be used to allow folks to rollback changes to resources without access to view/update them.
+This action does not require access to view or update groups, so it can be used to allow folks to rollback changes to resources without access to view/update them.

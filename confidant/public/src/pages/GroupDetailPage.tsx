@@ -46,8 +46,8 @@ import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
 import {
   ConflictMap,
-  CredentialSummary,
-  ServiceDetail,
+  SecretSummary,
+  GroupDetail,
 } from '../types/api';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -76,11 +76,11 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-function credentialDisplayLabel(credential: Pick<CredentialSummary, 'name' | 'id'>) {
-  return `${credential.name} (${credential.id})`;
+function secretDisplayLabel(secret: Pick<SecretSummary, 'name' | 'id'>) {
+  return `${secret.name} (${secret.id})`;
 }
 
-interface ServiceFormCredential {
+interface GroupFormSecret {
   id: string;
   name: string;
   revision?: number;
@@ -88,10 +88,10 @@ interface ServiceFormCredential {
   isNew?: boolean;
 }
 
-type ServiceDetailParams = { id?: string; version?: string };
+type GroupDetailParams = { id?: string; version?: string };
 
-export default function ServiceDetailPage() {
-  const { id, version } = useParams<ServiceDetailParams>();
+export default function GroupDetailPage() {
+  const { id, version } = useParams<GroupDetailParams>();
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
@@ -100,8 +100,8 @@ export default function ServiceDetailPage() {
 
   const permissions = clientConfig?.generated?.permissions;
 
-  const [service, setService] = useState<ServiceDetail | null>(null);
-  const [allCredentials, setAllCredentials] = useState<CredentialSummary[]>([]);
+  const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [allSecrets, setAllSecrets] = useState<SecretSummary[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(isNew);
@@ -116,23 +116,23 @@ export default function ServiceDetailPage() {
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
-  const [formCredentials, setFormCredentials] = useState<ServiceFormCredential[]>([]);
+  const [formSecrets, setFormSecrets] = useState<GroupFormSecret[]>([]);
 
-  const populateForm = useCallback((svc: ServiceDetail) => {
+  const populateForm = useCallback((svc: GroupDetail) => {
     setFormId(svc.id ?? '');
     setFormEnabled(svc.enabled ?? true);
-    setFormCredentials(
-      (svc.credentials ?? []).map((credential) => ({
-        id: credential,
-        name: credential,
+    setFormSecrets(
+      (svc.secrets ?? []).map((secret) => ({
+        id: secret,
+        name: secret,
         isNew: false,
       })),
     );
   }, []);
 
   useEffect(() => {
-    api.getCredentials()
-      .then((data) => setAllCredentials(data.credentials ?? []))
+    api.getSecrets()
+      .then((data) => setAllSecrets(data.secrets ?? []))
       .catch(() => {});
 
     if (isNew) {
@@ -148,12 +148,12 @@ export default function ServiceDetailPage() {
 
     if (isVersionView && id && versionNumber !== null) {
       Promise.all([
-        api.getServiceVersion(id, versionNumber),
-        api.getService(id),
-        api.getServiceVersions(id),
+        api.getGroupVersion(id, versionNumber),
+        api.getGroup(id),
+        api.getGroupVersions(id),
       ])
         .then(([svc, current, history]) => {
-          setService(svc);
+          setGroup(svc);
           populateForm(svc);
           setLatestRevision(current.revision);
           setCanRestore(current.permissions?.update ?? false);
@@ -168,9 +168,9 @@ export default function ServiceDetailPage() {
       return;
     }
 
-    api.getService(id)
+    api.getGroup(id)
       .then((svc) => {
-        setService(svc);
+        setGroup(svc);
         populateForm(svc);
         setLatestRevision(svc.revision);
       })
@@ -179,35 +179,35 @@ export default function ServiceDetailPage() {
   }, [id, isNew, isVersionView, populateForm, versionNumber]);
 
   useEffect(() => {
-    if (allCredentials.length === 0) {
+    if (allSecrets.length === 0) {
       return;
     }
 
-    setFormCredentials((previous) => previous.map((credential) => {
-      const match = allCredentials.find((item) => item.id === credential.id);
+    setFormSecrets((previous) => previous.map((secret) => {
+      const match = allSecrets.find((item) => item.id === secret.id);
       if (!match) {
-        return credential;
+        return secret;
       }
       return {
-        ...credential,
+        ...secret,
         name: match.name,
-        revision: credential.revision ?? match.revision,
-        enabled: credential.enabled ?? match.enabled,
+        revision: secret.revision ?? match.revision,
+        enabled: secret.enabled ?? match.enabled,
       };
     }));
-  }, [allCredentials]);
+  }, [allSecrets]);
 
-  const handleAddCredential = () => {
-    setFormCredentials((prev) => [...prev, { id: '', name: '', isNew: true }]);
+  const handleAddSecret = () => {
+    setFormSecrets((prev) => [...prev, { id: '', name: '', isNew: true }]);
   };
 
-  const handleRemoveCredential = (idx: number) => {
-    setFormCredentials((prev) => prev.filter((_, i) => i !== idx));
+  const handleRemoveSecret = (idx: number) => {
+    setFormSecrets((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleCredentialChange = (idx: number, credId: string) => {
-    const cred = allCredentials.find((c) => c.id === credId);
-    setFormCredentials((prev) =>
+  const handleSecretChange = (idx: number, credId: string) => {
+    const cred = allSecrets.find((c) => c.id === credId);
+    setFormSecrets((prev) =>
       prev.map((c, i) =>
         i === idx
           ? {
@@ -225,21 +225,21 @@ export default function ServiceDetailPage() {
     setSaveError(null);
     setConflicts(null);
 
-    const credIds = formCredentials.map((c) => c.id).filter(Boolean);
+    const credIds = formSecrets.map((c) => c.id).filter(Boolean);
     if (new Set(credIds).size !== credIds.length) {
-      setSaveError('Credentials must be unique.');
+      setSaveError('Secrets must be unique.');
       return;
     }
 
     if (isNew) {
       try {
-        await api.getService(formId);
-        setSaveError(`Service with id ${formId} already exists.`);
+        await api.getGroup(formId);
+        setSaveError(`Group with id ${formId} already exists.`);
         return;
       } catch (err) {
         const error = err as { status?: number };
         if (error.status !== 404) {
-          setSaveError('Failed to check if service already exists.');
+          setSaveError('Failed to check if group already exists.');
           return;
         }
       }
@@ -248,26 +248,26 @@ export default function ServiceDetailPage() {
     const payload = {
       id: formId,
       enabled: formEnabled,
-      credentials: credIds,
+      secrets: credIds,
     };
 
     setSaving(true);
     try {
-      let saved: ServiceDetail;
+      let saved: GroupDetail;
       if (isNew) {
-        saved = await api.createService(formId, payload);
+        saved = await api.createGroup(formId, payload);
         if (!saved.id) {
-          throw new Error('Service was created, but no service ID was returned.');
+          throw new Error('Group was created, but no group ID was returned.');
         }
-        window.location.replace(`/services/${saved.id}`);
+        window.location.replace(`/groups/${saved.id}`);
         return;
       } else if (id) {
-        saved = await api.updateService(id, payload);
-        setService(saved);
+        saved = await api.updateGroup(id, payload);
+        setGroup(saved);
         populateForm(saved);
         setEditing(false);
       } else {
-        throw new Error('Missing service ID');
+        throw new Error('Missing group ID');
       }
     } catch (err: unknown) {
       const error = err as { message: string; data?: { conflicts?: ConflictMap } };
@@ -282,11 +282,11 @@ export default function ServiceDetailPage() {
 
   const handleCancel = () => {
     if (isNew) {
-      navigate('/services');
+      navigate('/groups');
       return;
     }
-    if (service) {
-      populateForm(service);
+    if (group) {
+      populateForm(group);
     }
     setSaveError(null);
     setConflicts(null);
@@ -301,8 +301,8 @@ export default function ServiceDetailPage() {
     setSaveError(null);
     setRestoring(true);
     try {
-      const restored = await api.restoreServiceVersion(id, versionNumber);
-      navigate(`/services/${restored.id}`);
+      const restored = await api.restoreGroupVersion(id, versionNumber);
+      navigate(`/groups/${restored.id}`);
     } catch (err) {
       setSaveError((err as Error).message);
     } finally {
@@ -323,10 +323,10 @@ export default function ServiceDetailPage() {
       <Box>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/services')}
+          onClick={() => navigate('/groups')}
           sx={{ mb: 2 }}
         >
-          Back to Services
+          Back to Groups
         </Button>
         <Alert severity="error">{error}</Alert>
       </Box>
@@ -334,8 +334,8 @@ export default function ServiceDetailPage() {
   }
 
   const canEdit = !isVersionView && (isNew
-    ? permissions?.services?.create
-    : service?.permissions?.update);
+    ? permissions?.groups?.create
+    : group?.permissions?.update);
   const currentVersionIdx = versionNumber !== null
     ? versionRevisions.indexOf(versionNumber)
     : -1;
@@ -347,7 +347,7 @@ export default function ServiceDetailPage() {
   const restoreTooltip = versionNumber === latestRevision
     ? 'This is already the current version.'
     : !canRestore
-      ? 'You do not have permission to restore this service.'
+      ? 'You do not have permission to restore this group.'
       : '';
 
   return (
@@ -356,14 +356,14 @@ export default function ServiceDetailPage() {
         <Box>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(isVersionView ? `/services/${id}/history` : '/services')}
+            onClick={() => navigate(isVersionView ? `/groups/${id}/history` : '/groups')}
             sx={{ mb: 2 }}
           >
-            {isVersionView ? 'Back to History' : 'Back to Services'}
+            {isVersionView ? 'Back to History' : 'Back to Groups'}
           </Button>
 
           <Typography variant="h5" fontWeight={600}>
-            {isNew ? 'New Service' : service?.id || id}
+            {isNew ? 'New Group' : group?.id || id}
           </Typography>
         </Box>
 
@@ -377,7 +377,7 @@ export default function ServiceDetailPage() {
                       variant="outlined"
                       startIcon={<NavigateBeforeIcon />}
                       disabled={prevVersion === null}
-                      onClick={() => navigate(`/services/${id}/versions/${prevVersion}`)}
+                      onClick={() => navigate(`/groups/${id}/versions/${prevVersion}`)}
                     >
                       {prevVersion !== null ? `v${prevVersion}` : 'Older'}
                     </Button>
@@ -389,7 +389,7 @@ export default function ServiceDetailPage() {
                       variant="outlined"
                       endIcon={<NavigateNextIcon />}
                       disabled={nextVersion === null}
-                      onClick={() => navigate(`/services/${id}/versions/${nextVersion}`)}
+                      onClick={() => navigate(`/groups/${id}/versions/${nextVersion}`)}
                     >
                       {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
                     </Button>
@@ -417,7 +417,7 @@ export default function ServiceDetailPage() {
               <Button
                 variant="outlined"
                 startIcon={<HistoryIcon />}
-                onClick={() => navigate(`/services/${id}/history`)}
+                onClick={() => navigate(`/groups/${id}/history`)}
               >
                 History
               </Button>
@@ -428,7 +428,7 @@ export default function ServiceDetailPage() {
 
       {isVersionView && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Viewing service version v{versionNumber}
+          Viewing group version v{versionNumber}
           {latestRevision === versionNumber ? ' (current)' : ''}
         </Alert>
       )}
@@ -437,8 +437,8 @@ export default function ServiceDetailPage() {
         <DialogTitle>Restore this version?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This will restore service version v{versionNumber} as the current version.
-            The current service configuration will be replaced, and a new version will be created.
+            This will restore group version v{versionNumber} as the current version.
+            The current group configuration will be replaced, and a new version will be created.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -469,14 +469,14 @@ export default function ServiceDetailPage() {
           {saveError}
           {conflicts && (
             <Box mt={1}>
-              <Typography variant="body2">Conflicting credential pair keys:</Typography>
+              <Typography variant="body2">Conflicting secret pair keys:</Typography>
               {Object.entries(conflicts).map(([key, info]) => (
                 <Box key={key} ml={2}>
                   <Typography variant="body2"><strong>{key}</strong></Typography>
-                  {info.credentials?.map((cid) => (
+                  {info.secrets?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
-                      Credential:
-                      <Link component={RouterLink} to={`/credentials/${cid}`}>
+                      Secret:
+                      <Link component={RouterLink} to={`/secrets/${cid}`}>
                         {cid}
                       </Link>
                     </Typography>
@@ -484,7 +484,7 @@ export default function ServiceDetailPage() {
                 </Box>
               ))}
               <Typography variant="body2" mt={1}>
-                Please ensure credential pair keys are unique, then try again.
+                Please ensure secret pair keys are unique, then try again.
               </Typography>
             </Box>
           )}
@@ -496,15 +496,15 @@ export default function ServiceDetailPage() {
           <Stack spacing={3}>
             {isNew ? (
               <TextField
-                label="Service ID"
+                label="Group ID"
                 size="small"
                 required
                 value={formId}
                 onChange={(event) => setFormId(event.target.value)}
-                placeholder="Enter a service ID"
+                placeholder="Enter a group ID"
               />
             ) : (
-              <ReadOnlyField label="Service ID" value={service?.id} valueSx={{ fontFamily: 'monospace' }} />
+              <ReadOnlyField label="Group ID" value={group?.id} valueSx={{ fontFamily: 'monospace' }} />
             )}
 
             {!isNew && (
@@ -522,9 +522,9 @@ export default function ServiceDetailPage() {
                 <Box>
                   <SectionLabel>Status</SectionLabel>
                   <Chip
-                    label={service?.enabled ? 'Enabled' : 'Disabled'}
+                    label={group?.enabled ? 'Enabled' : 'Disabled'}
                     size="small"
-                    color={service?.enabled ? 'success' : 'default'}
+                    color={group?.enabled ? 'success' : 'default'}
                     variant="outlined"
                   />
                 </Box>
@@ -532,7 +532,7 @@ export default function ServiceDetailPage() {
             )}
 
             <Box>
-              <SectionLabel>Credentials</SectionLabel>
+              <SectionLabel>Secrets</SectionLabel>
               <TableContainer
                 component={Paper}
                 variant="outlined"
@@ -541,21 +541,21 @@ export default function ServiceDetailPage() {
                 <Table size="small" sx={{ minWidth: 640 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, width: editing ? '48%' : '40%' }}>Credential</TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: '32%' }}>Credential ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: editing ? '48%' : '40%' }}>Secret</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: '32%' }}>Secret ID</TableCell>
                       {!editing && <TableCell sx={{ fontWeight: 600, width: '14%' }}>Revision</TableCell>}
                       {editing && <TableCell sx={{ fontWeight: 600, width: 60 }} />}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {formCredentials.length === 0 ? (
+                    {formSecrets.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={editing ? 4 : 3} sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                          No credentials assigned.
+                          No secrets assigned.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      formCredentials.map((cred, idx) => (
+                      formSecrets.map((cred, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
                             {editing ? (
@@ -563,25 +563,25 @@ export default function ServiceDetailPage() {
                                 <Select
                                   value={cred.id}
                                   onChange={(event: SelectChangeEvent<string>) =>
-                                    handleCredentialChange(idx, event.target.value)
+                                    handleSecretChange(idx, event.target.value)
                                   }
                                   displayEmpty
                                 >
                                   <MenuItem value="">
-                                    <em>Select credential</em>
+                                    <em>Select secret</em>
                                   </MenuItem>
-                                  {allCredentials
+                                  {allSecrets
                                     .filter((c) => c.enabled || c.id === cred.id)
                                     .map((c) => (
                                       <MenuItem key={c.id} value={c.id}>
-                                        {credentialDisplayLabel(c)}
+                                        {secretDisplayLabel(c)}
                                       </MenuItem>
                                     ))}
                                 </Select>
                               </FormControl>
                             ) : (
                               <Box>
-                                <Link component={RouterLink} to={`/credentials/${cred.id}`}>
+                                <Link component={RouterLink} to={`/secrets/${cred.id}`}>
                                   {cred.name || cred.id}
                                 </Link>
                                 {!cred.enabled && (
@@ -604,7 +604,7 @@ export default function ServiceDetailPage() {
                           )}
                           {editing && (
                             <TableCell>
-                              <IconButton size="small" color="error" onClick={() => handleRemoveCredential(idx)}>
+                              <IconButton size="small" color="error" onClick={() => handleRemoveSecret(idx)}>
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </TableCell>
@@ -619,10 +619,10 @@ export default function ServiceDetailPage() {
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddCredential}
+                  onClick={handleAddSecret}
                   sx={{ mt: 1 }}
                 >
-                  Add credential
+                  Add secret
                 </Button>
               )}
             </Box>
@@ -633,21 +633,21 @@ export default function ServiceDetailPage() {
                 <Stack direction="row" flexWrap="wrap" gap={2}>
                   <ReadOnlyField
                     label="Revision"
-                    value={service?.revision?.toString() ?? '—'}
+                    value={group?.revision?.toString() ?? '—'}
                     sx={{ flex: '0 1 100px' }}
                   />
                   <ReadOnlyField
                     label="Modified"
                     value={
-                      service?.modified_date
-                        ? new Date(service.modified_date).toLocaleString()
+                      group?.modified_date
+                        ? new Date(group.modified_date).toLocaleString()
                         : '—'
                     }
                     sx={{ flex: '1 1 200px' }}
                   />
                   <ReadOnlyField
                     label="Modified By"
-                    value={service?.modified_by}
+                    value={group?.modified_by}
                     sx={{ flex: '1 1 180px' }}
                   />
                 </Stack>
@@ -675,7 +675,7 @@ export default function ServiceDetailPage() {
                 Edit
               </Button>
             ) : (
-              <Tooltip title="You do not have edit permission for this service.">
+              <Tooltip title="You do not have edit permission for this group.">
                 <span>
                   <Button variant="outlined" disabled>Edit</Button>
                 </span>

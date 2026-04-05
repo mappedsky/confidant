@@ -1,10 +1,12 @@
-import sys
 import logging
+import sys
+
 import click
 from pynamodb.exceptions import DoesNotExist
 
 from confidant import settings
-from confidant.models.credential import Credential, CredentialArchive
+from confidant.models.secret import Secret
+from confidant.models.secret import SecretArchive
 from confidant.utils import stats
 
 logger = logging.getLogger(__name__)
@@ -18,99 +20,118 @@ def _exit_with_error(message):
     raise click.exceptions.Exit(1)
 
 
-def credential_exists(credential_id):
+def secret_exists(secret_id):
     try:
-        Credential.get(credential_id)
+        Secret.get(secret_id)
         return True
     except DoesNotExist:
         return False
 
 
-def save_credentials(saves, force=False):
-    # Do not restore a credential if it exists in the primary table.
+def save_secrets(saves, force=False):
+    # Do not restore a secret if it exists in the primary table.
     # We do this check at the point of all saves so that we can
     # restore revisions, if one of them failed to restore for some
     # reason.
     _saves = []
     for save in saves:
-        if credential_exists(save.id):
+        if secret_exists(save.id):
             continue
         _saves.append(save)
     if not _saves:
         return
-    save_msg = ', '.join([save.id for save in _saves])
+    save_msg = ", ".join([save.id for save in _saves])
     if not force:
         logger.info(
-            'Would have restored credential and revisions: {}'.format(
+            "Would have restored secret and revisions: {}".format(
                 save_msg,
             )
         )
         return
     logger.info(
-        'Restoring credential and revisions: {}'.format(
+        "Restoring secret and revisions: {}".format(
             save_msg,
         )
     )
-    with Credential.batch_write() as batch:
+    with Secret.batch_write() as batch:
         for save in _saves:
             batch.save(save)
-    stats.incr('restore.save.success')
+    stats.incr("restore.save.success")
 
 
-def restore_logic(archive_credentials, force):
-    for archive_credential in archive_credentials:
+def restore_logic(archive_secrets, force):
+    for archive_secret in archive_secrets:
         saves = []
         # restore the current record
-        credential = Credential.from_archive_credential(
-            archive_credential,
+        secret = Secret.from_archive_secret(
+            archive_secret,
         )
-        saves.append(credential)
+        saves.append(secret)
         # fetch and restore every revision
-        _range = range(1, credential.revision + 1)
+        _range = range(1, secret.revision + 1)
         ids = []
         for i in _range:
-            ids.append("{0}-{1}".format(credential.id, i))
-        archive_revisions = CredentialArchive.batch_get(ids)
+            ids.append(f"{secret.id}-{i}")
+        archive_revisions = SecretArchive.batch_get(ids)
         for archive_revision in archive_revisions:
-            revision = Credential.from_archive_credential(
+            revision = Secret.from_archive_secret(
                 archive_revision,
             )
             saves.append(revision)
         try:
-            save_credentials(saves, force=force)
+            save_secrets(saves, force=force)
         except Exception:
-            logger.exception(
-                'Failed to batch save {}.'.format(
-                    credential.id
-                )
-            )
-            stats.incr('restore.save.failure')
+            logger.exception(f"Failed to batch save {secret.id}.")
+            stats.incr("restore.save.failure")
             continue
 
 
 @click.command()
-@click.option('--force', is_flag=True, default=False, help='By default, this script runs in dry-run mode, this option forces the run and makes the changes indicated by the dry run')
-@click.option('--ids', help='Restore a comma separated list of credential IDs. (mutually exclusive with --all)')
-@click.option('--all', '_all', is_flag=True, default=False, help='Restore all credentials from the permanent archive dynamodb table back into the primary store table.')
-def restore_credentials(force, ids, _all):
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help=(
+        "By default, this script runs in dry-run mode, this option forces the "
+        "run and makes the changes indicated by the dry run"
+    ),
+)
+@click.option(
+    "--ids",
+    help=(
+        "Restore a comma separated list of secret IDs. (mutually exclusive "
+        "with --all)"
+    ),
+)
+@click.option(
+    "--all",
+    "_all",
+    is_flag=True,
+    default=False,
+    help=(
+        "Restore all secrets from the permanent archive dynamodb table back "
+        "into the primary store table."
+    ),
+)
+def restore_secrets(force, ids, _all):
     """
-    Command to restore credentials from the permanent archive dynamodb table
+    Command to restore secrets from the permanent archive dynamodb table
     back into the primary storage table.
     """
     if not settings.DYNAMODB_TABLE_ARCHIVE:
-        _exit_with_error('DYNAMODB_TABLE_ARCHIVE is not configured, exiting.')
+        _exit_with_error("DYNAMODB_TABLE_ARCHIVE is not configured, exiting.")
     if ids and _all:
-        _exit_with_error('--ids and --all arguments are mutually exclusive')
+        _exit_with_error("--ids and --all arguments are mutually exclusive")
     if not ids and not _all:
-        _exit_with_error('Either --ids or --all argument must be provided')
+        _exit_with_error("Either --ids or --all argument must be provided")
     if ids:
         # filter strips an empty string
-        _ids = [_id.strip() for _id in list(filter(None, ids.split(',')))]
+        _ids = [_id.strip() for _id in list(filter(None, ids.split(",")))]
         if not _ids:
-            _exit_with_error('Passed in --ids argument is empty')
-        credentials = CredentialArchive.batch_get(_ids)
+            _exit_with_error("Passed in --ids argument is empty")
+        secrets = SecretArchive.batch_get(_ids)
     else:
-        credentials = CredentialArchive.data_type_date_index.query(
-            'credential',
+        secrets = SecretArchive.data_type_date_index.query(
+            "secret",
         )
-    restore_logic(credentials, force=force)
+    restore_logic(secrets, force=force)
