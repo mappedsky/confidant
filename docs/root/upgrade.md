@@ -19,24 +19,15 @@ versions of Confidant.
 
 ### Performing the data migration
 
-Confidant 2.0.1 ships with two maintenance scripts for the data migration:
-
-```bash
-cd /srv/confidant
-source venv/bin/activate
-
-# Encrypt the data
-python manage.py migrate_service_set_attribute
-```
-
-These scripts may fail intermittently. If any failures are occur, retry the
-script until all objects are fully migrated.
+Confidant 2.0.1 originally shipped with maintenance scripts for the data
+migration. Those scripts are no longer part of the current codebase, so this
+section is retained only as historical upgrade context.
 
 2.0.0 ships with the ability to enable a maintenance mode, which you may want
 to enable when upgrading to 2.0.0. Putting Confidant into maintenance mode
 will disallow any writes via the API, ensuring that objects with the
-new data format aren't written until you've run the maintenance script. This
-is useful to allow you to downgrade to an older version, if necessary. See the
+new data format aren't written until the migration is complete. This is useful
+to allow you to downgrade to an older version, if necessary. See the
 [maintenance mode settings docs](configuration.html#maintenance-mode-settings)
 for how to enable maintenance mode.
 
