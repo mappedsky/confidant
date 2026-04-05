@@ -12,6 +12,11 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Tooltip,
   Select,
@@ -32,6 +37,8 @@ import type { SelectChangeEvent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HistoryIcon from '@mui/icons-material/History';
 import RestoreIcon from '@mui/icons-material/Restore';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -104,6 +111,8 @@ export default function ServiceDetailPage() {
   const [latestRevision, setLatestRevision] = useState<number | null>(null);
   const [canRestore, setCanRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
 
   const [formId, setFormId] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
@@ -135,14 +144,24 @@ export default function ServiceDetailPage() {
     setError(null);
     setLatestRevision(null);
     setCanRestore(false);
+    setVersionRevisions([]);
 
     if (isVersionView && id && versionNumber !== null) {
-      Promise.all([api.getServiceVersion(id, versionNumber), api.getService(id)])
-        .then(([svc, current]) => {
+      Promise.all([
+        api.getServiceVersion(id, versionNumber),
+        api.getService(id),
+        api.getServiceVersions(id),
+      ])
+        .then(([svc, current, history]) => {
           setService(svc);
           populateForm(svc);
           setLatestRevision(current.revision);
           setCanRestore(current.permissions?.update ?? false);
+          setVersionRevisions(
+            [...(history.versions ?? [])]
+              .map((item) => item.revision)
+              .sort((a, b) => a - b),
+          );
         })
         .catch((err: Error) => setError(err.message))
         .finally(() => setLoading(false));
@@ -317,6 +336,13 @@ export default function ServiceDetailPage() {
   const canEdit = !isVersionView && (isNew
     ? permissions?.services?.create
     : service?.permissions?.update);
+  const currentVersionIdx = versionNumber !== null
+    ? versionRevisions.indexOf(versionNumber)
+    : -1;
+  const prevVersion = currentVersionIdx > 0 ? versionRevisions[currentVersionIdx - 1] : null;
+  const nextVersion = currentVersionIdx !== -1 && currentVersionIdx < versionRevisions.length - 1
+    ? versionRevisions[currentVersionIdx + 1]
+    : null;
   const restoreDisabled = versionNumber === latestRevision || !canRestore || restoring;
   const restoreTooltip = versionNumber === latestRevision
     ? 'This is already the current version.'
@@ -345,15 +371,41 @@ export default function ServiceDetailPage() {
           <Stack direction="row" spacing={1} alignItems="flex-start" flexWrap="wrap">
             {isVersionView ? (
               <>
-                <Button variant="outlined" onClick={() => navigate(`/services/${id}`)}>
-                  View Current
-                </Button>
-                <Tooltip title={restoreTooltip}>
+                <Tooltip title={prevVersion === null ? 'No older version' : ''}>
                   <span>
                     <Button
                       variant="outlined"
+                      startIcon={<NavigateBeforeIcon />}
+                      disabled={prevVersion === null}
+                      onClick={() => navigate(`/services/${id}/versions/${prevVersion}`)}
+                    >
+                      {prevVersion !== null ? `v${prevVersion}` : 'Older'}
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title={nextVersion === null ? 'No newer version' : ''}>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      endIcon={<NavigateNextIcon />}
+                      disabled={nextVersion === null}
+                      onClick={() => navigate(`/services/${id}/versions/${nextVersion}`)}
+                    >
+                      {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title={restoreTooltip}>
+                  <span>
+                    <Button
+                      variant="contained"
                       startIcon={<RestoreIcon />}
-                      onClick={handleRestoreVersion}
+                      sx={{
+                        bgcolor: '#6bdfab',
+                        color: '#424554',
+                        '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                      }}
+                      onClick={() => setRestoreDialogOpen(true)}
                       disabled={restoreDisabled}
                     >
                       {restoring ? 'Restoring…' : 'Restore'}
@@ -380,6 +432,38 @@ export default function ServiceDetailPage() {
           {latestRevision === versionNumber ? ' (current)' : ''}
         </Alert>
       )}
+
+      <Dialog open={restoreDialogOpen} onClose={() => !restoring && setRestoreDialogOpen(false)}>
+        <DialogTitle>Restore this version?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will restore service version v{versionNumber} as the current version.
+            The current service configuration will be replaced, and a new version will be created.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRestoreDialogOpen(false)} disabled={restoring}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: '#6bdfab',
+              color: '#424554',
+              '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+            }}
+            startIcon={restoring ? <CircularProgress size={16} color="inherit" /> : <RestoreIcon />}
+            onClick={async () => {
+              await handleRestoreVersion();
+              setRestoreDialogOpen(false);
+            }}
+            disabled={restoreDisabled || restoring}
+          >
+            {restoring ? 'Restoring…' : 'Restore'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -573,7 +657,7 @@ export default function ServiceDetailPage() {
         </CardContent>
 
         <CardActions sx={{ px: 3, pb: 3, pt: 0, gap: 1 }}>
-          {!editing ? (
+          {!isVersionView && (!editing ? (
             canEdit ? (
               <Button
                 variant="contained"
@@ -615,7 +699,7 @@ export default function ServiceDetailPage() {
                 Cancel
               </Button>
             </>
-          )}
+          ))}
         </CardActions>
       </Card>
     </Box>

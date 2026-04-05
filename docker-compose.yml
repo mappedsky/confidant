@@ -1,6 +1,7 @@
 volumes:
   authentik_postgres_data:
   authentik_media:
+  dynamodb_data:
 
 networks:
   confidant:
@@ -74,11 +75,22 @@ services:
     networks:
       - default
   dynamodb:
-    image: amazon/dynamodb-local
+    build:
+      context: .compose/dynamodb
     init: true
     restart: on-failure
     env_file: ./config/development/dynamodb.env
-    command: "-Xmx512m -jar DynamoDBLocal.jar -port 8080 -sharedDb"
+    command:
+      - -Xmx512m
+      - -jar
+      - DynamoDBLocal.jar
+      - -port
+      - "8080"
+      - -sharedDb
+      - -dbPath
+      - /home/dynamodblocal/data
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8080/"]
       interval: 5s

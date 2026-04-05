@@ -84,11 +84,15 @@ that token against a JWKS endpoint. The browser UI uses OIDC Authorization Code
 with PKCE to acquire the token. Any standard OIDC provider can be used; the local
 development stack ships with Authentik.
 
+The backend owns the OIDC settings and exposes them to the SPA through
+`GET /v1/auth_config` and `GET /v1/client_config`. The frontend should not
+hardcode provider-specific endpoints.
+
 ```bash
 # JWKS endpoint used by the backend to validate JWTs
 export JWKS_URL='https://idp.example.com/application/o/confidant/jwks/'
 
-# Browser OIDC settings exposed to the frontend
+# OIDC settings used by the backend and exposed to the frontend via the API
 export OIDC_AUTHORITY='https://idp.example.com/application/o/confidant'
 export OIDC_CLIENT_ID='confidant'
 export OIDC_REDIRECT_URI='https://confidant.example.com/auth/callback'

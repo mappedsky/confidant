@@ -6,6 +6,7 @@ confidant_env:
   OIDC_AUTHORITY: 'https://idp.example.com/application/o/confidant'
   OIDC_CLIENT_ID: 'confidant'
   OIDC_REDIRECT_URI: 'https://confidant.example.com/auth/callback'
+  # The frontend reads these values from /v1/auth_config at runtime.
   KMS_MASTER_KEY: '{{ grains.cluster_name }}'
   # TODO: make this point at elasticache.
   REDIS_URL: ''

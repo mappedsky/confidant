@@ -5,46 +5,51 @@ import {
 } from 'oidc-client-ts';
 import type { OidcConfig } from './types/api';
 
-function normalizeAuthority(authority: string): string {
-  return authority.replace(/\/+$/, '');
-}
-
-function buildDevProxyMetadata(authority: string): Partial<OidcMetadata> | undefined {
-  const normalizedAuthority = normalizeAuthority(authority);
-  const authorityUrl = new URL(normalizedAuthority);
-  const currentUrl = new URL(window.location.origin);
-
-  const isFrontendDev =
-    currentUrl.hostname === 'localhost' &&
-    currentUrl.port === '3000';
-  const isLocalOidc =
-    authorityUrl.protocol === 'http:' &&
-    authorityUrl.hostname === 'localhost' &&
-    authorityUrl.port === '9000';
-
-  if (!isFrontendDev || !isLocalOidc) {
+function localizeDevOidcMetadata(metadata?: Partial<OidcMetadata>): Partial<OidcMetadata> | undefined {
+  if (!metadata) {
     return undefined;
   }
 
-  const providerOrigin = `${authorityUrl.protocol}//${authorityUrl.host}`;
-  const oauthBasePath = '/application/o';
-  const proxiedOauthBase = `${window.location.origin}${oauthBasePath}`;
+  if (!import.meta.env.DEV) {
+    return metadata;
+  }
 
-  return {
-    issuer: normalizedAuthority,
-    authorization_endpoint: `${providerOrigin}${oauthBasePath}/authorize/`,
-    token_endpoint: `${proxiedOauthBase}/token/`,
-    userinfo_endpoint: `${proxiedOauthBase}/userinfo/`,
-    jwks_uri: `${window.location.origin}${authorityUrl.pathname}/jwks/`,
-    end_session_endpoint: `${normalizedAuthority}/end-session/`,
-  };
+  const localized: Partial<OidcMetadata> = { ...metadata };
+  type OidcEndpointKey = Exclude<
+    keyof OidcMetadata,
+    'issuer' | 'response_types_supported' | 'subject_types_supported' | 'id_token_signing_alg_values_supported'
+  >;
+  const endpointKeys: OidcEndpointKey[] = [
+    'authorization_endpoint',
+    'token_endpoint',
+    'userinfo_endpoint',
+    'jwks_uri',
+    'end_session_endpoint',
+    'revocation_endpoint',
+    'introspection_endpoint',
+    'registration_endpoint',
+  ];
+
+  for (const key of endpointKeys) {
+    const value = localized[key];
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      localized[key] = `${window.location.origin}${url.pathname}${url.search}${url.hash}` as never;
+    }
+  }
+
+  return localized;
 }
 
 export function createUserManager(config: OidcConfig): UserManager {
-  const metadata = buildDevProxyMetadata(config.authority);
+  const metadata = localizeDevOidcMetadata(config.metadata);
   const settings: UserManagerSettings = {
     authority: config.authority,
-    ...(metadata ? { metadata } : {}),
+    ...(metadata ? { metadata: metadata as OidcMetadata } : {}),
     client_id: config.client_id,
     redirect_uri: `${window.location.origin}/auth/callback`,
     post_logout_redirect_uri: `${window.location.origin}/loggedout`,

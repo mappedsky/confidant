@@ -1,3 +1,5 @@
+import type { OidcMetadata } from 'oidc-client-ts';
+
 export interface EntityPermissions {
   metadata?: boolean;
   read?: boolean;
@@ -24,6 +26,7 @@ export interface OidcConfig {
   client_id: string;
   redirect_uri: string;
   scope: string;
+  metadata?: Partial<OidcMetadata>;
 }
 
 export interface ClientConfigGenerated {

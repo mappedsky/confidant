@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from flask import blueprints
 from flask import jsonify
 
@@ -8,6 +10,36 @@ from confidant.utils import misc
 blueprint = blueprints.Blueprint("identity", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
+
+
+def _build_oidc_config():
+    if not settings.OIDC_AUTHORITY:
+        return None
+
+    authority = settings.OIDC_AUTHORITY.rstrip("/")
+    authority_url = urlparse(authority)
+    authority_origin = f"{authority_url.scheme}://{authority_url.netloc}"
+    authority_path = authority_url.path.rstrip("/")
+    authorize_endpoint = f"{authority_origin}/application/o/authorize/"
+    token_endpoint = f"{authority_origin}/application/o/token/"
+    userinfo_endpoint = f"{authority_origin}/application/o/userinfo/"
+    jwks_uri = settings.JWKS_URL or f"{authority_origin}{authority_path}/jwks/"
+    end_session_endpoint = f"{authority_origin}{authority_path}/end-session/"
+    metadata = {
+        "issuer": authority,
+        "authorization_endpoint": authorize_endpoint,
+        "token_endpoint": token_endpoint,
+        "userinfo_endpoint": userinfo_endpoint,
+        "jwks_uri": jwks_uri,
+        "end_session_endpoint": end_session_endpoint,
+    }
+    return {
+        "authority": authority,
+        "client_id": settings.OIDC_CLIENT_ID,
+        "redirect_uri": settings.OIDC_REDIRECT_URI,
+        "scope": settings.OIDC_SCOPE,
+        "metadata": metadata,
+    }
 
 
 @blueprint.route("/v1/login", methods=["GET", "POST"])
@@ -22,18 +54,10 @@ def login():
 
 @blueprint.route("/v1/auth_config", methods=["GET"])
 def get_auth_config():
-    oidc_config = None
-    if settings.OIDC_AUTHORITY:
-        oidc_config = {
-            "authority": settings.OIDC_AUTHORITY,
-            "client_id": settings.OIDC_CLIENT_ID,
-            "redirect_uri": settings.OIDC_REDIRECT_URI,
-            "scope": settings.OIDC_SCOPE,
-        }
     return jsonify(
         {
             "auth_required": settings.USE_AUTH,
-            "oidc": oidc_config,
+            "oidc": _build_oidc_config(),
         }
     )
 
@@ -100,16 +124,7 @@ def get_client_config():
             "defined": settings.CLIENT_CONFIG,
             "generated": {
                 "auth_required": settings.USE_AUTH,
-                "oidc": (
-                    {
-                        "authority": settings.OIDC_AUTHORITY,
-                        "client_id": settings.OIDC_CLIENT_ID,
-                        "redirect_uri": settings.OIDC_REDIRECT_URI,
-                        "scope": settings.OIDC_SCOPE,
-                    }
-                    if settings.OIDC_AUTHORITY
-                    else None
-                ),
+                "oidc": _build_oidc_config(),
                 "xsrf_cookie_name": "",
                 "maintenance_mode": settings.MAINTENANCE_MODE,
                 "history_page_limit": settings.HISTORY_PAGE_LIMIT,
