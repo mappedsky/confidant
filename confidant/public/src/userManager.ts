@@ -17,14 +17,17 @@ function localizeDevOidcMetadata(metadata?: Partial<OidcMetadata>): Partial<Oidc
   const localized: Partial<OidcMetadata> = { ...metadata };
   type OidcEndpointKey = Exclude<
     keyof OidcMetadata,
-    'issuer' | 'response_types_supported' | 'subject_types_supported' | 'id_token_signing_alg_values_supported'
+    | 'issuer'
+    | 'authorization_endpoint'
+    | 'end_session_endpoint'
+    | 'response_types_supported'
+    | 'subject_types_supported'
+    | 'id_token_signing_alg_values_supported'
   >;
   const endpointKeys: OidcEndpointKey[] = [
-    'authorization_endpoint',
     'token_endpoint',
     'userinfo_endpoint',
     'jwks_uri',
-    'end_session_endpoint',
     'revocation_endpoint',
     'introspection_endpoint',
     'registration_endpoint',
