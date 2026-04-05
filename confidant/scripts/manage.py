@@ -8,7 +8,6 @@ from confidant.scripts.bootstrap import generate_secrets_bootstrap
 from confidant.scripts.migrate import (
     migrate_group_set_attribute,
 )
-from confidant.scripts.migrate_bool import migrate_boolean_attribute
 from confidant.scripts.restore import restore_secrets
 from confidant.scripts.utils import create_dynamodb_tables
 
@@ -27,7 +26,6 @@ manager.command("generate_secrets_bootstrap")(generate_secrets_bootstrap)
 manager.command("decrypt_secrets_bootstrap")(decrypt_secrets_bootstrap)
 manager.command("create_dynamodb_tables")(create_dynamodb_tables)
 manager.command("migrate_group_set_attribute")(migrate_group_set_attribute)
-manager.command("migrate_boolean_attribute")(migrate_boolean_attribute)
 manager.command("archive_secrets")(archive_secrets)
 manager.command("restore_secrets")(restore_secrets)
 

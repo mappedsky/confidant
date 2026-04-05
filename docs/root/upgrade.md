@@ -51,15 +51,6 @@ data migration, the data is still compatible with 3.0.0, but not below this.
 
 ### Peforming the data migration for 4.0.0
 
-Confidant 4.0.0 ships with a maintenance script for the data migration:
-
-```bash
-cd /srv/confidant
-source venv/bin/activate
-
-# Encrypt the data
-python manage.py migrate_boolean_attribute
-```
-
-This script may fail intermittently. If any failures are occur, retry the
-script until all objects are fully migrated.
+Confidant 4.0.0 originally shipped with a maintenance script for the data
+migration, but that script has since been removed from the current codebase.
+This section is kept only for historical upgrade context.
