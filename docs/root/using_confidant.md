@@ -62,7 +62,6 @@ secrets and groups, but it's also possible to use a regex filter instead.
 
 The history view can be used to explore changes in secrets or groups. The
 left panel of the history view shows a list of changes, sorted by date.
-Clicking on any revision in the left panel will bring up a diff view in the
-right panel. In the diff view, you can navigate to older or newer revisions of
-the selected resource, or you can revert to a revision of the selected
-resource.
+Clicking on any revision in the left panel will bring up that revision in the
+right panel. From there, you can inspect the selected revision and revert to
+it if needed.
