@@ -357,17 +357,17 @@ AWS_DEFAULT_REGION = str_env("AWS_DEFAULT_REGION", "us-east-1")
 # GEVENT_RESOLVER='ares'
 
 MAXIMUM_ROTATION_DAYS = int_env("MAXIMUM_ROTATION_DAYS")
-# Credentials can be "tagged" (eg: FINANCIALLY_SENSITIVE or ADMIN_PRIV)
+# Secrets can be "tagged" (eg: FINANCIALLY_SENSITIVE or ADMIN_PRIV)
 # Certain tags might never need to be rotated
 TAGS_EXCLUDING_ROTATION = json.loads(str_env("TAGS_EXCLUDING_ROTATION", "[]"))
-# Credentials with different tags might have different rotation schedules
+# Secrets with different tags might have different rotation schedules
 # We use this config to specify how many days each type of credential should
 # be rotated
 ROTATION_DAYS_CONFIG = json.loads(str_env("ROTATION_DAYS_CONFIG", "{}"))
 
 # If this is eanbled, update credential.last_decrypted_date
 # when credential.credential_pairs is sent back to the client
-# in GET /v1/credentials/<ID> to keep track of when a human
+# in GET /v1/secrets/<ID> to keep track of when a human
 # last saw a credential pair
 ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env("ENABLE_SAVE_LAST_DECRYPTION_TIME")
 

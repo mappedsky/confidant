@@ -1,17 +1,18 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
+from pynamodb.attributes import BinaryAttribute
+from pynamodb.attributes import BooleanAttribute
+from pynamodb.attributes import JSONAttribute
+from pynamodb.attributes import ListAttribute
+from pynamodb.attributes import NumberAttribute
+from pynamodb.attributes import UnicodeAttribute
+from pynamodb.attributes import UTCDateTimeAttribute
+from pynamodb.indexes import AllProjection
+from pynamodb.indexes import GlobalSecondaryIndex
 from pynamodb.models import Model
-from pynamodb.attributes import (
-    UnicodeAttribute,
-    NumberAttribute,
-    BooleanAttribute,
-    UTCDateTimeAttribute,
-    BinaryAttribute,
-    JSONAttribute,
-    ListAttribute
-)
-from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 
 from confidant import settings
 from confidant.services import keymanager
@@ -23,6 +24,7 @@ class DataTypeDateIndex(GlobalSecondaryIndex):
         projection = AllProjection()
         read_capacity_units = 10
         write_capacity_units = 10
+
     data_type = UnicodeAttribute(hash_key=True)
     modified_date = UTCDateTimeAttribute(range_key=True)
 
@@ -32,16 +34,17 @@ class ArchiveDataTypeDateIndex(GlobalSecondaryIndex):
         projection = AllProjection()
         read_capacity_units = 10
         write_capacity_units = 10
+
     data_type = UnicodeAttribute(hash_key=True)
     modified_date = UTCDateTimeAttribute(range_key=True)
 
 
-class CredentialBase(Model):
+class SecretBase(Model):
     id = UnicodeAttribute(hash_key=True)
     revision = NumberAttribute()
     data_type = UnicodeAttribute()
     name = UnicodeAttribute()
-    credential_pairs = UnicodeAttribute()
+    secret_pairs = UnicodeAttribute()
     enabled = BooleanAttribute(default=True)
     data_key = BinaryAttribute(legacy_encoding=False)
     # TODO: add cipher_type
@@ -56,7 +59,7 @@ class CredentialBase(Model):
     last_rotation_date = UTCDateTimeAttribute(null=True)
 
 
-class Credential(CredentialBase):
+class Secret(SecretBase):
     class Meta:
         table_name = settings.DYNAMODB_TABLE
         if settings.DYNAMODB_URL:
@@ -71,7 +74,9 @@ class Credential(CredentialBase):
     def equals(self, other_cred):
         if self.name != other_cred.name:
             return False
-        if self.decrypted_credential_pairs != other_cred.decrypted_credential_pairs:  # noqa:E501
+        if (
+            self.decrypted_secret_pairs != other_cred.decrypted_secret_pairs
+        ):  # noqa:E501
             return False
         if self.metadata != other_cred.metadata:
             return False
@@ -94,41 +99,41 @@ class Credential(CredentialBase):
             new = other_cred
         diff = {}
         if old.name != new.name:
-            diff['name'] = {'added': new.name, 'removed': old.name}
-        old_cred_pairs = old.decrypted_credential_pairs
-        new_cred_pairs = new.decrypted_credential_pairs
+            diff["name"] = {"added": new.name, "removed": old.name}
+        old_cred_pairs = old.decrypted_secret_pairs
+        new_cred_pairs = new.decrypted_secret_pairs
         if old_cred_pairs != new_cred_pairs:
-            diff['credential_pairs'] = self._diff_dict(
+            diff["secret_pairs"] = self._diff_dict(
                 old_cred_pairs,
-                new_cred_pairs
+                new_cred_pairs,
             )
         if old.metadata != new.metadata:
-            diff['metadata'] = self._diff_dict(old.metadata, new.metadata)
+            diff["metadata"] = self._diff_dict(old.metadata, new.metadata)
         if old.enabled != new.enabled:
-            diff['enabled'] = {'added': new.enabled, 'removed': old.enabled}
+            diff["enabled"] = {"added": new.enabled, "removed": old.enabled}
         if old.documentation != new.documentation:
-            diff['documentation'] = {
-                'added': new.documentation,
-                'removed': old.documentation
+            diff["documentation"] = {
+                "added": new.documentation,
+                "removed": old.documentation,
             }
         if set(old.tags) != set(new.tags):
-            diff['tags'] = {
-                'added': list(set(new.tags) - set(old.tags)),
-                'removed': list(set(old.tags) - set(new.tags)),
+            diff["tags"] = {
+                "added": list(set(new.tags) - set(old.tags)),
+                "removed": list(set(old.tags) - set(new.tags)),
             }
         if old.last_rotation_date != new.last_rotation_date:
-            diff['last_rotation_date'] = {
-                'added': new.last_rotation_date,
-                'removed': old.last_rotation_date
+            diff["last_rotation_date"] = {
+                "added": new.last_rotation_date,
+                "removed": old.last_rotation_date,
             }
 
-        diff['modified_by'] = {
-            'added': new.modified_by,
-            'removed': old.modified_by,
+        diff["modified_by"] = {
+            "added": new.modified_by,
+            "removed": old.modified_by,
         }
-        diff['modified_date'] = {
-            'added': new.modified_date,
-            'removed': old.modified_date,
+        diff["modified_date"] = {
+            "added": new.modified_date,
+            "removed": old.modified_date,
         }
         return diff
 
@@ -147,46 +152,47 @@ class Credential(CredentialBase):
             if key not in old:
                 added.append(key)
         if removed:
-            diff['removed'] = sorted(removed)
+            diff["removed"] = sorted(removed)
         if added:
-            diff['added'] = sorted(added)
+            diff["added"] = sorted(added)
         return diff
 
     @property
-    def credential_keys(self):
-        return list(self.decrypted_credential_pairs)
+    def secret_keys(self):
+        return list(self.decrypted_secret_pairs)
 
-    def _get_decrypted_credential_pairs(self):
-        if self.data_type == 'credential':
+    def _get_decrypted_secret_pairs(self):
+        if self.data_type == "secret":
             context = self.id
         else:
-            context = self.id.split('-')[0]
+            context = self.id.split("-")[0]
         data_key = keymanager.decrypt_datakey(
-            self.data_key,
-            encryption_context={'id': context}
+            self.data_key, encryption_context={"id": context}
         )
         cipher_version = self.cipher_version
         cipher = CipherManager(data_key, cipher_version)
-        _credential_pairs = cipher.decrypt(self.credential_pairs)
-        _credential_pairs = json.loads(_credential_pairs)
-        return _credential_pairs
+        _secret_pairs = cipher.decrypt(self.secret_pairs)
+        _secret_pairs = json.loads(_secret_pairs)
+        return _secret_pairs
 
     @property
     def next_rotation_date(self):
         """
-        Return when a credential needs to be rotated for security purposes.
+        Return when a secret needs to be rotated for security purposes.
         """
-        # Some credentials never need to be rotated
+        # Some secrets never need to be rotated
         if self.exempt_from_rotation:
             return None
 
-        # If a credential has never been rotated or been decrypted,
+        # If a secret has never been rotated or been decrypted,
         # immediately rotate
         if self.last_rotation_date is None:
             return datetime.now(timezone.utc)
 
-        if (self.last_decrypted_date and
-                self.last_decrypted_date > self.last_rotation_date):
+        if (
+            self.last_decrypted_date
+            and self.last_decrypted_date > self.last_rotation_date
+        ):
             return self.last_decrypted_date
 
         days = settings.MAXIMUM_ROTATION_DAYS
@@ -201,36 +207,36 @@ class Credential(CredentialBase):
     @property
     def exempt_from_rotation(self):
         """
-        Credentials with certain tags can be exempt from rotation
+        Secrets with certain tags can be exempt from rotation
         """
         return len(set(self.tags) & set(settings.TAGS_EXCLUDING_ROTATION)) > 0
 
     @property
-    def decrypted_credential_pairs(self):
-        return self._get_decrypted_credential_pairs()
+    def decrypted_secret_pairs(self):
+        return self._get_decrypted_secret_pairs()
 
     @classmethod
-    def from_archive_credential(cls, archive_credential):
-        return Credential(
-            id=archive_credential.id,
-            revision=archive_credential.revision,
-            data_type=archive_credential.data_type,
-            name=archive_credential.name,
-            credential_pairs=archive_credential.credential_pairs,
-            enabled=archive_credential.enabled,
-            data_key=archive_credential.data_key,
-            cipher_version=archive_credential.cipher_version,
-            metadata=archive_credential.metadata,
-            modified_date=archive_credential.modified_date,
-            modified_by=archive_credential.modified_by,
-            documentation=archive_credential.documentation,
-            tags=archive_credential.tags,
-            last_decrypted_date=archive_credential.last_decrypted_date,
-            last_rotation_date=archive_credential.last_rotation_date,
+    def from_archive_secret(cls, archive_secret):
+        return Secret(
+            id=archive_secret.id,
+            revision=archive_secret.revision,
+            data_type=archive_secret.data_type,
+            name=archive_secret.name,
+            secret_pairs=archive_secret.secret_pairs,
+            enabled=archive_secret.enabled,
+            data_key=archive_secret.data_key,
+            cipher_version=archive_secret.cipher_version,
+            metadata=archive_secret.metadata,
+            modified_date=archive_secret.modified_date,
+            modified_by=archive_secret.modified_by,
+            documentation=archive_secret.documentation,
+            tags=archive_secret.tags,
+            last_decrypted_date=archive_secret.last_decrypted_date,
+            last_rotation_date=archive_secret.last_rotation_date,
         )
 
 
-class CredentialArchive(CredentialBase):
+class SecretArchive(SecretBase):
     class Meta:
         table_name = settings.DYNAMODB_TABLE_ARCHIVE
         if settings.DYNAMODB_URL:
@@ -244,21 +250,21 @@ class CredentialArchive(CredentialBase):
     data_type_date_index = ArchiveDataTypeDateIndex()
 
     @classmethod
-    def from_credential(cls, credential):
-        return CredentialArchive(
-            id=credential.id,
-            revision=credential.revision,
-            data_type=credential.data_type,
-            name=credential.name,
-            credential_pairs=credential.credential_pairs,
-            enabled=credential.enabled,
-            data_key=credential.data_key,
-            cipher_version=credential.cipher_version,
-            metadata=credential.metadata,
-            modified_date=credential.modified_date,
-            modified_by=credential.modified_by,
-            documentation=credential.documentation,
-            tags=credential.tags,
-            last_decrypted_date=credential.last_decrypted_date,
-            last_rotation_date=credential.last_rotation_date,
+    def from_secret(cls, secret):
+        return SecretArchive(
+            id=secret.id,
+            revision=secret.revision,
+            data_type=secret.data_type,
+            name=secret.name,
+            secret_pairs=secret.secret_pairs,
+            enabled=secret.enabled,
+            data_key=secret.data_key,
+            cipher_version=secret.cipher_version,
+            metadata=secret.metadata,
+            modified_date=secret.modified_date,
+            modified_by=secret.modified_by,
+            documentation=secret.documentation,
+            tags=secret.tags,
+            last_decrypted_date=secret.last_decrypted_date,
+            last_rotation_date=secret.last_rotation_date,
         )

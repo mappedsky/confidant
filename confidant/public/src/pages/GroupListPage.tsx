@@ -19,51 +19,41 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
-import { CredentialSummary } from '../types/api';
+import { GroupSummary } from '../types/api';
 import ActionsMenu from '../components/ActionsMenu';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { useAllCursorPages } from '../hooks/useAllCursorPages';
 
-export default function CredentialListPage() {
+export default function GroupListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
 
   const permissions = clientConfig?.generated?.permissions;
   const {
-    rows: credentials,
+    rows: groups,
     loading,
     error,
-  } = useAllCursorPages<CredentialSummary, { credentials: CredentialSummary[]; next_page?: string | null }>({
-    fetchPage: (page) => api.getCredentials({ page }),
-    getRows: (response) => response.credentials || [],
+  } = useAllCursorPages<GroupSummary, { groups: GroupSummary[]; next_page?: string | null }>({
+    fetchPage: (page) => api.getGroups({ page }),
+    getRows: (response) => response.groups || [],
   });
 
-  const columns: GridColDef<CredentialSummary>[] = [
-    {
-      field: 'name',
-      headerName: 'Name',
-      flex: 1,
-      minWidth: 220,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
-        <Link
-          component={RouterLink}
-          to={`/credentials/${params.row.id}`}
-          underline="hover"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {params.value || params.row.id}
-        </Link>
-      ),
-    },
+  const columns: GridColDef<GroupSummary>[] = [
     {
       field: 'id',
-      headerName: 'ID',
+      headerName: 'Group ID',
       flex: 1,
-      minWidth: 220,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+      minWidth: 240,
+      renderCell: (params: GridRenderCellParams<GroupSummary, string>) => (
+        <Link
+          component={RouterLink}
+          to={`/groups/${params.row.id}`}
+          underline="hover"
+          sx={{ fontFamily: 'monospace' }}
+          onClick={(event) => event.stopPropagation()}
+        >
           {params.value}
-        </Typography>
+        </Link>
       ),
     },
     {
@@ -91,10 +81,21 @@ export default function CredentialListPage() {
       align: 'left',
     },
     {
+      field: 'secrets',
+      headerName: 'Secrets',
+      width: 120,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<GroupSummary, string[]>) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.value?.length ?? 0}
+        </Typography>
+      ),
+    },
+    {
       field: 'modified_date',
       headerName: 'Modified',
       width: 190,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value ? new Date(params.value).toLocaleString() : '—'}
         </Typography>
@@ -105,7 +106,7 @@ export default function CredentialListPage() {
       headerName: 'Modified By',
       flex: 1,
       minWidth: 160,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value || '—'}
         </Typography>
@@ -119,18 +120,18 @@ export default function CredentialListPage() {
       filterable: false,
       disableColumnMenu: true,
       align: 'right',
-      renderCell: (params: GridRenderCellParams<CredentialSummary>) => (
+      renderCell: (params: GridRenderCellParams<GroupSummary>) => (
         <ActionsMenu
           items={[
             {
               label: 'View',
               icon: <VisibilityIcon fontSize="small" />,
-              onClick: () => navigate(`/credentials/${params.row.id}`),
+              onClick: () => navigate(`/groups/${params.row.id}`),
             },
             {
               label: 'History',
               icon: <HistoryIcon fontSize="small" />,
-              onClick: () => navigate(`/credentials/${params.row.id}/history`),
+              onClick: () => navigate(`/groups/${params.row.id}/history`),
             },
           ]}
         />
@@ -142,16 +143,16 @@ export default function CredentialListPage() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
-          Credentials
+          Groups
         </Typography>
-        {permissions?.credentials?.create && (
+        {permissions?.groups?.create && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/credentials/new')}
+            onClick={() => navigate('/groups/new')}
             sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
           >
-            New Credential
+            New Group
           </Button>
         )}
       </Box>
@@ -160,7 +161,7 @@ export default function CredentialListPage() {
 
       <Box sx={{ flex: 1, minHeight: 420 }}>
         <DataGrid
-          rows={credentials}
+          rows={groups}
           columns={columns}
           loading={loading}
           density="compact"

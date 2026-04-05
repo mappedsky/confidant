@@ -9,12 +9,12 @@ import { AuthConfigContext, type AuthConfig } from './authConfig.context';
 import Layout from './components/Layout';
 import { AuthConfigResponse, OidcConfig } from './types/api';
 import { createUserManager } from './userManager';
-import CredentialListPage from './pages/CredentialListPage';
-import CredentialDetailPage from './pages/CredentialDetailPage';
-import CredentialHistoryPage from './pages/CredentialHistoryPage';
-import ServiceListPage from './pages/ServiceListPage';
-import ServiceDetailPage from './pages/ServiceDetailPage';
-import ServiceHistoryPage from './pages/ServiceHistoryPage';
+import SecretListPage from './pages/SecretListPage';
+import SecretDetailPage from './pages/SecretDetailPage';
+import SecretHistoryPage from './pages/SecretHistoryPage';
+import GroupListPage from './pages/GroupListPage';
+import GroupDetailPage from './pages/GroupDetailPage';
+import GroupHistoryPage from './pages/GroupHistoryPage';
 
 type ColorScheme = 'light' | 'dark';
 
@@ -81,18 +81,18 @@ export default function App() {
                   <AppProvider>
                     <Layout>
                       <Routes>
-                        <Route path="/" element={<Navigate to="/credentials" replace />} />
-                        <Route path="/credentials" element={<CredentialListPage />} />
-                        <Route path="/credentials/new" element={<CredentialDetailPage />} />
-                        <Route path="/credentials/:id/history" element={<CredentialHistoryPage />} />
-                        <Route path="/credentials/:id/versions/:version" element={<CredentialDetailPage />} />
-                        <Route path="/credentials/:id" element={<CredentialDetailPage />} />
-                        <Route path="/services" element={<ServiceListPage />} />
-                        <Route path="/services/new" element={<ServiceDetailPage />} />
-                        <Route path="/services/:id/history" element={<ServiceHistoryPage />} />
-                        <Route path="/services/:id/versions/:version" element={<ServiceDetailPage />} />
-                        <Route path="/services/:id" element={<ServiceDetailPage />} />
-                        <Route path="*" element={<Navigate to="/credentials" replace />} />
+                        <Route path="/" element={<Navigate to="/secrets" replace />} />
+                        <Route path="/secrets" element={<SecretListPage />} />
+                        <Route path="/secrets/new" element={<SecretDetailPage />} />
+                        <Route path="/secrets/:id/history" element={<SecretHistoryPage />} />
+                        <Route path="/secrets/:id/versions/:version" element={<SecretDetailPage />} />
+                        <Route path="/secrets/:id" element={<SecretDetailPage />} />
+                        <Route path="/groups" element={<GroupListPage />} />
+                        <Route path="/groups/new" element={<GroupDetailPage />} />
+                        <Route path="/groups/:id/history" element={<GroupHistoryPage />} />
+                        <Route path="/groups/:id/versions/:version" element={<GroupDetailPage />} />
+                        <Route path="/groups/:id" element={<GroupDetailPage />} />
+                        <Route path="*" element={<Navigate to="/secrets" replace />} />
                       </Routes>
                     </Layout>
                   </AppProvider>

@@ -1,20 +1,16 @@
 import base64
 import logging
+from collections.abc import Iterable
+from collections.abc import Sequence
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
 
 import boto3
 from boto3.dynamodb.conditions import Attr
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import TypeSerializer
-from botocore.exceptions import ClientError
 
 from confidant import settings
 
@@ -45,14 +41,13 @@ def _normalize_item_value(value: Any) -> Any:
     if isinstance(value, (bytes, bytearray)):
         return base64.b64encode(bytes(value)).decode("UTF-8")
     if isinstance(value, dict):
-        normalized = {
-            _normalize_map_key(k): normalized_value
-            for k, child in value.items()
-            if (
-                (normalized_key := _normalize_map_key(k)) is not None
-                and (normalized_value := _normalize_item_value(child)) is not None
-            )
-        }
+        normalized = {}
+        for key, child in value.items():
+            normalized_key = _normalize_map_key(key)
+            normalized_value = _normalize_item_value(child)
+            if normalized_key is None or normalized_value is None:
+                continue
+            normalized[normalized_key] = normalized_value
         return normalized or None
     if isinstance(value, list):
         normalized = [
@@ -87,10 +82,9 @@ def _normalize_map_key(key: Any) -> Any:
     if key is None:
         return None
     return str(key)
-    return value
 
 
-def _serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
+def _serialize_item(item: dict[str, Any]) -> dict[str, Any]:
     return {
         key: _serializer.serialize(_normalize_item_value(value))
         for key, value in item.items()
@@ -110,20 +104,20 @@ def _tenant_prefix(tenant_id: str) -> str:
     return f"TENANT#{tenant_id}"
 
 
-def _credential_pk(tenant_id: str, credential_id: str) -> str:
-    return f"{_tenant_prefix(tenant_id)}#CREDENTIAL#{credential_id}"
+def _secret_pk(tenant_id: str, secret_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#SECRET#{secret_id}"
 
 
-def _credential_list_pk(tenant_id: str) -> str:
-    return f"{_tenant_prefix(tenant_id)}#CREDENTIAL_LIST"
+def _secret_list_pk(tenant_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#SECRET_LIST"
 
 
-def _service_pk(tenant_id: str, service_id: str) -> str:
-    return f"{_tenant_prefix(tenant_id)}#SERVICE#{service_id}"
+def _group_pk(tenant_id: str, group_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#GROUP#{group_id}"
 
 
-def _service_list_pk(tenant_id: str) -> str:
-    return f"{_tenant_prefix(tenant_id)}#SERVICE_LIST"
+def _group_list_pk(tenant_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#GROUP_LIST"
 
 
 def _version_sk(version: int) -> str:
@@ -157,19 +151,18 @@ def _get_client() -> Any:
 def _query_items(
     pk: str,
     *,
-    begins_with_sk: Optional[str] = None,
-    scan_index_forward: Optional[bool] = None,
-    limit: Optional[int] = None,
-    last_evaluated_key: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    begins_with_sk: str | None = None,
+    scan_index_forward: bool | None = None,
+    limit: int | None = None,
+    last_evaluated_key: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     table = _get_table()
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "KeyConditionExpression": Key("PK").eq(pk),
     }
     if begins_with_sk is not None:
-        kwargs["KeyConditionExpression"] = (
-            Key("PK").eq(pk) & Key("SK").begins_with(begins_with_sk)
-        )
+        key_condition = Key("PK").eq(pk) & Key("SK").begins_with(begins_with_sk)
+        kwargs["KeyConditionExpression"] = key_condition
     if scan_index_forward is not None:
         kwargs["ScanIndexForward"] = scan_index_forward
     if limit is not None:
@@ -179,16 +172,16 @@ def _query_items(
     return table.query(**kwargs)
 
 
-def _get_item(pk: str, sk: str) -> Optional[Dict[str, Any]]:
+def _get_item(pk: str, sk: str) -> dict[str, Any] | None:
     table = _get_table()
     resp = table.get_item(Key={"PK": pk, "SK": sk})
     return resp.get("Item")
 
 
-def _transact_put_items(items: Sequence[Dict[str, Any]]) -> None:
+def _transact_put_items(items: Sequence[dict[str, Any]]) -> None:
     transact_items = []
     for item in items:
-        put_item: Dict[str, Any] = {
+        put_item: dict[str, Any] = {
             "TableName": settings.DYNAMODB_TABLE,
             "Item": _serialize_item(item["Item"]),
         }
@@ -197,10 +190,10 @@ def _transact_put_items(items: Sequence[Dict[str, Any]]) -> None:
             put_item["ConditionExpression"] = condition
         expr_values = item.get("ExpressionAttributeValues")
         if expr_values:
-            put_item["ExpressionAttributeValues"] = {
-                key: _serialize_native(value)
-                for key, value in expr_values.items()
-            }
+            serialized_values = {}
+            for key, value in expr_values.items():
+                serialized_values[key] = _serialize_native(value)
+            put_item["ExpressionAttributeValues"] = serialized_values
         expr_names = item.get("ExpressionAttributeNames")
         if expr_names:
             put_item["ExpressionAttributeNames"] = expr_names
@@ -209,14 +202,14 @@ def _transact_put_items(items: Sequence[Dict[str, Any]]) -> None:
 
 
 def _update_item(
-    key: Dict[str, str],
+    key: dict[str, str],
     *,
     update_expression: str,
-    expression_attribute_values: Dict[str, Any],
-    expression_attribute_names: Optional[Dict[str, str]] = None,
+    expression_attribute_values: dict[str, Any],
+    expression_attribute_names: dict[str, str] | None = None,
 ) -> None:
     table = _get_table()
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "Key": key,
         "UpdateExpression": update_expression,
         "ExpressionAttributeValues": expression_attribute_values,
@@ -253,95 +246,95 @@ class DynamoDBConfidantStore:
                 extra={"table": table_name},
             )
 
-    def list_credentials(
+    def list_secrets(
         self,
         tenant_id: str,
-        limit: Optional[int] = None,
-        last_evaluated_key: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        limit: int | None = None,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         return _query_items(
-            _credential_list_pk(tenant_id),
+            _secret_list_pk(tenant_id),
             scan_index_forward=False,
             limit=limit,
             last_evaluated_key=last_evaluated_key,
         )
 
-    def list_services(
+    def list_groups(
         self,
         tenant_id: str,
-        limit: Optional[int] = None,
-        last_evaluated_key: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        limit: int | None = None,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         return _query_items(
-            _service_list_pk(tenant_id),
+            _group_list_pk(tenant_id),
             scan_index_forward=False,
             limit=limit,
             last_evaluated_key=last_evaluated_key,
         )
 
-    def get_credential_metadata(
+    def get_secret_metadata(
         self,
         tenant_id: str,
-        credential_id: str,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_credential_pk(tenant_id, credential_id), _SK_METADATA)
+        secret_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_secret_pk(tenant_id, secret_id), _SK_METADATA)
 
-    def get_credential_latest(
+    def get_secret_latest(
         self,
         tenant_id: str,
-        credential_id: str,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_credential_pk(tenant_id, credential_id), _SK_LATEST)
+        secret_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_secret_pk(tenant_id, secret_id), _SK_LATEST)
 
-    def get_credential_version(
+    def get_secret_version(
         self,
         tenant_id: str,
-        credential_id: str,
+        secret_id: str,
         version: int,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_credential_pk(tenant_id, credential_id), _version_sk(version))
+    ) -> dict[str, Any] | None:
+        return _get_item(_secret_pk(tenant_id, secret_id), _version_sk(version))
 
-    def list_credential_versions(
+    def list_secret_versions(
         self,
         tenant_id: str,
-        credential_id: str,
-    ) -> List[Dict[str, Any]]:
+        secret_id: str,
+    ) -> list[dict[str, Any]]:
         resp = _query_items(
-            _credential_pk(tenant_id, credential_id),
+            _secret_pk(tenant_id, secret_id),
             begins_with_sk="VERSION#",
             scan_index_forward=False,
         )
         return resp.get("Items", [])
 
-    def get_service_metadata(
+    def get_group_metadata(
         self,
         tenant_id: str,
-        service_id: str,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_service_pk(tenant_id, service_id), _SK_METADATA)
+        group_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_group_pk(tenant_id, group_id), _SK_METADATA)
 
-    def get_service_latest(
+    def get_group_latest(
         self,
         tenant_id: str,
-        service_id: str,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_service_pk(tenant_id, service_id), _SK_LATEST)
+        group_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_group_pk(tenant_id, group_id), _SK_LATEST)
 
-    def get_service_version(
+    def get_group_version(
         self,
         tenant_id: str,
-        service_id: str,
+        group_id: str,
         version: int,
-    ) -> Optional[Dict[str, Any]]:
-        return _get_item(_service_pk(tenant_id, service_id), _version_sk(version))
+    ) -> dict[str, Any] | None:
+        return _get_item(_group_pk(tenant_id, group_id), _version_sk(version))
 
-    def list_service_versions(
+    def list_group_versions(
         self,
         tenant_id: str,
-        service_id: str,
-    ) -> List[Dict[str, Any]]:
+        group_id: str,
+    ) -> list[dict[str, Any]]:
         resp = _query_items(
-            _service_pk(tenant_id, service_id),
+            _group_pk(tenant_id, group_id),
             begins_with_sk="VERSION#",
             scan_index_forward=False,
         )
@@ -349,27 +342,29 @@ class DynamoDBConfidantStore:
 
     def put_version_bundle(
         self,
-        items: Sequence[Dict[str, Any]],
+        items: Sequence[dict[str, Any]],
     ) -> None:
         _transact_put_items(items)
 
-    def update_credential_last_decrypted_date(
+    def update_secret_last_decrypted_date(
         self,
         tenant_id: str,
-        credential_id: str,
+        secret_id: str,
         last_decrypted_date: str,
     ) -> None:
         update_expression = "SET #last_decrypted_date = :last_decrypted_date"
-        expression_attribute_names = {"#last_decrypted_date": "last_decrypted_date"}
+        expression_attribute_names = {
+            "#last_decrypted_date": "last_decrypted_date",
+        }
         expression_attribute_values = {
             ":last_decrypted_date": last_decrypted_date,
         }
         keys = [
-            {"PK": _credential_pk(tenant_id, credential_id), "SK": _SK_METADATA},
-            {"PK": _credential_pk(tenant_id, credential_id), "SK": _SK_LATEST},
+            {"PK": _secret_pk(tenant_id, secret_id), "SK": _SK_METADATA},
+            {"PK": _secret_pk(tenant_id, secret_id), "SK": _SK_LATEST},
             {
-                "PK": _credential_list_pk(tenant_id),
-                "SK": f"CREDENTIAL#{credential_id}",
+                "PK": _secret_list_pk(tenant_id),
+                "SK": f"SECRET#{secret_id}",
             },
         ]
         for key in keys:
@@ -380,10 +375,10 @@ class DynamoDBConfidantStore:
                 expression_attribute_names=expression_attribute_names,
             )
 
-    def delete_credential(self, tenant_id: str, credential_id: str) -> None:
+    def delete_secret(self, tenant_id: str, secret_id: str) -> None:
         table = _get_table()
         resp = _query_items(
-            _credential_pk(tenant_id, credential_id),
+            _secret_pk(tenant_id, secret_id),
             scan_index_forward=False,
         )
         for item in resp.get("Items", []):
@@ -391,15 +386,15 @@ class DynamoDBConfidantStore:
 
         table.delete_item(
             Key={
-                "PK": _credential_list_pk(tenant_id),
-                "SK": f"CREDENTIAL#{credential_id}",
+                "PK": _secret_list_pk(tenant_id),
+                "SK": f"SECRET#{secret_id}",
             }
         )
 
-    def delete_service(self, tenant_id: str, service_id: str) -> None:
+    def delete_group(self, tenant_id: str, group_id: str) -> None:
         table = _get_table()
         resp = _query_items(
-            _service_pk(tenant_id, service_id),
+            _group_pk(tenant_id, group_id),
             scan_index_forward=False,
         )
         for item in resp.get("Items", []):
@@ -407,41 +402,41 @@ class DynamoDBConfidantStore:
 
         table.delete_item(
             Key={
-                "PK": _service_list_pk(tenant_id),
-                "SK": f"SERVICE#{service_id}",
+                "PK": _group_list_pk(tenant_id),
+                "SK": f"GROUP#{group_id}",
             }
         )
 
-    def list_current_credentials_for_service(
+    def list_current_secrets_for_group(
         self,
         tenant_id: str,
-        credential_ids: Iterable[str],
-    ) -> List[Dict[str, Any]]:
+        secret_ids: Iterable[str],
+    ) -> list[dict[str, Any]]:
         items = []
-        for credential_id in credential_ids:
-            item = self.get_credential_latest(tenant_id, credential_id)
+        for secret_id in secret_ids:
+            item = self.get_secret_latest(tenant_id, secret_id)
             if item:
                 items.append(item)
         return items
 
-    def list_services_for_credential(
+    def list_groups_for_secret(
         self,
         tenant_id: str,
-        credential_id: str,
-    ) -> List[Dict[str, Any]]:
-        resp = self.list_services(tenant_id)
-        services = []
+        secret_id: str,
+    ) -> list[dict[str, Any]]:
+        resp = self.list_groups(tenant_id)
+        groups = []
         for item in resp.get("Items", []):
-            credentials = item.get("credentials", [])
-            if credential_id in credentials:
-                services.append(item)
-        return services
+            secrets = item.get("secrets", [])
+            if secret_id in secrets:
+                groups.append(item)
+        return groups
 
-    def scan_service_list_items(self) -> List[Dict[str, Any]]:
+    def scan_group_list_items(self) -> list[dict[str, Any]]:
         table = _get_table()
         resp = table.scan(
             FilterExpression=Attr("PK").begins_with("TENANT#")
-            & Attr("SK").begins_with("SERVICE#"),
+            & Attr("SK").begins_with("GROUP#"),
         )
         return resp.get("Items", [])
 

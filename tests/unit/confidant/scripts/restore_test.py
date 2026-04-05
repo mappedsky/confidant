@@ -1,17 +1,16 @@
-from datetime import datetime, timedelta
-import pytest
-from pytest_mock.plugin import MockerFixture
-from typing import Dict, List
+from datetime import datetime
+from datetime import timedelta
 from unittest.mock import MagicMock
-from click.testing import CliRunner
 
-from confidant.models.credential import Credential, CredentialArchive
-from confidant.scripts.restore import (
-    restore_credentials,
-    credential_exists,
-    save_credentials,
-    restore_logic
-)
+import pytest
+from click.testing import CliRunner
+from pytest_mock.plugin import MockerFixture
+
+from confidant.models.secret import Secret
+from confidant.models.secret import SecretArchive
+from confidant.scripts.restore import restore_logic
+from confidant.scripts.restore import restore_secrets
+from confidant.scripts.restore import save_secrets
 
 
 @pytest.fixture
@@ -26,199 +25,193 @@ def old_date() -> datetime:
 
 @pytest.fixture()
 def save_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch('confidant.scripts.restore.save_credentials')
+    return mocker.patch("confidant.scripts.restore.save_secrets")
 
 
 @pytest.fixture()
 def restore_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch('confidant.scripts.restore.restore_logic')
+    return mocker.patch("confidant.scripts.restore.restore_logic")
 
 
 @pytest.fixture
-def credentials(
-    mocker: MockerFixture,
-    now: datetime
-) -> Dict[str, List[Credential]]:
-    archive_credential = CredentialArchive(
-        id='1234',
-        name='test',
-        data_type='credential',
+def secrets(mocker: MockerFixture, now: datetime) -> dict[str, list[Secret]]:
+    archive_secret = SecretArchive(
+        id="1234",
+        name="test",
+        data_type="secret",
         revision=2,
         enabled=True,
         modified_date=now,
-        modified_by='test@example.com',
+        modified_by="test@example.com",
     )
-    credential = Credential.from_archive_credential(archive_credential)
-    archive_revision1 = CredentialArchive(
-        id='1234-1',
-        name='test revision1',
-        data_type='archive-credential',
+    secret = Secret.from_archive_secret(archive_secret)
+    archive_revision1 = SecretArchive(
+        id="1234-1",
+        name="test revision1",
+        data_type="archive-secret",
         revision=1,
         enabled=True,
         modified_date=now,
-        modified_by='test@example.com',
+        modified_by="test@example.com",
     )
-    revision1 = Credential.from_archive_credential(archive_revision1)
-    archive_revision2 = Credential(
-        id='1234-2',
-        name='test revision2',
-        data_type='archive-credential',
+    revision1 = Secret.from_archive_secret(archive_revision1)
+    archive_revision2 = Secret(
+        id="1234-2",
+        name="test revision2",
+        data_type="archive-secret",
         revision=2,
         enabled=True,
         modified_date=now,
-        modified_by='test@example.com',
+        modified_by="test@example.com",
     )
-    revision2 = Credential.from_archive_credential(archive_revision2)
+    revision2 = Secret.from_archive_secret(archive_revision2)
 
-    def from_archive_credential(archive_credential: CredentialArchive):
-        if archive_credential.id == '1234':
-            return credential
-        elif archive_credential.id == '1234-1':
+    def from_archive_secret(archive_secret: SecretArchive):
+        if archive_secret.id == "1234":
+            return secret
+        elif archive_secret.id == "1234-1":
             return revision1
-        elif archive_credential.id == '1234-2':
+        elif archive_secret.id == "1234-2":
             return revision2
 
-    mocker.patch.object(
-        Credential,
-        'from_archive_credential',
-        from_archive_credential
-    )
+    mocker.patch.object(Secret, "from_archive_secret", from_archive_secret)
     return {
-        'credentials': [credential],
-        'archive_credentials': [archive_credential],
-        'revisions': [revision1, revision2],
-        'archive_revisions': [archive_revision1, archive_revision2],
+        "secrets": [secret],
+        "archive_secrets": [archive_secret],
+        "revisions": [revision1, revision2],
+        "archive_revisions": [archive_revision1, archive_revision2],
     }
 
 
 @pytest.fixture
-def old_disabled_credentials(
-    credentials: Dict[str, List[Credential]],
-    old_date: datetime
-) -> Dict[str, List[Credential]]:
-    for credential in credentials['credentials']:
-        credential.modified_date = old_date
-        credential.enabled = False
-    for credential in credentials['archive_credentials']:
-        credential.modified_date = old_date
-        credential.enabled = False
-    for revision in credentials['revisions']:
+def old_disabled_secrets(
+    secrets: dict[str, list[Secret]], old_date: datetime
+) -> dict[str, list[Secret]]:
+    for secret in secrets["secrets"]:
+        secret.modified_date = old_date
+        secret.enabled = False
+    for secret in secrets["archive_secrets"]:
+        secret.modified_date = old_date
+        secret.enabled = False
+    for revision in secrets["revisions"]:
         revision.modified_date = old_date
         revision.enabled = False
-    for revision in credentials['archive_revisions']:
+    for revision in secrets["archive_revisions"]:
         revision.modified_date = old_date
         revision.enabled = False
-    return credentials
+    return secrets
 
 
-def test_save(mocker: MockerFixture, credentials: Dict[str, List[Credential]]):
-    save_mock = mocker.patch('pynamodb.models.BatchWrite.save')
-    mocker.patch('pynamodb.models.BatchWrite.commit')
+def test_save(mocker: MockerFixture, secrets: dict[str, list[Secret]]):
+    save_mock = mocker.patch("pynamodb.models.BatchWrite.save")
+    mocker.patch("pynamodb.models.BatchWrite.commit")
     mocker.patch(
-        'confidant.scripts.restore.credential_exists',
+        "confidant.scripts.restore.secret_exists",
         return_value=True,
     )
-    save_credentials(credentials['credentials'], force=True)
+    save_secrets(secrets["secrets"], force=True)
     assert save_mock.called is False
 
     mocker.patch(
-        'confidant.scripts.restore.credential_exists',
+        "confidant.scripts.restore.secret_exists",
         return_value=False,
     )
-    save_credentials(credentials['credentials'], force=False)
+    save_secrets(secrets["secrets"], force=False)
     assert save_mock.called is False
 
-    save_credentials(credentials['credentials'], force=True)
+    save_secrets(secrets["secrets"], force=True)
     assert save_mock.called is True
 
 
-def test_restore_credentials(
+def test_restore_secrets(
     mocker: MockerFixture,
-    old_disabled_credentials: Dict[str, List[Credential]],
+    old_disabled_secrets: dict[str, list[Secret]],
     save_mock: MagicMock,
 ):
     mocker.patch(
-        'confidant.scripts.restore.CredentialArchive.batch_get',
-        return_value=old_disabled_credentials['archive_revisions']
+        "confidant.scripts.restore.SecretArchive.batch_get",
+        return_value=old_disabled_secrets["archive_revisions"],
     )
-    restore_logic(old_disabled_credentials['archive_credentials'], force=True)
+    restore_logic(old_disabled_secrets["archive_secrets"], force=True)
 
     save_mock.assert_called_with(
-        old_disabled_credentials['credentials'] + old_disabled_credentials['revisions'],  # noqa:E501
+        old_disabled_secrets["secrets"]
+        + old_disabled_secrets["revisions"],  # noqa:E501
         force=True,
     )
 
 
-def test_restore_old_disabled_unmapped_credential_no_force(
+def test_restore_old_disabled_unmapped_secret_no_force(
     mocker: MockerFixture,
-    old_disabled_credentials: Dict[str, List[Credential]],
+    old_disabled_secrets: dict[str, list[Secret]],
     save_mock: MagicMock,
 ):
     mocker.patch(
-        'confidant.scripts.restore.CredentialArchive.batch_get',
-        return_value=old_disabled_credentials['archive_revisions']
+        "confidant.scripts.restore.SecretArchive.batch_get",
+        return_value=old_disabled_secrets["archive_revisions"],
     )
-    restore_logic(old_disabled_credentials['archive_credentials'], force=False)
+    restore_logic(old_disabled_secrets["archive_secrets"], force=False)
 
     save_mock.assert_called_with(
-        old_disabled_credentials['credentials'] + old_disabled_credentials['revisions'],  # noqa:E501
+        old_disabled_secrets["secrets"]
+        + old_disabled_secrets["revisions"],  # noqa:E501
         force=False,
     )
 
 
 def test_run_no_archive_table(mocker: MockerFixture):
     mocker.patch(
-        'confidant.scripts.restore.settings.DYNAMODB_TABLE_ARCHIVE',
+        "confidant.scripts.restore.settings.DYNAMODB_TABLE_ARCHIVE",
         None,
     )
     runner = CliRunner()
-    result = runner.invoke(restore_credentials, ['--all', '--force'])
+    result = runner.invoke(restore_secrets, ["--all", "--force"])
     assert result.exit_code == 1
 
 
 def test_run_bad_args(mocker: MockerFixture):
     runner = CliRunner()
-    result = runner.invoke(restore_credentials, ['--force'])
+    result = runner.invoke(restore_secrets, ["--force"])
     assert result.exit_code == 1
-    result = runner.invoke(restore_credentials, ['--all', '--ids', '1234', '--force'])
+    result = runner.invoke(
+        restore_secrets,
+        ["--all", "--ids", "1234", "--force"],
+    )
     assert result.exit_code == 1
 
 
 def test_run_all(
     mocker: MockerFixture,
-    credentials: Dict[str, List[Credential]],
+    secrets: dict[str, list[Secret]],
     restore_mock: MagicMock,
 ):
     mocker.patch(
-        'confidant.scripts.restore.CredentialArchive.data_type_date_index.query',  # noqa:E501
-        return_value=credentials['archive_credentials']
+        "confidant.scripts.restore.SecretArchive.data_type_date_index.query",
+        return_value=secrets["archive_secrets"],
     )
     runner = CliRunner()
-    runner.invoke(restore_credentials, ['--all', '--force'])
+    runner.invoke(restore_secrets, ["--all", "--force"])
     restore_mock.assert_called_with(
-        credentials['archive_credentials'],
+        secrets["archive_secrets"],
         force=True,
     )
 
 
 def test_run_ids(
     mocker: MockerFixture,
-    credentials: Dict[str, List[Credential]],
+    secrets: dict[str, list[Secret]],
     restore_mock: MagicMock,
 ):
     mocker.patch(
-        'confidant.scripts.restore.CredentialArchive.batch_get',
-        return_value=credentials['archive_credentials']
+        "confidant.scripts.restore.SecretArchive.batch_get",
+        return_value=secrets["archive_secrets"],
     )
-    cred_ids = [
-        cred.id for
-        cred in credentials['archive_credentials']
-    ]
-    ids = ','.join(cred_ids)
+    cred_ids = [cred.id for cred in secrets["archive_secrets"]]
+    ids = ",".join(cred_ids)
     runner = CliRunner()
-    runner.invoke(restore_credentials, ['--ids', ids, '--force'])
+    runner.invoke(restore_secrets, ["--ids", ids, "--force"])
 
     restore_mock.assert_called_with(
-        credentials['archive_credentials'],
+        secrets["archive_secrets"],
         force=True,
     )

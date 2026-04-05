@@ -1,17 +1,16 @@
 from datetime import datetime
 
+from pynamodb.attributes import BooleanAttribute
+from pynamodb.attributes import NumberAttribute
+from pynamodb.attributes import UnicodeAttribute
+from pynamodb.attributes import UTCDateTimeAttribute
+from pynamodb.indexes import AllProjection
+from pynamodb.indexes import GlobalSecondaryIndex
 from pynamodb.models import Model
-from pynamodb.attributes import (
-    UnicodeAttribute,
-    NumberAttribute,
-    UTCDateTimeAttribute,
-    BooleanAttribute
-)
-from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 
 from confidant import settings
 from confidant.models.non_null_unicode_set_attribute import (
-    NonNullUnicodeSetAttribute
+    NonNullUnicodeSetAttribute,
 )
 
 
@@ -20,11 +19,12 @@ class DataTypeDateIndex(GlobalSecondaryIndex):
         projection = AllProjection()
         read_capacity_units = 10
         write_capacity_units = 10
+
     data_type = UnicodeAttribute(hash_key=True)
     modified_date = UTCDateTimeAttribute(range_key=True)
 
 
-class Service(Model):
+class Group(Model):
     class Meta:
         table_name = settings.DYNAMODB_TABLE
         if settings.DYNAMODB_URL:
@@ -39,40 +39,40 @@ class Service(Model):
     data_type_date_index = DataTypeDateIndex()
     revision = NumberAttribute()
     enabled = BooleanAttribute(default=True)
-    credentials = NonNullUnicodeSetAttribute(default=set)
+    secrets = NonNullUnicodeSetAttribute(default=set)
     account = UnicodeAttribute(null=True)
     modified_date = UTCDateTimeAttribute(default=datetime.now)
     modified_by = UnicodeAttribute()
 
-    def equals(self, other_service):
-        if set(self.credentials) != set(other_service.credentials):
+    def equals(self, other_group):
+        if set(self.secrets) != set(other_group.secrets):
             return False
         return True
 
-    def diff(self, other_service):
-        if self.revision == other_service.revision:
+    def diff(self, other_group):
+        if self.revision == other_group.revision:
             return {}
-        elif self.revision > other_service.revision:
-            old = other_service
+        elif self.revision > other_group.revision:
+            old = other_group
             new = self
         else:
             old = self
-            new = other_service
+            new = other_group
         diff = {}
         if old.enabled != new.enabled:
-            diff['enabled'] = {'added': new.enabled, 'removed': old.enabled}
-        if set(old.credentials) != set(new.credentials):
-            diff['credentials'] = self._diff_list(
-                old.credentials,
-                new.credentials,
+            diff["enabled"] = {"added": new.enabled, "removed": old.enabled}
+        if set(old.secrets) != set(new.secrets):
+            diff["secrets"] = self._diff_list(
+                old.secrets,
+                new.secrets,
             )
-        diff['modified_by'] = {
-            'added': new.modified_by,
-            'removed': old.modified_by,
+        diff["modified_by"] = {
+            "added": new.modified_by,
+            "removed": old.modified_by,
         }
-        diff['modified_date'] = {
-            'added': new.modified_date,
-            'removed': old.modified_date,
+        diff["modified_date"] = {
+            "added": new.modified_date,
+            "removed": old.modified_date,
         }
         return diff
 
@@ -87,7 +87,7 @@ class Service(Model):
             if key not in old:
                 added.append(key)
         if removed:
-            diff['removed'] = sorted(removed)
+            diff["removed"] = sorted(removed)
         if added:
-            diff['added'] = sorted(added)
+            diff["added"] = sorted(added)
         return diff

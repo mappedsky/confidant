@@ -15,9 +15,9 @@ be reported as an issue in the github project.
 ### What an authenticated user can achieve
 
 1. A user can view all secrets.
-1. A user can view all secret to service mappings.
+1. A user can view all secret to group mappings.
 1. A user can create new revisions of a secret.
-1. A user can create new revisions of a service mapping.
+1. A user can create new revisions of a group mapping.
 
 ### What compromise of an authenticated user's computer can achieve
 
@@ -48,8 +48,8 @@ rather than directly accessible on the internet.
 ### What an attacker can achieve through compromise of the Confidant web server
 
 1. An attacker who successfully compromises the Confidant flask server has full
-   control of the service's IAM credentials and can read secrets, corrupt or
-   delete secrets, remap secrets to other services, manipulate web server logs,
+   control of the service's IAM secrets and can read secrets, corrupt or
+   delete secrets, remap secrets to other groups, manipulate web server logs,
    and modify KMS AUTH\_KEY grants.
 
 ## Service client threat model
@@ -89,6 +89,6 @@ could apply.
 
 1. An attacker with full DynamoDB access can delete or corrupt all service and
    secrets.
-1. An attacker with full DynamoDB access could map secrets to other services.
-1. An attacker with read DynamoDB access can read service mapping data and
+1. An attacker with full DynamoDB access could map secrets to other groups.
+1. An attacker with read DynamoDB access can read group mapping data and
    the metadata (friendly name, modified date, modified by, etc.) of secrets.

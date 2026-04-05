@@ -25,8 +25,8 @@ const DRAWER_WIDTH = 220;
 const APPBAR_HEIGHT = 80;
 
 const navItems = [
-  { label: 'Credentials', path: '/credentials', icon: <LockIcon /> },
-  { label: 'Services', path: '/services', icon: <SettingsIcon /> },
+  { label: 'Secrets', path: '/secrets', icon: <LockIcon /> },
+  { label: 'Groups', path: '/groups', icon: <SettingsIcon /> },
 ];
 
 interface LayoutProps {

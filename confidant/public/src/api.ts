@@ -2,14 +2,14 @@ import {
   ApiError,
   ApiErrorData,
   ClientConfigResponse,
-  CredentialDetail,
-  CredentialVersionsResponse,
-  CredentialsListResponse,
-  CredentialServicesResponse,
+  SecretDetail,
+  SecretVersionsResponse,
+  SecretsListResponse,
+  SecretGroupsResponse,
   GenerateValueResponse,
-  ServiceVersionsResponse,
-  ServicesListResponse,
-  ServiceDetail,
+  GroupVersionsResponse,
+  GroupsListResponse,
+  GroupDetail,
   UserEmailResponse,
 } from './types/api';
 
@@ -101,51 +101,51 @@ export const api = {
   getClientConfig: () => request<ClientConfigResponse>('/v1/client_config'),
   getUserEmail: () => request<UserEmailResponse>('/v1/user/email'),
 
-  getCredentials: (params?: CursorPageParams) =>
-    request<CredentialsListResponse>(withCursorParams('/v1/credentials', params)),
-  getCredential: (id: string, metadataOnly = true) =>
-    request<CredentialDetail>(`/v1/credentials/${id}?metadata_only=${metadataOnly}`),
-  createCredential: (data: unknown) =>
-    request<CredentialDetail>('/v1/credentials', {
+  getSecrets: (params?: CursorPageParams) =>
+    request<SecretsListResponse>(withCursorParams('/v1/secrets', params)),
+  getSecret: (id: string, metadataOnly = true) =>
+    request<SecretDetail>(`/v1/secrets/${id}?metadata_only=${metadataOnly}`),
+  createSecret: (data: unknown) =>
+    request<SecretDetail>('/v1/secrets', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateCredential: (id: string, data: unknown) =>
-    request<CredentialDetail>(`/v1/credentials/${id}`, {
+  updateSecret: (id: string, data: unknown) =>
+    request<SecretDetail>(`/v1/secrets/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  getCredentialServices: (id: string) =>
-    request<CredentialServicesResponse>(`/v1/credentials/${id}/services`),
-  getCredentialVersions: (id: string) =>
-    request<CredentialVersionsResponse>(`/v1/credentials/${id}/versions`),
-  getCredentialVersion: (id: string, version: number | string) =>
-    request<CredentialDetail>(`/v1/credentials/${id}/versions/${version}`),
-  restoreCredentialVersion: (id: string, version: number | string) =>
-    request<CredentialDetail>(`/v1/credentials/${id}/versions/${version}/restore`, {
+  getSecretGroups: (id: string) =>
+    request<SecretGroupsResponse>(`/v1/secrets/${id}/groups`),
+  getSecretVersions: (id: string) =>
+    request<SecretVersionsResponse>(`/v1/secrets/${id}/versions`),
+  getSecretVersion: (id: string, version: number | string) =>
+    request<SecretDetail>(`/v1/secrets/${id}/versions/${version}`),
+  restoreSecretVersion: (id: string, version: number | string) =>
+    request<SecretDetail>(`/v1/secrets/${id}/versions/${version}/restore`, {
       method: 'POST',
     }),
 
-  getServices: (params?: CursorPageParams) =>
-    request<ServicesListResponse>(withCursorParams('/v1/services', params)),
-  getService: (id: string) =>
-    request<ServiceDetail>(`/v1/services/${id}`),
-  createService: (id: string, data: unknown) =>
-    request<ServiceDetail>(`/v1/services/${id}`, {
+  getGroups: (params?: CursorPageParams) =>
+    request<GroupsListResponse>(withCursorParams('/v1/groups', params)),
+  getGroup: (id: string) =>
+    request<GroupDetail>(`/v1/groups/${id}`),
+  createGroup: (id: string, data: unknown) =>
+    request<GroupDetail>(`/v1/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  updateService: (id: string, data: unknown) =>
-    request<ServiceDetail>(`/v1/services/${id}`, {
+  updateGroup: (id: string, data: unknown) =>
+    request<GroupDetail>(`/v1/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  getServiceVersions: (id: string) =>
-    request<ServiceVersionsResponse>(`/v1/services/${id}/versions`),
-  getServiceVersion: (id: string, version: number | string) =>
-    request<ServiceDetail>(`/v1/services/${id}/versions/${version}`),
-  restoreServiceVersion: (id: string, version: number | string) =>
-    request<ServiceDetail>(`/v1/services/${id}/versions/${version}/restore`, {
+  getGroupVersions: (id: string) =>
+    request<GroupVersionsResponse>(`/v1/groups/${id}/versions`),
+  getGroupVersion: (id: string, version: number | string) =>
+    request<GroupDetail>(`/v1/groups/${id}/versions/${version}`),
+  restoreGroupVersion: (id: string, version: number | string) =>
+    request<GroupDetail>(`/v1/groups/${id}/versions/${version}/restore`, {
       method: 'POST',
     }),
   generateValue: () => request<GenerateValueResponse>('/v1/value_generator'),

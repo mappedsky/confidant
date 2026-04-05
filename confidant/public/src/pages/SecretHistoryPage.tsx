@@ -23,17 +23,17 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import ActionsMenu from '../components/ActionsMenu';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { api } from '../api';
-import { CredentialDetail, CredentialSummary } from '../types/api';
+import { SecretDetail, SecretSummary } from '../types/api';
 
 type RouteParams = {
   id?: string;
 };
 
-export default function CredentialHistoryPage() {
+export default function SecretHistoryPage() {
   const { id } = useParams<RouteParams>();
   const navigate = useNavigate();
-  const [versions, setVersions] = useState<CredentialSummary[]>([]);
-  const [currentCredential, setCurrentCredential] = useState<CredentialDetail | null>(null);
+  const [versions, setVersions] = useState<SecretSummary[]>([]);
+  const [currentSecret, setCurrentSecret] = useState<SecretDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function CredentialHistoryPage() {
 
   useEffect(() => {
     if (!id) {
-      setError('Missing credential ID.');
+      setError('Missing secret ID.');
       setLoading(false);
       return;
     }
@@ -49,20 +49,20 @@ export default function CredentialHistoryPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      api.getCredentialVersions(id),
-      api.getCredential(id, true),
+      api.getSecretVersions(id),
+      api.getSecret(id, true),
     ])
       .then(([history, current]) => {
         const sorted = [...(history.versions || [])].sort((a, b) => b.revision - a.revision);
         setVersions(sorted);
-        setCurrentCredential(current);
+        setCurrentSecret(current);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const latestRevision = currentCredential?.revision ?? versions[0]?.revision;
-  const canRestore = currentCredential?.permissions?.update ?? false;
+  const latestRevision = currentSecret?.revision ?? versions[0]?.revision;
+  const canRestore = currentSecret?.permissions?.update ?? false;
 
   const handleRestore = async (revision: number) => {
     if (!id) {
@@ -72,8 +72,8 @@ export default function CredentialHistoryPage() {
     setRestoreError(null);
     setRestoringRevision(revision);
     try {
-      await api.restoreCredentialVersion(id, revision);
-      navigate(`/credentials/${id}`);
+      await api.restoreSecretVersion(id, revision);
+      navigate(`/secrets/${id}`);
     } catch (err) {
       setRestoreError((err as Error).message);
     } finally {
@@ -81,18 +81,18 @@ export default function CredentialHistoryPage() {
     }
   };
 
-  const columns: GridColDef<CredentialSummary>[] = [
+  const columns: GridColDef<SecretSummary>[] = [
     {
       field: 'revision',
       headerName: 'Version',
       width: 150,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, number>) => {
+      renderCell: (params: GridRenderCellParams<SecretSummary, number>) => {
         const isCurrent = params.row.revision === latestRevision;
         return (
           <Stack direction="row" spacing={1} alignItems="center">
             <Link
               component={RouterLink}
-              to={`/credentials/${id}/versions/${params.row.revision}`}
+              to={`/secrets/${id}/versions/${params.row.revision}`}
               underline="hover"
               onClick={(event) => event.stopPropagation()}
             >
@@ -108,7 +108,7 @@ export default function CredentialHistoryPage() {
       headerName: 'Name',
       flex: 1,
       minWidth: 220,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Typography variant="body2">{params.value || params.row.id}</Typography>
       ),
     },
@@ -129,7 +129,7 @@ export default function CredentialHistoryPage() {
       field: 'modified_date',
       headerName: 'Saved',
       width: 190,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value ? new Date(params.value).toLocaleString() : '—'}
         </Typography>
@@ -140,7 +140,7 @@ export default function CredentialHistoryPage() {
       headerName: 'Author',
       flex: 1,
       minWidth: 180,
-      renderCell: (params: GridRenderCellParams<CredentialSummary, string>) => (
+      renderCell: (params: GridRenderCellParams<SecretSummary, string>) => (
         <Typography variant="body2" color="text.secondary">
           {params.value || '—'}
         </Typography>
@@ -154,13 +154,13 @@ export default function CredentialHistoryPage() {
       filterable: false,
       disableColumnMenu: true,
       align: 'right',
-      renderCell: (params: GridRenderCellParams<CredentialSummary>) => {
+      renderCell: (params: GridRenderCellParams<SecretSummary>) => {
         const isCurrent = params.row.revision === latestRevision;
         const restoreDisabled = restoringRevision !== null || isCurrent || !canRestore;
         const restoreTooltip = isCurrent
           ? 'This is already the current version.'
           : !canRestore
-            ? 'You do not have permission to restore this credential.'
+            ? 'You do not have permission to restore this secret.'
             : '';
 
         return (
@@ -169,7 +169,7 @@ export default function CredentialHistoryPage() {
               {
                 label: 'View',
                 icon: <VisibilityIcon fontSize="small" />,
-                onClick: () => navigate(`/credentials/${id}/versions/${params.row.revision}`),
+                onClick: () => navigate(`/secrets/${id}/versions/${params.row.revision}`),
               },
               {
                 label: restoringRevision === params.row.revision ? 'Restoring…' : 'Restore',
@@ -189,16 +189,16 @@ export default function CredentialHistoryPage() {
     <Box>
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/credentials/${id}`)}
+        onClick={() => navigate(`/secrets/${id}`)}
         sx={{ mb: 2 }}
       >
-        Back to Credential
+        Back to Secret
       </Button>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <HistoryIcon color="action" />
         <Typography variant="h5" fontWeight={600}>
-          Credential History{currentCredential?.name ? ` · ${currentCredential.name}` : ''}
+          Secret History{currentSecret?.name ? ` · ${currentSecret.name}` : ''}
         </Typography>
       </Box>
 

@@ -28,11 +28,11 @@ interface KeyValueTableProps {
   showValues?: boolean;
   editable?: boolean;
   onGenerate?: (idx: number) => void;
-  isCredentialPairs?: boolean;
+  isSecretPairs?: boolean;
 }
 
 /**
- * Reusable key/value pair table used for credential pairs and metadata.
+ * Reusable key/value pair table used for secret pairs and metadata.
  *
  * Props:
  *   rows         – array of { key, value }
@@ -40,7 +40,7 @@ interface KeyValueTableProps {
  *   showValues   – whether to show value column as plain text (vs masked)
  *   editable     – whether rows can be added/edited/deleted
  *   onGenerate   – optional (idx) => void — shows a generate button per row
- *   isCredentialPairs – if true, use "Key" / "Value" headers and mask values
+ *   isSecretPairs – if true, use "Key" / "Value" headers and mask values
  */
 export default function KeyValueTable({
   rows,
@@ -48,7 +48,7 @@ export default function KeyValueTable({
   showValues = false,
   editable = false,
   onGenerate,
-  isCredentialPairs = false,
+  isSecretPairs = false,
 }: KeyValueTableProps) {
   const handleKeyChange = (idx: number, key: string) => {
     onChange(rows.map((r, i) => (i === idx ? { ...r, key } : r)));
@@ -67,7 +67,7 @@ export default function KeyValueTable({
   };
 
   const maskValue = (val: string) => {
-    if (showValues || !isCredentialPairs) return val;
+    if (showValues || !isSecretPairs) return val;
     return '••••••••';
   };
 
@@ -116,7 +116,7 @@ export default function KeyValueTable({
                         value={row.value}
                         onChange={(e) => handleValueChange(idx, e.target.value)}
                         placeholder="value"
-                        type={isCredentialPairs && !showValues ? 'password' : 'text'}
+                        type={isSecretPairs && !showValues ? 'password' : 'text'}
                         variant="outlined"
                       />
                       {onGenerate && (
@@ -128,7 +128,7 @@ export default function KeyValueTable({
                       )}
                     </Box>
                   ) : (
-                    <Box component="span" sx={{ fontFamily: isCredentialPairs ? 'monospace' : undefined }}>
+                    <Box component="span" sx={{ fontFamily: isSecretPairs ? 'monospace' : undefined }}>
                       {maskValue(row.value)}
                     </Box>
                   )}

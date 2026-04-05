@@ -1,14 +1,14 @@
-import sys
-import logging
-import click
 import json
-import six
+import logging
+import sys
 
-from confidant.models.service import Service
-
-from pynamodb.attributes import Attribute, UnicodeAttribute
+import click
+from pynamodb.attributes import Attribute
+from pynamodb.attributes import UnicodeAttribute
 from pynamodb.constants import STRING_SET
 from pynamodb.models import Model
+
+from confidant.models.group import Group
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -21,10 +21,11 @@ def is_old_unicode_set(values):
     return sum([x.startswith('"') for x in values]) > 0
 
 
-class SetMixin(object):
+class SetMixin:
     """
     Adds (de)serialization methods for sets
     """
+
     def serialize(self, value):
         """
         Serializes a set
@@ -46,13 +47,14 @@ class SetMixin(object):
         Deserializes a set
         """
         if value and len(value):
-            return set([json.loads(val) for val in value])
+            return {json.loads(val) for val in value}
 
 
 class NewUnicodeSetAttribute(SetMixin, Attribute):
     """
     A unicode set
     """
+
     attr_type = STRING_SET
     null = True
 
@@ -63,9 +65,9 @@ class NewUnicodeSetAttribute(SetMixin, Attribute):
         :param value:
         :return:
         """
-        if isinstance(value, six.text_type):
+        if isinstance(value, str):
             return value
-        return six.u(str(value))
+        return str(value)
 
     def element_deserialize(self, value):
         return value
@@ -82,30 +84,29 @@ class NewUnicodeSetAttribute(SetMixin, Attribute):
 
     def deserialize(self, value):
         if value and len(value):
-            return set([self.element_deserialize(val) for val in value])
+            return {self.element_deserialize(val) for val in value}
 
 
-class GeneralServiceModel(Model):
-    class Meta(Service.Meta):
+class GeneralGroupModel(Model):
+    class Meta(Group.Meta):
         pass
 
     id = UnicodeAttribute(hash_key=True)
-    credentials = NewUnicodeSetAttribute(default=set(), null=True)
+    secrets = NewUnicodeSetAttribute(default=set(), null=True)
 
 
 @click.command()
-def migrate_service_set_attribute():
+def migrate_group_set_attribute():
     """
-    Migrate UnicodeSetAttribute in Service
+    Migrate UnicodeSetAttribute in Group
     """
     total = 0
     fail = 0
-    logger.info('Migrating UnicodeSetAttribute in Service')
-    for service in Service.data_type_date_index.query(
-            'service'):
-        service.save()
-        new_service = GeneralServiceModel.get(service.id)
-        if is_old_unicode_set(new_service.credentials):
+    logger.info("Migrating UnicodeSetAttribute in Group")
+    for group in Group.data_type_date_index.query("group"):
+        group.save()
+        new_group = GeneralGroupModel.get(group.id)
+        if is_old_unicode_set(new_group.secrets):
             fail += 1
         total += 1
-    logger.info("Fail: {}, Total: {}".format(fail, total))
+    logger.info(f"Fail: {fail}, Total: {total}")

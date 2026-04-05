@@ -57,10 +57,10 @@ def index():
     return _serve_spa_index()
 
 
-@blueprint.route("/credentials")
-@blueprint.route("/credentials/<path:path>")
-@blueprint.route("/services")
-@blueprint.route("/services/<path:path>")
+@blueprint.route("/secrets")
+@blueprint.route("/secrets/<path:path>")
+@blueprint.route("/groups")
+@blueprint.route("/groups/<path:path>")
 def spa_routes(path=None):
     del path
     return _serve_spa_index()
