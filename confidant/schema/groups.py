@@ -14,12 +14,10 @@ def _value(obj, key, default=None):
 
 class CreateGroupRequest(BaseModel):
     secrets: list[str] = Field(default_factory=list)
-    enabled: bool = True
 
 
 class UpdateGroupRequest(BaseModel):
     secrets: list[str] | None = None
-    enabled: bool | None = None
 
 
 class RestoreGroupVersionRequest(BaseModel):
@@ -30,7 +28,6 @@ class GroupResponse(BaseModel):
     tenant_id: str
     id: str
     revision: int
-    enabled: bool = True
     modified_date: datetime
     modified_by: str
     secrets: list[str] = Field(default_factory=list)
@@ -53,8 +50,6 @@ class GroupResponse(BaseModel):
                 _value(group, "secrets", []),
             ),
         }
-        if _value(group, "enabled") is not None:
-            data["enabled"] = _value(group, "enabled")
         return cls(**data)
 
 

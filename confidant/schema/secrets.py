@@ -17,7 +17,6 @@ class CreateSecretRequest(BaseModel):
     name: str
     secret_pairs: dict[Any, Any]
     metadata: dict[Any, Any] = Field(default_factory=dict)
-    enabled: bool = True
     documentation: str | None = None
     tags: list[str] = Field(default_factory=list)
 
@@ -26,7 +25,6 @@ class UpdateSecretRequest(BaseModel):
     name: str | None = None
     secret_pairs: dict[Any, Any] | None = None
     metadata: dict[Any, Any] | None = None
-    enabled: bool | None = None
     documentation: str | None = None
     tags: list[str] | None = None
 
@@ -40,7 +38,6 @@ class SecretResponse(BaseModel):
     id: str
     name: str
     revision: int
-    enabled: bool = True
     modified_date: datetime
     modified_by: str
     documentation: str | None = None
@@ -70,8 +67,6 @@ class SecretResponse(BaseModel):
             "modified_date": _value(secret, "modified_date"),
             "modified_by": _value(secret, "modified_by"),
         }
-        if _value(secret, "enabled") is not None:
-            data["enabled"] = _value(secret, "enabled")
         if _value(secret, "metadata") is not None:
             data["metadata"] = _value(secret, "metadata")
         if _value(secret, "documentation") is not None:

@@ -224,18 +224,26 @@ DYNAMODB_URL = str_env("DYNAMODB_URL")
 # The DynamoDB table to use for storage.
 # Example: mydynamodbtable
 DYNAMODB_TABLE = str_env("DYNAMODB_TABLE")
-# The DynamoDB table to use for permanently archiving old credentials and
-# services.
-# Example: mydynamodbtable-archive
+# Legacy setting for the old separate-table archive layout. Archives now live
+# in the primary single-table design, so this is ignored.
 DYNAMODB_TABLE_ARCHIVE = str_env("DYNAMODB_TABLE_ARCHIVE")
-# Have PynamoDB automatically generate the DynamoDB table if it doesn't exist.
+# Have Confidant automatically generate the DynamoDB table if it doesn't exist.
 # Note that you need to give Confidant's IAM user or role enough privileges for
 # this to occur.
 DYNAMODB_CREATE_TABLE = bool_env("DYNAMODB_CREATE_TABLE", False)
-# Connection pool size for PynamoDB connections to DynamoDB
-PYNAMO_CONNECTION_POOL_SIZE = int_env("PYNAMO_CONNECTION_POOL_SIZE", 100)
-PYNAMO_CONNECT_TIMEOUT_SECONDS = int_env("PYNAMO_CONNECT_TIMEOUT_SECONDS", 1)
-PYNAMO_READ_TIMEOUT_SECONDS = int_env("PYNAMO_READ_TIMEOUT_SECONDS", 1)
+# Connection pool size for DynamoDB client connections.
+DYNAMODB_CONNECTION_POOL_SIZE = int_env(
+    "DYNAMODB_CONNECTION_POOL_SIZE",
+    100,
+)
+DYNAMODB_CONNECT_TIMEOUT_SECONDS = int_env(
+    "DYNAMODB_CONNECT_TIMEOUT_SECONDS",
+    1,
+)
+DYNAMODB_READ_TIMEOUT_SECONDS = int_env(
+    "DYNAMODB_READ_TIMEOUT_SECONDS",
+    1,
+)
 # page limit size for history API endpoints listing
 HISTORY_PAGE_LIMIT = int_env("HISTORY_PAGE_LIMIT")
 if HISTORY_PAGE_LIMIT == 0:

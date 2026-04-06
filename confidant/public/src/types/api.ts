@@ -6,6 +6,7 @@ export interface EntityPermissions {
   read_with_alert?: boolean;
   get?: boolean;
   update?: boolean;
+  delete?: boolean;
   create?: boolean;
   list?: boolean;
 }
@@ -55,14 +56,12 @@ export interface UserEmailResponse {
 
 export interface SecretIdentifier {
   id: string;
-  enabled?: boolean;
 }
 
 export interface SecretBase {
   id: string;
   name: string;
   revision: number;
-  enabled: boolean;
   modified_date?: string;
   modified_by?: string;
   documentation?: string | null;
@@ -99,7 +98,6 @@ export interface SecretGroupsResponse {
 export interface GroupBase {
   id: string;
   revision: number;
-  enabled: boolean;
   modified_date?: string;
   modified_by?: string;
   permissions?: EntityPermissions;

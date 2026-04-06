@@ -12,7 +12,6 @@ def _group(group_id="s1", revision=1, secrets=None):
         tenant_id="singletenant",
         id=group_id,
         revision=revision,
-        enabled=True,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
         secrets=secrets or ["c1"],
@@ -56,6 +55,7 @@ def test_get_group_detail(mocker):
     body = ret.get_json()
     assert body["secrets"] == ["c1"]
     assert body["permissions"]["get"] is True
+    assert body["permissions"]["delete"] is True
 
 
 def test_get_group_versions_and_version_detail(mocker):
@@ -88,6 +88,7 @@ def test_get_group_versions_and_version_detail(mocker):
     body = ret.get_json()
     assert body["revision"] == 2
     assert body["secrets"] == ["c1"]
+    assert body["permissions"]["delete"] is True
 
 
 def test_create_and_update_group(mocker):
@@ -138,3 +139,29 @@ def test_create_and_update_group(mocker):
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 2
     assert ret.get_json()["secrets"] == ["c1"]
+
+
+def test_delete_group(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.groups.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    acl_mock = mocker.patch(
+        "confidant.routes.groups.acl_module_check",
+        return_value=True,
+    )
+    delete_mock = mocker.patch(
+        "confidant.routes.groups.groupmanager.delete_group",
+        return_value=(_group(), None),
+    )
+
+    ret = app.test_client().delete("/v1/groups/s1")
+
+    assert ret.status_code == 200
+    delete_mock.assert_called_once_with(
+        tenant_id="singletenant",
+        group_id="s1",
+    )
+    assert acl_mock.call_args.kwargs["action"] == "delete"

@@ -82,6 +82,14 @@ def get_group(id):
                     "secret_ids": list(group.secrets),
                 },
             )
+            permissions["delete"] = acl_module_check(
+                resource_type="group",
+                action="delete",
+                resource_id=id,
+                kwargs={
+                    "secret_ids": list(group.secrets),
+                },
+            )
 
         response = GroupResponse.from_group(group)
         response.permissions = permissions
@@ -135,6 +143,11 @@ def get_group_version(id, version):
             action="update",
             resource_id=id,
         ),
+        "delete": acl_module_check(
+            resource_type="group",
+            action="delete",
+            resource_id=id,
+        ),
     }
     return group_response_schema.dumps(expanded)
 
@@ -179,7 +192,6 @@ def update_group(id):
             group_id=id,
             secrets=[secret.id for secret in found_secrets],
             created_by=authnz.get_logged_in_user(),
-            enabled=data.get("enabled", True),
         )
     else:
         if not acl_module_check(
@@ -197,7 +209,6 @@ def update_group(id):
             group_id=id,
             secrets=[secret.id for secret in found_secrets],
             created_by=authnz.get_logged_in_user(),
-            enabled=data.get("enabled"),
         )
     if error:
         return jsonify(error), 400
@@ -207,6 +218,11 @@ def update_group(id):
         "metadata": True,
         "get": True,
         "update": True,
+        "delete": acl_module_check(
+            resource_type="group",
+            action="delete",
+            resource_id=response.id,
+        ),
     }
     return group_response_schema.dumps(expanded)
 
@@ -244,5 +260,43 @@ def restore_group_version(id, version):
         "metadata": True,
         "get": True,
         "update": True,
+        "delete": acl_module_check(
+            resource_type="group",
+            action="delete",
+            resource_id=id,
+        ),
+    }
+    return group_response_schema.dumps(expanded)
+
+
+@blueprint.route("/v1/groups/<id>", methods=["DELETE"])
+@misc.prevent_xss_decorator
+@authnz.require_auth
+@authnz.require_csrf_token
+@maintenance.check_maintenance_mode
+def delete_group(id):
+    tenant_id = authnz.get_tenant_id()
+    if not acl_module_check(
+        resource_type="group",
+        action="delete",
+        resource_id=id,
+    ):
+        msg = "{} does not have access to delete group {}".format(
+            authnz.get_logged_in_user(),
+            id,
+        )
+        return jsonify({"error": msg, "reference": id}), 403
+    response, error = groupmanager.delete_group(
+        tenant_id=tenant_id,
+        group_id=id,
+    )
+    if error:
+        return jsonify(error), 404
+    expanded = GroupResponse.from_group(response)
+    expanded.permissions = {
+        "metadata": True,
+        "get": True,
+        "update": False,
+        "delete": True,
     }
     return group_response_schema.dumps(expanded)

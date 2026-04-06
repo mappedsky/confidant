@@ -113,19 +113,6 @@ export default function SecretHistoryPage() {
       ),
     },
     {
-      field: 'enabled',
-      headerName: 'Status',
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Enabled' : 'Disabled'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
       field: 'modified_date',
       headerName: 'Saved',
       width: 190,

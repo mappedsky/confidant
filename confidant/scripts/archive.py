@@ -1,17 +1,20 @@
+import copy
 import logging
 import sys
 from datetime import datetime
+from datetime import timezone
 
 import click
 
 from confidant import settings
-from confidant.models.secret import Secret
-from confidant.services import secretmanager
+from confidant.services.dynamodbstore import store
 
 logger = logging.getLogger(__name__)
 
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
+
+_MULTI_TENANT_ERROR = "Archive maintenance scripts do not support MULTI_TENANT."
 
 
 def _exit_with_error(message):
@@ -19,12 +22,73 @@ def _exit_with_error(message):
     raise click.exceptions.Exit(1)
 
 
+def _get_script_tenant_id():
+    if settings.MULTI_TENANT:
+        _exit_with_error(_MULTI_TENANT_ERROR)
+    return "singletenant"
+
+
+def _archive_pk(tenant_id, secret_id):
+    return f"TENANT#{tenant_id}#ARCHIVE_SECRET#{secret_id}"
+
+
+def _archive_item_from_secret(item, tenant_id):
+    archived = copy.deepcopy(item)
+    archived["PK"] = _archive_pk(tenant_id, item["id"])
+    return archived
+
+
+def _list_candidate_secrets(tenant_id, days):
+    page = None
+    secrets = []
+    while True:
+        results = store.list_secrets(
+            tenant_id,
+            last_evaluated_key=page,
+        )
+        for secret in results.get("Items", []):
+            modified_date = datetime.fromisoformat(secret["modified_date"])
+            now = datetime.now(timezone.utc)
+            delta = now - modified_date
+            if delta.days > days:
+                secrets.append(secret)
+        page = results.get("LastEvaluatedKey")
+        if not page:
+            return secrets
+
+
+def _archive_secret(tenant_id, secret, force=False):
+    dependencies = store.list_groups_for_secret(tenant_id, secret["id"])
+    if dependencies:
+        logger.warning(
+            f"Skipping mapped secret {secret['id']}: "
+            f"{', '.join(group['id'] for group in dependencies)}"
+        )
+        return
+    if store.get_archive_secret_latest(tenant_id, secret["id"]):
+        logger.warning(f"Skipping already archived secret {secret['id']}")
+        return
+
+    versions = store.list_secret_versions(tenant_id, secret["id"])
+    archived_items = [_archive_item_from_secret(secret, tenant_id)]
+    archived_items.extend(
+        _archive_item_from_secret(version, tenant_id) for version in versions
+    )
+    if not force:
+        logger.info(f"Would archive secret and revisions: {secret['id']}")
+        return
+
+    logger.info(f"Archiving secret and revisions: {secret['id']}")
+    store.put_archive_secret(tenant_id, secret["id"], archived_items)
+    store.delete_secret(tenant_id, secret["id"])
+
+
 @click.command()
 @click.option(
     "--days",
     type=int,
     help=(
-        "Permanently archive disabled secrets last modified greater than this "
+        "Permanently archive secrets last modified greater than this "
         "many days (mutually exclusive with --ids)"
     ),
 )
@@ -46,31 +110,27 @@ def _exit_with_error(message):
 )
 def archive_secrets(days, force, ids):
     """
-    Command to permanently archive secrets to an archive dynamodb table.
+    Command to permanently archive secrets inside the primary dynamodb table.
     """
-    if not settings.DYNAMODB_TABLE_ARCHIVE:
-        _exit_with_error("DYNAMODB_TABLE_ARCHIVE is not configured, exiting.")
     if days and ids:
         _exit_with_error("--days and --ids options are mutually exclusive")
     if not days and not ids:
         _exit_with_error("Either --days or --ids options are required")
+
+    tenant_id = _get_script_tenant_id()
     secrets = []
     if ids:
-        # filter strips an empty string
         _ids = [_id.strip() for _id in list(filter(None, ids.split(",")))]
         if not _ids:
             _exit_with_error("Passed in --ids argument is empty")
-        for secret in Secret.batch_get(_ids):
-            if secret.enabled:
-                logger.warning(f"Skipping enabled secret {secret.id}")
+        for secret_id in _ids:
+            secret = store.get_secret_latest(tenant_id, secret_id)
+            if secret is None:
+                logger.warning(f"Skipping missing secret {secret_id}")
                 continue
             secrets.append(secret)
     else:
-        for secret in Secret.data_type_date_index.query("secret"):
-            tz = secret.modified_date.tzinfo
-            now = datetime.now(tz)
-            delta = now - secret.modified_date
-            if not secret.enabled and delta.days > days:
-                secrets.append(secret)
+        secrets = _list_candidate_secrets(tenant_id, days)
 
-    secretmanager.archive_secrets(secrets, force=force)
+    for secret in secrets:
+        _archive_secret(tenant_id, secret, force=force)

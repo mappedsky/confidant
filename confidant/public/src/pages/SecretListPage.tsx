@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  Chip,
-  Link,
-} from '@mui/material';
+import { Box, Typography, Button, Alert, Link } from '@mui/material';
 import {
   DataGrid,
   GridToolbar,
@@ -64,22 +57,6 @@ export default function SecretListPage() {
         <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
           {params.value}
         </Typography>
-      ),
-    },
-    {
-      field: 'enabled',
-      headerName: 'Status',
-      type: 'boolean',
-      width: 120,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Enabled' : 'Disabled'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-          variant="outlined"
-        />
       ),
     },
     {
@@ -174,11 +151,6 @@ export default function SecretListPage() {
               paginationModel: {
                 page: 0,
                 pageSize: 25,
-              },
-            },
-            filter: {
-              filterModel: {
-                items: [{ field: 'enabled', operator: 'is', value: 'true' }],
               },
             },
           }}

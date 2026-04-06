@@ -104,19 +104,6 @@ export default function GroupHistoryPage() {
       },
     },
     {
-      field: 'enabled',
-      headerName: 'Status',
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Enabled' : 'Disabled'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
       field: 'secrets',
       headerName: 'Secrets',
       width: 140,

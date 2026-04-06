@@ -17,7 +17,6 @@ def _secret(secret_id="c1", revision=1, name="Test secret", secret_pairs=None):
         id=secret_id,
         name=name,
         revision=revision,
-        enabled=True,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
         secret_keys=["api_key"],
@@ -30,7 +29,6 @@ def _group(group_id="service-a", secrets=None):
         tenant_id="singletenant",
         id=group_id,
         revision=1,
-        enabled=True,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
         secrets=secrets or ["c1"],
@@ -166,6 +164,7 @@ def test_get_secret_detail_and_metadata_only(mocker):
     assert body["secret_pairs"] == {"api_key": "value"}
     assert body["permissions"]["read_with_alert"] is True
     assert body["permissions"]["read"] is False
+    assert body["permissions"]["delete"] is True
     latest_mock.assert_any_call(
         "singletenant",
         "c1",
@@ -179,6 +178,7 @@ def test_get_secret_detail_and_metadata_only(mocker):
     assert body["secret_pairs"] == {}
     assert body["permissions"]["read"] is False
     assert body["permissions"]["read_with_alert"] is False
+    assert body["permissions"]["delete"] is True
     latest_mock.assert_any_call(
         "singletenant",
         "c1",
@@ -200,7 +200,7 @@ def test_get_secret_dependencies_allows_read_permissions(mocker):
     )
     deps_mock = mocker.patch(
         "confidant.routes.secrets.secretmanager.get_secret_dependencies",
-        return_value=[{"id": "service-a", "enabled": True}],
+        return_value=[{"id": "service-a"}],
     )
 
     ret = app.test_client().get("/v1/secrets/c1/groups")
@@ -273,9 +273,64 @@ def test_list_and_get_versions(mocker):
     body = ret.get_json()
     assert body["revision"] == 2
     assert body["permissions"]["read_with_alert"] is True
+    assert body["permissions"]["delete"] is True
     version_mock.assert_called_once_with(
         "singletenant",
         "c1",
         2,
         alert_on_access=True,
     )
+
+
+def test_delete_secret(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    acl_mock = mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        return_value=True,
+    )
+    delete_mock = mocker.patch(
+        "confidant.routes.secrets.secretmanager.delete_secret",
+        return_value=(_secret(), None),
+    )
+
+    ret = app.test_client().delete("/v1/secrets/c1")
+
+    assert ret.status_code == 200
+    delete_mock.assert_called_once_with(
+        tenant_id="singletenant",
+        secret_id="c1",
+    )
+    assert acl_mock.call_args.kwargs["action"] == "delete"
+
+
+def test_delete_secret_conflict(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        return_value=True,
+    )
+    mocker.patch(
+        "confidant.routes.secrets.secretmanager.delete_secret",
+        return_value=(
+            None,
+            {
+                "error": "Secret is still mapped to groups.",
+                "groups": ["service-a"],
+            },
+        ),
+    )
+
+    ret = app.test_client().delete("/v1/secrets/c1")
+
+    assert ret.status_code == 409
+    assert ret.get_json()["groups"] == ["service-a"]

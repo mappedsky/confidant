@@ -1,175 +1,124 @@
-from datetime import datetime
-from datetime import timedelta
-from unittest.mock import MagicMock
-
-import pytest
 from click.testing import CliRunner
 from pytest_mock.plugin import MockerFixture
 
-from confidant.models.secret import Secret
-from confidant.models.secret import SecretArchive
 from confidant.scripts.restore import restore_logic
 from confidant.scripts.restore import restore_secrets
 from confidant.scripts.restore import save_secrets
 
 
-@pytest.fixture
-def now() -> datetime:
-    return datetime.now()
-
-
-@pytest.fixture
-def old_date() -> datetime:
-    return datetime.now() - timedelta(30)
-
-
-@pytest.fixture()
-def save_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch("confidant.scripts.restore.save_secrets")
-
-
-@pytest.fixture()
-def restore_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch("confidant.scripts.restore.restore_logic")
-
-
-@pytest.fixture
-def secrets(mocker: MockerFixture, now: datetime) -> dict[str, list[Secret]]:
-    archive_secret = SecretArchive(
-        id="1234",
-        name="test",
-        data_type="secret",
-        revision=2,
-        enabled=True,
-        modified_date=now,
-        modified_by="test@example.com",
-    )
-    secret = Secret.from_archive_secret(archive_secret)
-    archive_revision1 = SecretArchive(
-        id="1234-1",
-        name="test revision1",
-        data_type="archive-secret",
-        revision=1,
-        enabled=True,
-        modified_date=now,
-        modified_by="test@example.com",
-    )
-    revision1 = Secret.from_archive_secret(archive_revision1)
-    archive_revision2 = Secret(
-        id="1234-2",
-        name="test revision2",
-        data_type="archive-secret",
-        revision=2,
-        enabled=True,
-        modified_date=now,
-        modified_by="test@example.com",
-    )
-    revision2 = Secret.from_archive_secret(archive_revision2)
-
-    def from_archive_secret(archive_secret: SecretArchive):
-        if archive_secret.id == "1234":
-            return secret
-        elif archive_secret.id == "1234-1":
-            return revision1
-        elif archive_secret.id == "1234-2":
-            return revision2
-
-    mocker.patch.object(Secret, "from_archive_secret", from_archive_secret)
+def _archive_secret(secret_id="1234"):
     return {
-        "secrets": [secret],
-        "archive_secrets": [archive_secret],
-        "revisions": [revision1, revision2],
-        "archive_revisions": [archive_revision1, archive_revision2],
+        "PK": f"TENANT#singletenant#ARCHIVE_SECRET#{secret_id}",
+        "SK": "#LATEST",
+        "tenant_id": "singletenant",
+        "id": secret_id,
+        "name": "test",
+        "revision": 2,
+        "modified_date": "2026-04-01T05:15:55+00:00",
+        "modified_by": "test@example.com",
+        "secret_keys": ["foo"],
     }
 
 
-@pytest.fixture
-def old_disabled_secrets(
-    secrets: dict[str, list[Secret]], old_date: datetime
-) -> dict[str, list[Secret]]:
-    for secret in secrets["secrets"]:
-        secret.modified_date = old_date
-        secret.enabled = False
-    for secret in secrets["archive_secrets"]:
-        secret.modified_date = old_date
-        secret.enabled = False
-    for revision in secrets["revisions"]:
-        revision.modified_date = old_date
-        revision.enabled = False
-    for revision in secrets["archive_revisions"]:
-        revision.modified_date = old_date
-        revision.enabled = False
-    return secrets
+def _archive_revision(secret_id, revision):
+    return {
+        "PK": f"TENANT#singletenant#ARCHIVE_SECRET#{secret_id}",
+        "SK": f"VERSION#{revision:010d}",
+        "tenant_id": "singletenant",
+        "id": secret_id,
+        "name": "test",
+        "revision": revision,
+        "modified_date": "2026-04-01T05:15:55+00:00",
+        "modified_by": "test@example.com",
+        "secret_keys": ["foo"],
+    }
 
 
-def test_save(mocker: MockerFixture, secrets: dict[str, list[Secret]]):
-    save_mock = mocker.patch("pynamodb.models.BatchWrite.save")
-    mocker.patch("pynamodb.models.BatchWrite.commit")
+def test_save_skips_existing_secret(mocker: MockerFixture):
+    batch_put = mocker.patch("confidant.scripts.restore.store.batch_put_items")
+    saves = [
+        {
+            "PK": "TENANT#singletenant#SECRET#1234",
+            "SK": "#LATEST",
+            "id": "1234",
+        }
+    ]
     mocker.patch(
         "confidant.scripts.restore.secret_exists",
         return_value=True,
     )
-    save_secrets(secrets["secrets"], force=True)
-    assert save_mock.called is False
 
+    save_secrets("singletenant", saves, force=True)
+
+    batch_put.assert_not_called()
+
+
+def test_save_dry_run_does_not_write(mocker: MockerFixture):
+    batch_put = mocker.patch("confidant.scripts.restore.store.batch_put_items")
+    saves = [
+        {
+            "PK": "TENANT#singletenant#SECRET#1234",
+            "SK": "#LATEST",
+            "id": "1234",
+        }
+    ]
     mocker.patch(
         "confidant.scripts.restore.secret_exists",
         return_value=False,
     )
-    save_secrets(secrets["secrets"], force=False)
-    assert save_mock.called is False
 
-    save_secrets(secrets["secrets"], force=True)
-    assert save_mock.called is True
+    save_secrets("singletenant", saves, force=False)
+
+    batch_put.assert_not_called()
 
 
-def test_restore_secrets(
+def test_save_writes_when_forced(mocker: MockerFixture):
+    batch_put = mocker.patch("confidant.scripts.restore.store.batch_put_items")
+    saves = [
+        {
+            "PK": "TENANT#singletenant#SECRET#1234",
+            "SK": "#LATEST",
+            "id": "1234",
+        }
+    ]
+    mocker.patch(
+        "confidant.scripts.restore.secret_exists",
+        return_value=False,
+    )
+
+    save_secrets("singletenant", saves, force=True)
+
+    batch_put.assert_called_once_with(saves)
+
+
+def test_restore_logic(
     mocker: MockerFixture,
-    old_disabled_secrets: dict[str, list[Secret]],
-    save_mock: MagicMock,
 ):
+    archive_secret = _archive_secret()
+    archive_revisions = [
+        _archive_revision("1234", 1),
+        _archive_revision("1234", 2),
+    ]
+    save_mock = mocker.patch("confidant.scripts.restore.save_secrets")
     mocker.patch(
-        "confidant.scripts.restore.SecretArchive.batch_get",
-        return_value=old_disabled_secrets["archive_revisions"],
-    )
-    restore_logic(old_disabled_secrets["archive_secrets"], force=True)
-
-    save_mock.assert_called_with(
-        old_disabled_secrets["secrets"]
-        + old_disabled_secrets["revisions"],  # noqa:E501
-        force=True,
+        "confidant.scripts.restore.store.list_archive_secret_versions",
+        return_value=archive_revisions,
     )
 
+    restore_logic("singletenant", [archive_secret], force=True)
 
-def test_restore_old_disabled_unmapped_secret_no_force(
-    mocker: MockerFixture,
-    old_disabled_secrets: dict[str, list[Secret]],
-    save_mock: MagicMock,
-):
-    mocker.patch(
-        "confidant.scripts.restore.SecretArchive.batch_get",
-        return_value=old_disabled_secrets["archive_revisions"],
-    )
-    restore_logic(old_disabled_secrets["archive_secrets"], force=False)
-
-    save_mock.assert_called_with(
-        old_disabled_secrets["secrets"]
-        + old_disabled_secrets["revisions"],  # noqa:E501
-        force=False,
-    )
+    save_mock.assert_called_once()
+    saves = save_mock.call_args.args[1]
+    assert [item["SK"] for item in saves] == [
+        "#METADATA",
+        "#LATEST",
+        "VERSION#0000000001",
+        "VERSION#0000000002",
+        "SECRET#1234",
+    ]
 
 
-def test_run_no_archive_table(mocker: MockerFixture):
-    mocker.patch(
-        "confidant.scripts.restore.settings.DYNAMODB_TABLE_ARCHIVE",
-        None,
-    )
-    runner = CliRunner()
-    result = runner.invoke(restore_secrets, ["--all", "--force"])
-    assert result.exit_code == 1
-
-
-def test_run_bad_args(mocker: MockerFixture):
+def test_run_bad_args():
     runner = CliRunner()
     result = runner.invoke(restore_secrets, ["--force"])
     assert result.exit_code == 1
@@ -182,36 +131,72 @@ def test_run_bad_args(mocker: MockerFixture):
 
 def test_run_all(
     mocker: MockerFixture,
-    secrets: dict[str, list[Secret]],
-    restore_mock: MagicMock,
 ):
+    archive_secret = _archive_secret()
+    restore_mock = mocker.patch("confidant.scripts.restore.restore_logic")
     mocker.patch(
-        "confidant.scripts.restore.SecretArchive.data_type_date_index.query",
-        return_value=secrets["archive_secrets"],
+        "confidant.scripts.restore.store.list_archive_secrets",
+        return_value={"Items": [archive_secret]},
     )
+
     runner = CliRunner()
     runner.invoke(restore_secrets, ["--all", "--force"])
-    restore_mock.assert_called_with(
-        secrets["archive_secrets"],
+
+    restore_mock.assert_called_once_with(
+        "singletenant",
+        [archive_secret],
         force=True,
     )
 
 
 def test_run_ids(
     mocker: MockerFixture,
-    secrets: dict[str, list[Secret]],
-    restore_mock: MagicMock,
 ):
+    archive_secret = _archive_secret()
+    restore_mock = mocker.patch("confidant.scripts.restore.restore_logic")
     mocker.patch(
-        "confidant.scripts.restore.SecretArchive.batch_get",
-        return_value=secrets["archive_secrets"],
+        "confidant.scripts.restore.store.get_archive_secret_latest",
+        return_value=archive_secret,
     )
-    cred_ids = [cred.id for cred in secrets["archive_secrets"]]
-    ids = ",".join(cred_ids)
-    runner = CliRunner()
-    runner.invoke(restore_secrets, ["--ids", ids, "--force"])
 
-    restore_mock.assert_called_with(
-        secrets["archive_secrets"],
+    runner = CliRunner()
+    runner.invoke(restore_secrets, ["--ids", "1234", "--force"])
+
+    restore_mock.assert_called_once_with(
+        "singletenant",
+        [archive_secret],
         force=True,
     )
+
+
+def test_run_ids_skips_missing_archive_secret(
+    mocker: MockerFixture,
+):
+    restore_mock = mocker.patch("confidant.scripts.restore.restore_logic")
+    mocker.patch(
+        "confidant.scripts.restore.store.get_archive_secret_latest",
+        return_value=None,
+    )
+
+    runner = CliRunner()
+    runner.invoke(restore_secrets, ["--ids", "1234", "--force"])
+
+    restore_mock.assert_called_once_with("singletenant", [], force=True)
+
+
+def test_restore_logic_handles_save_failures(mocker: MockerFixture):
+    archive_secret = _archive_secret()
+    mocker.patch(
+        "confidant.scripts.restore.store.list_archive_secret_versions",
+        return_value=[],
+    )
+    save_mock = mocker.patch(
+        "confidant.scripts.restore.save_secrets",
+        side_effect=RuntimeError("boom"),
+    )
+    incr_mock = mocker.patch("confidant.scripts.restore.stats.incr")
+
+    restore_logic("singletenant", [archive_secret], force=True)
+
+    save_mock.assert_called_once()
+    incr_mock.assert_called_with("restore.save.failure")

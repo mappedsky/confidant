@@ -115,6 +115,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  deleteSecret: (id: string) =>
+    request<SecretDetail>(`/v1/secrets/${id}`, {
+      method: 'DELETE',
+    }),
   getSecretGroups: (id: string) =>
     request<SecretGroupsResponse>(`/v1/secrets/${id}/groups`),
   getSecretVersions: (id: string) =>
@@ -139,6 +143,10 @@ export const api = {
     request<GroupDetail>(`/v1/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+  deleteGroup: (id: string) =>
+    request<GroupDetail>(`/v1/groups/${id}`, {
+      method: 'DELETE',
     }),
   getGroupVersions: (id: string) =>
     request<GroupVersionsResponse>(`/v1/groups/${id}/versions`),

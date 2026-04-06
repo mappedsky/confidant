@@ -298,15 +298,15 @@ ratelimiting from KMS. The following configuration can adjust this:
 export KMS_AUTH_TOKEN_CACHE_SIZE=4096
 ```
 
-Confidant has a couple settings for tuning pynamodb performance. By default
-confidant is pretty aggressive with pynamodb timeouts, setting the default
+Confidant has a couple settings for tuning DynamoDB client performance. By
+default confidant is pretty aggressive with DynamoDB timeouts, setting the default
 timeout to 1s. This is to fail fast and retry, rather than waiting on a blocked
 request that could be general networking failures, attempting to avoid request
 pileups. If this setting is too aggressive, you can adjust it via:
 
 ```
-export PYNAMO_CONNECT_TIMEOUT_SECONDS=1
-export PYNAMO_READ_TIMEOUT_SECONDS=1
+export DYNAMODB_CONNECT_TIMEOUT_SECONDS=1
+export DYNAMODB_READ_TIMEOUT_SECONDS=1
 ```
 
 To avoid recreating connections to dynamodb on each request, we open a larger
@@ -315,7 +315,7 @@ number of connections should be greater than or equal to the number of
 concurrent requests per worker. To adjust this:
 
 ```
-export PYNAMO_CONNECTION_POOL_SIZE=100
+export DYNAMODB_CONNECTION_POOL_SIZE=100
 ```
 
 Similar to the performance tuning for dynamodb, we also have similar tuning
