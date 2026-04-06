@@ -15,6 +15,19 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
 _MULTI_TENANT_ERROR = "Archive maintenance scripts do not support MULTI_TENANT."
+_DEPENDENCY_WARNING = "".join(
+    (
+        "Skipping archive for a secret ",
+        "that is still mapped to groups.",
+    )
+)
+_ALREADY_ARCHIVED_WARNING = "".join(
+    (
+        "Skipping archive for a secret ",
+        "that is already archived.",
+    )
+)
+_MISSING_SECRET_WARNING = "Skipping a requested secret that was not found."
 
 
 def _exit_with_error(message):
@@ -60,13 +73,10 @@ def _list_candidate_secrets(tenant_id, days):
 def _archive_secret(tenant_id, secret, force=False):
     dependencies = store.list_groups_for_secret(tenant_id, secret["id"])
     if dependencies:
-        logger.warning(
-            f"Skipping mapped secret {secret['id']}: "
-            f"{', '.join(group['id'] for group in dependencies)}"
-        )
+        logger.warning(_DEPENDENCY_WARNING)
         return
     if store.get_archive_secret_latest(tenant_id, secret["id"]):
-        logger.warning(f"Skipping already archived secret {secret['id']}")
+        logger.warning(_ALREADY_ARCHIVED_WARNING)
         return
 
     versions = store.list_secret_versions(tenant_id, secret["id"])
@@ -75,10 +85,10 @@ def _archive_secret(tenant_id, secret, force=False):
         _archive_item_from_secret(version, tenant_id) for version in versions
     )
     if not force:
-        logger.info(f"Would archive secret and revisions: {secret['id']}")
+        logger.info("Would archive one secret and its revisions.")
         return
 
-    logger.info(f"Archiving secret and revisions: {secret['id']}")
+    logger.info("Archiving one secret and its revisions.")
     store.put_archive_secret(tenant_id, secret["id"], archived_items)
     store.delete_secret(tenant_id, secret["id"])
 
@@ -126,7 +136,7 @@ def archive_secrets(days, force, ids):
         for secret_id in _ids:
             secret = store.get_secret_latest(tenant_id, secret_id)
             if secret is None:
-                logger.warning(f"Skipping missing secret {secret_id}")
+                logger.warning(_MISSING_SECRET_WARNING)
                 continue
             secrets.append(secret)
     else:

@@ -85,12 +85,10 @@ def save_secrets(tenant_id, saves, force=False):
         _saves.append(save)
     if not _saves:
         return
-    latest_ids = [save["id"] for save in _saves if save["SK"] == "#LATEST"]
-    save_msg = ", ".join(latest_ids)
     if not force:
-        logger.info(f"Would have restored secret and revisions: {save_msg}")
+        logger.info("Would restore one secret and its revisions.")
         return
-    logger.info(f"Restoring secret and revisions: {save_msg}")
+    logger.info("Restoring one secret and its revisions.")
     store.batch_put_items(_saves)
     stats.incr("restore.save.success")
 
@@ -114,9 +112,7 @@ def restore_logic(tenant_id, archive_secrets, force):
         try:
             save_secrets(tenant_id, saves, force=force)
         except Exception:
-            logger.exception(
-                f"Failed to batch save restored secret {archive_secret['id']}."
-            )
+            logger.exception("Failed to batch save a restored secret.")
             stats.incr("restore.save.failure")
             continue
 
@@ -167,7 +163,9 @@ def restore_secrets(force, ids, _all):
         for secret_id in _ids:
             secret = store.get_archive_secret_latest(tenant_id, secret_id)
             if secret is None:
-                logger.warning(f"Skipping missing archived secret {secret_id}")
+                logger.warning(
+                    "Skipping a requested archived secret that was not found."
+                )
                 continue
             secrets.append(secret)
     else:
