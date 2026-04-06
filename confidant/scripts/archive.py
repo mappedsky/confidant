@@ -27,7 +27,6 @@ _ALREADY_ARCHIVED_WARNING = "".join(
         "that is already archived.",
     )
 )
-_MISSING_SECRET_WARNING = "Skipping a requested secret that was not found."
 
 
 def _exit_with_error(message):
@@ -136,7 +135,6 @@ def archive_secrets(days, force, ids):
         for secret_id in _ids:
             secret = store.get_secret_latest(tenant_id, secret_id)
             if secret is None:
-                logger.warning(_MISSING_SECRET_WARNING)
                 continue
             secrets.append(secret)
     else:
