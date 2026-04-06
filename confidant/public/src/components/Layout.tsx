@@ -10,7 +10,6 @@ import {
   Typography,
   AppBar,
   Toolbar,
-  CircularProgress,
   Alert,
   Button,
 } from '@mui/material';
@@ -20,6 +19,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthConfigContext } from '../authConfig.context';
 import { useAppContext } from '../contexts/AppContext';
+import CenteredSpinner from './CenteredSpinner';
 
 const DRAWER_WIDTH = 220;
 const APPBAR_HEIGHT = 80;
@@ -158,9 +158,7 @@ export default function Layout({ children }: LayoutProps) {
         }}
       >
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <CircularProgress />
-          </Box>
+          <CenteredSpinner />
         ) : error ? (
           <Box sx={{ p: 3 }}>
             <Alert severity="error">{error}</Alert>

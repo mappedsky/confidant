@@ -41,6 +41,7 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
+import CenteredSpinner from '../components/CenteredSpinner';
 import {
   ConflictMap,
   SecretSummary,
@@ -321,11 +322,7 @@ export default function GroupDetailPage() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <CenteredSpinner minHeight={320} />;
   }
 
   if (error) {
