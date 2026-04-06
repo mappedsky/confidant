@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Link,
   Stack,
   Typography,
@@ -21,6 +20,7 @@ import {
 } from '@mui/x-data-grid';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import ActionsMenu from '../components/ActionsMenu';
+import CenteredSpinner from '../components/CenteredSpinner';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { api } from '../api';
 import { GroupDetail, GroupSummary } from '../types/api';
@@ -195,9 +195,7 @@ export default function GroupHistoryPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
-          <CircularProgress />
-        </Box>
+        <CenteredSpinner minHeight={320} />
       ) : (
         <DataGrid
           rows={versions}
