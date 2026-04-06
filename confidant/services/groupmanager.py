@@ -31,8 +31,6 @@ def _group_response_from_item(item):
         "modified_date": _as_datetime(item["modified_date"]),
         "modified_by": item["modified_by"],
     }
-    if item.get("enabled") is not None:
-        data["enabled"] = item["enabled"]
     data["secrets"] = item.get("secrets", [])
     return GroupResponse(**data)
 
@@ -117,7 +115,6 @@ def _build_group_items(
     group_id,
     revision,
     secrets,
-    enabled,
     modified_by,
     created_at,
     previous_created_at=None,
@@ -127,7 +124,6 @@ def _build_group_items(
         "id": group_id,
         "revision": revision,
         "secrets": list(secrets),
-        "enabled": enabled,
         "modified_date": created_at,
         "modified_by": modified_by,
     }
@@ -164,7 +160,6 @@ def create_group(
     group_id,
     secrets,
     created_by,
-    enabled=True,
 ):
     revision = 1
     now = datetime.now(timezone.utc).isoformat()
@@ -173,7 +168,6 @@ def create_group(
         group_id,
         revision,
         secrets,
-        enabled,
         created_by,
         now,
     )
@@ -213,14 +207,11 @@ def update_group(
     group_id,
     secrets,
     created_by,
-    enabled=None,
 ):
     current = store.get_group_latest(tenant_id, group_id)
     if not current:
         return None, {"error": "Group not found."}
     current = _group_item_base(current)
-    if enabled is None:
-        enabled = current.get("enabled", True)
     revision = int(current["revision"]) + 1
     now = datetime.now(timezone.utc).isoformat()
     metadata_item, latest_item, version_item, list_item = _build_group_items(
@@ -228,7 +219,6 @@ def update_group(
         group_id,
         revision,
         secrets,
-        enabled,
         created_by,
         now,
         previous_created_at=current.get("created_at", current["modified_date"]),
@@ -278,5 +268,28 @@ def restore_group_version(
         group_id=group_id,
         secrets=source.get("secrets", []),
         created_by=created_by,
-        enabled=source.get("enabled", True),
     )[0]
+
+
+def _archive_group_item(item, tenant_id):
+    archived = dict(item)
+    archived["PK"] = f"TENANT#{tenant_id}#ARCHIVE_GROUP#{item['id']}"
+    return archived
+
+
+def delete_group(tenant_id, group_id):
+    current = store.get_group_latest(tenant_id, group_id)
+    if not current:
+        return None, {"error": "Group not found."}
+
+    if store.get_archive_group_latest(tenant_id, group_id):
+        store.delete_archive_group(tenant_id, group_id)
+
+    versions = store.list_group_versions(tenant_id, group_id)
+    archived_items = [_archive_group_item(current, tenant_id)]
+    archived_items.extend(
+        _archive_group_item(version, tenant_id) for version in versions
+    )
+    store.put_archive_group(tenant_id, group_id, archived_items)
+    store.delete_group(tenant_id, group_id)
+    return _group_response_from_item(current), None

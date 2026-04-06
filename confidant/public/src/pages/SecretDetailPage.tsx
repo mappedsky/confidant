@@ -4,8 +4,6 @@ import {
   Typography,
   Button,
   TextField,
-  FormControlLabel,
-  Checkbox,
   Card,
   CardContent,
   CardActions,
@@ -102,10 +100,11 @@ export default function SecretDetailPage() {
   const [canRestore, setCanRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
 
   const [formName, setFormName] = useState('');
-  const [formEnabled, setFormEnabled] = useState(true);
   const [formPairs, setFormPairs] = useState<KeyValueRow[]>([{ key: '', value: '' }]);
   const [formMetadata, setFormMetadata] = useState<KeyValueRow[]>([]);
   const [formTags, setFormTags] = useState<string[]>([]);
@@ -113,7 +112,6 @@ export default function SecretDetailPage() {
 
   const populateForm = useCallback((cred: SecretDetail) => {
     setFormName(cred.name ?? '');
-    setFormEnabled(cred.enabled ?? true);
     const pairs = Object.entries(cred.secret_pairs ?? {}).map(([key, value]) => ({
       key,
       value,
@@ -253,6 +251,23 @@ export default function SecretDetailPage() {
     setEditing(false);
   };
 
+  const handleDelete = async () => {
+    if (!id) {
+      return;
+    }
+
+    setSaveError(null);
+    setDeleting(true);
+    try {
+      await api.deleteSecret(id);
+      navigate('/secrets');
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleGenerate = async (idx: number) => {
     try {
       const { value } = await api.generateValue();
@@ -279,7 +294,6 @@ export default function SecretDetailPage() {
 
     const payload = {
       name: formName,
-      enabled: formEnabled,
       documentation: formDocumentation,
       secret_pairs: Object.fromEntries(
         formPairs
@@ -347,6 +361,7 @@ export default function SecretDetailPage() {
   }
 
   const canEdit = !isVersionView && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
+  const canDelete = !isVersionView && !isNew && secret?.permissions?.delete;
   const daysTillRotation =
     secret?.next_rotation_date
       ? Math.round(
@@ -481,6 +496,34 @@ export default function SecretDetailPage() {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+        <DialogTitle>Archive and delete this secret?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This removes the secret from active use and archives its current
+            record and version history with the same secret ID. The secret
+            cannot be deleted while any group still references it.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            onClick={async () => {
+              await handleDelete();
+              setDeleteDialogOpen(false);
+            }}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -530,30 +573,6 @@ export default function SecretDetailPage() {
               />
             ) : (
               <ReadOnlyField label="Secret Name" value={secret?.name} />
-            )}
-
-            {!isNew && (
-              editing ? (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formEnabled}
-                      onChange={(e) => setFormEnabled(e.target.checked)}
-                    />
-                  }
-                  label="Enabled"
-                />
-              ) : (
-                <Box>
-                  <SectionLabel>Status</SectionLabel>
-                  <Chip
-                    label={secret?.enabled ? 'Enabled' : 'Disabled'}
-                    size="small"
-                    color={secret?.enabled ? 'success' : 'default'}
-                    variant="outlined"
-                  />
-                </Box>
-              )
             )}
 
             <Box>
@@ -728,11 +747,6 @@ export default function SecretDetailPage() {
                           <Link component={RouterLink} to={`/groups/${svc.id}`}>
                             {svc.id}
                           </Link>
-                          {!svc.enabled && (
-                            <Typography component="span" color="text.secondary" ml={1}>
-                              (disabled)
-                            </Typography>
-                          )}
                         </Box>
                       ))}
                     </Stack>
@@ -750,25 +764,50 @@ export default function SecretDetailPage() {
 
         <CardActions sx={{ px: 3, pb: 3, pt: 0, gap: 1 }}>
           {!isVersionView && (!editing ? (
-            canEdit ? (
-              <Button
-                variant="contained"
-                onClick={handleEdit}
-                sx={{
-                  bgcolor: '#6bdfab',
-                  color: '#424554',
-                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
-                }}
-              >
-                Edit
-              </Button>
-            ) : (
-              <Tooltip title="You do not have edit permission for this secret.">
-                <span>
-                  <Button variant="outlined" disabled>Edit</Button>
-                </span>
-              </Tooltip>
-            )
+            <>
+              {canEdit ? (
+                <Button
+                  variant="contained"
+                  onClick={handleEdit}
+                  sx={{
+                    bgcolor: '#6bdfab',
+                    color: '#424554',
+                    '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                  }}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <Tooltip title="You do not have edit permission for this secret.">
+                  <span>
+                    <Button variant="outlined" disabled>Edit</Button>
+                  </span>
+                </Tooltip>
+              )}
+              {canDelete ? (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete
+                </Button>
+              ) : (
+                <Tooltip title="You do not have delete permission for this secret.">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      disabled
+                    >
+                      Delete
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+            </>
           ) : (
             <>
               <Button

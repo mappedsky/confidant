@@ -17,7 +17,6 @@ __secret__
 * revision: incrementing integer (integer)
 * name: user-defined friendly name (string)
 * secret\_pairs: dict with key/val pairs (string)
-* enabled: active/deprecated (boolean)
 * data\_key: encrypted data key used to encrypt the secret\_pairs (binary)
 * modified\_date: auto-generated date (datetime)
 
@@ -28,7 +27,6 @@ __archive-secret__
 * revision: incrementing integer (current revision + 1) (integer)
 * name: user-defined friendly name (string)
 * secret\_pairs: dict with key/val pairs (string)
-* enabled: active/deprecated (boolean)
 * data\_key: encrypted data key used to encrypt the secret\_pairs (binary)
 * modified\_date: auto-generated date (datetime)
 
@@ -38,7 +36,6 @@ __service__
 * data-type: 'service' (string)
 * revision: incrementing integer (integer)
 * secrets: list of secret ids (string set)
-* enabled: active/deprecated (boolean)
 * modified\_date: auto-generated date (datetime)
 
 __archive-service__
@@ -47,7 +44,6 @@ __archive-service__
 * data-type: 'service' (string)
 * revision: incrementing integer (current revision + 1) (integer)
 * secrets: list of secret ids (string set)
-* enabled: active/deprecated (boolean)
 * modified\_date: auto-generated date (datetime)
 
 ## At-rest encryption model

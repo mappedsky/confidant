@@ -4,8 +4,6 @@ import {
   Typography,
   Button,
   TextField,
-  FormControlLabel,
-  Checkbox,
   Card,
   CardContent,
   CardActions,
@@ -23,7 +21,6 @@ import {
   MenuItem,
   FormControl,
   Link,
-  Chip,
   Stack,
   Paper,
   Table,
@@ -84,7 +81,6 @@ interface GroupFormSecret {
   id: string;
   name: string;
   revision?: number;
-  enabled?: boolean;
   isNew?: boolean;
 }
 
@@ -112,15 +108,15 @@ export default function GroupDetailPage() {
   const [canRestore, setCanRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
 
   const [formId, setFormId] = useState('');
-  const [formEnabled, setFormEnabled] = useState(true);
   const [formSecrets, setFormSecrets] = useState<GroupFormSecret[]>([]);
 
   const populateForm = useCallback((svc: GroupDetail) => {
     setFormId(svc.id ?? '');
-    setFormEnabled(svc.enabled ?? true);
     setFormSecrets(
       (svc.secrets ?? []).map((secret) => ({
         id: secret,
@@ -188,13 +184,12 @@ export default function GroupDetailPage() {
       if (!match) {
         return secret;
       }
-      return {
-        ...secret,
-        name: match.name,
-        revision: secret.revision ?? match.revision,
-        enabled: secret.enabled ?? match.enabled,
-      };
-    }));
+        return {
+          ...secret,
+          name: match.name,
+          revision: secret.revision ?? match.revision,
+        };
+      }));
   }, [allSecrets]);
 
   const handleAddSecret = () => {
@@ -214,7 +209,6 @@ export default function GroupDetailPage() {
               id: credId,
               name: cred?.name ?? credId,
               revision: cred?.revision,
-              enabled: cred?.enabled,
             }
           : c,
       ),
@@ -247,7 +241,6 @@ export default function GroupDetailPage() {
 
     const payload = {
       id: formId,
-      enabled: formEnabled,
       secrets: credIds,
     };
 
@@ -310,6 +303,23 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!id) {
+      return;
+    }
+
+    setSaveError(null);
+    setDeleting(true);
+    try {
+      await api.deleteGroup(id);
+      navigate('/groups');
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
@@ -336,6 +346,7 @@ export default function GroupDetailPage() {
   const canEdit = !isVersionView && (isNew
     ? permissions?.groups?.create
     : group?.permissions?.update);
+  const canDelete = !isVersionView && !isNew && group?.permissions?.delete;
   const currentVersionIdx = versionNumber !== null
     ? versionRevisions.indexOf(versionNumber)
     : -1;
@@ -464,6 +475,33 @@ export default function GroupDetailPage() {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+        <DialogTitle>Archive and delete this group?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This removes the group from active use and archives its current
+            record and version history with the same group ID.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            onClick={async () => {
+              await handleDelete();
+              setDeleteDialogOpen(false);
+            }}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -507,30 +545,6 @@ export default function GroupDetailPage() {
               <ReadOnlyField label="Group ID" value={group?.id} valueSx={{ fontFamily: 'monospace' }} />
             )}
 
-            {!isNew && (
-              editing ? (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formEnabled}
-                      onChange={(e) => setFormEnabled(e.target.checked)}
-                    />
-                  }
-                  label="Enabled"
-                />
-              ) : (
-                <Box>
-                  <SectionLabel>Status</SectionLabel>
-                  <Chip
-                    label={group?.enabled ? 'Enabled' : 'Disabled'}
-                    size="small"
-                    color={group?.enabled ? 'success' : 'default'}
-                    variant="outlined"
-                  />
-                </Box>
-              )
-            )}
-
             <Box>
               <SectionLabel>Secrets</SectionLabel>
               <TableContainer
@@ -570,13 +584,11 @@ export default function GroupDetailPage() {
                                   <MenuItem value="">
                                     <em>Select secret</em>
                                   </MenuItem>
-                                  {allSecrets
-                                    .filter((c) => c.enabled || c.id === cred.id)
-                                    .map((c) => (
-                                      <MenuItem key={c.id} value={c.id}>
-                                        {secretDisplayLabel(c)}
-                                      </MenuItem>
-                                    ))}
+                                  {allSecrets.map((c) => (
+                                    <MenuItem key={c.id} value={c.id}>
+                                      {secretDisplayLabel(c)}
+                                    </MenuItem>
+                                  ))}
                                 </Select>
                               </FormControl>
                             ) : (
@@ -584,11 +596,6 @@ export default function GroupDetailPage() {
                                 <Link component={RouterLink} to={`/secrets/${cred.id}`}>
                                   {cred.name || cred.id}
                                 </Link>
-                                {!cred.enabled && (
-                                  <Typography component="span" color="text.secondary" ml={1}>
-                                    (disabled)
-                                  </Typography>
-                                )}
                               </Box>
                             )}
                           </TableCell>
@@ -658,29 +665,54 @@ export default function GroupDetailPage() {
 
         <CardActions sx={{ px: 3, pb: 3, pt: 0, gap: 1 }}>
           {!isVersionView && (!editing ? (
-            canEdit ? (
-              <Button
-                variant="contained"
-                onClick={() => {
-                  setSaveError(null);
-                  setConflicts(null);
-                  setEditing(true);
-                }}
-                sx={{
-                  bgcolor: '#6bdfab',
-                  color: '#424554',
-                  '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
-                }}
-              >
-                Edit
-              </Button>
-            ) : (
-              <Tooltip title="You do not have edit permission for this group.">
-                <span>
-                  <Button variant="outlined" disabled>Edit</Button>
-                </span>
-              </Tooltip>
-            )
+            <>
+              {canEdit ? (
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setSaveError(null);
+                    setConflicts(null);
+                    setEditing(true);
+                  }}
+                  sx={{
+                    bgcolor: '#6bdfab',
+                    color: '#424554',
+                    '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' },
+                  }}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <Tooltip title="You do not have edit permission for this group.">
+                  <span>
+                    <Button variant="outlined" disabled>Edit</Button>
+                  </span>
+                </Tooltip>
+              )}
+              {canDelete ? (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete
+                </Button>
+              ) : (
+                <Tooltip title="You do not have delete permission for this group.">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      disabled
+                    >
+                      Delete
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+            </>
           ) : (
             <>
               <Button

@@ -95,8 +95,6 @@ def _secret_response_from_item(
         "modified_date": _as_datetime(item["modified_date"]),
         "modified_by": item["modified_by"],
     }
-    if item.get("enabled") is not None:
-        data["enabled"] = item["enabled"]
     if item.get("metadata") is not None:
         data["metadata"] = item["metadata"]
     if item.get("documentation") is not None:
@@ -282,7 +280,6 @@ def _build_secret_items(
     data_key,
     cipher_version,
     metadata,
-    enabled,
     modified_by,
     documentation,
     tags,
@@ -296,7 +293,6 @@ def _build_secret_items(
         "id": secret_id,
         "name": name,
         "revision": revision,
-        "enabled": enabled,
         "metadata": metadata,
         "modified_date": created_at,
         "modified_by": modified_by,
@@ -331,7 +327,6 @@ def _build_secret_items(
         "id": secret_id,
         "name": name,
         "revision": revision,
-        "enabled": enabled,
         "metadata": metadata,
         "modified_date": created_at,
         "modified_by": modified_by,
@@ -366,7 +361,6 @@ def create_secret(
     name,
     secret_pairs,
     created_by,
-    enabled=True,
     metadata=None,
     documentation=None,
     tags=None,
@@ -398,7 +392,6 @@ def create_secret(
         data_key,
         cipher_version,
         metadata,
-        enabled,
         created_by,
         documentation,
         tags,
@@ -447,7 +440,6 @@ def update_secret(
     name,
     created_by,
     secret_pairs=None,
-    enabled=None,
     metadata=None,
     documentation=None,
     tags=None,
@@ -457,8 +449,6 @@ def update_secret(
         return None, {"error": "Secret not found."}
 
     metadata = current.get("metadata", {}) if metadata is None else metadata
-    if enabled is None:
-        enabled = current.get("enabled", True)
     if documentation is None:
         documentation = current.get("documentation")
     if tags is None:
@@ -502,7 +492,6 @@ def update_secret(
         data_key,
         cipher_version,
         metadata,
-        enabled,
         created_by,
         documentation,
         tags,
@@ -563,11 +552,48 @@ def restore_secret_version(
         name=current["name"],
         created_by=created_by,
         secret_pairs=_decrypt_secret_pairs(source),
-        enabled=source.get("enabled", True),
         metadata=source.get("metadata", {}),
         documentation=source.get("documentation"),
         tags=source.get("tags", []),
     )[0]
+
+
+def _archive_secret_item(item, tenant_id):
+    archived = copy.deepcopy(item)
+    archived["PK"] = f"TENANT#{tenant_id}#ARCHIVE_SECRET#{item['id']}"
+    return archived
+
+
+def delete_secret(tenant_id, secret_id):
+    current = store.get_secret_latest(tenant_id, secret_id)
+    if not current:
+        return None, {"error": "Secret not found."}
+
+    dependencies = get_secret_dependencies(tenant_id, secret_id)
+    if dependencies:
+        return None, {
+            "error": "Secret is still mapped to groups.",
+            "groups": [group["id"] for group in dependencies],
+        }
+
+    if store.get_archive_secret_latest(tenant_id, secret_id):
+        store.delete_archive_secret(tenant_id, secret_id)
+
+    versions = store.list_secret_versions(tenant_id, secret_id)
+    archived_items = [_archive_secret_item(current, tenant_id)]
+    archived_items.extend(
+        _archive_secret_item(version, tenant_id) for version in versions
+    )
+    store.put_archive_secret(tenant_id, secret_id, archived_items)
+    store.delete_secret(tenant_id, secret_id)
+    return (
+        _secret_response_from_item(
+            current,
+            include_secret_keys=True,
+            include_secret_pairs=False,
+        ),
+        None,
+    )
 
 
 def get_secret_dependencies(tenant_id, secret_id):
@@ -577,7 +603,6 @@ def get_secret_dependencies(tenant_id, secret_id):
         dependencies.append(
             {
                 "id": item["id"],
-                "enabled": item.get("enabled", True),
             }
         )
     return dependencies

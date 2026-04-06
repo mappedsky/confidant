@@ -127,6 +127,11 @@ def get_secret(id):
                 action="update",
                 resource_id=id,
             ),
+            "delete": acl_module_check(
+                resource_type="secret",
+                action="delete",
+                resource_id=id,
+            ),
         }
         return secret_response_schema.dumps(response)
 
@@ -177,6 +182,11 @@ def get_secret_version(id, version):
             action="update",
             resource_id=id,
         ),
+        "delete": acl_module_check(
+            resource_type="secret",
+            action="delete",
+            resource_id=id,
+        ),
     }
     return secret_response_schema.dumps(response)
 
@@ -210,7 +220,6 @@ def create_secret():
             name=data.get("name"),
             secret_pairs=data["secret_pairs"],
             created_by=authnz.get_logged_in_user(),
-            enabled=data.get("enabled", True),
             metadata=data.get("metadata"),
             documentation=data.get("documentation"),
             tags=data.get("tags", []),
@@ -222,6 +231,11 @@ def create_secret():
             "read": True,
             "read_with_alert": True,
             "update": True,
+            "delete": acl_module_check(
+                resource_type="secret",
+                action="delete",
+                resource_id=response.id,
+            ),
         }
         return secret_response_schema.dumps(response)
 
@@ -257,7 +271,6 @@ def update_secret(id):
             name=data.get("name"),
             created_by=authnz.get_logged_in_user(),
             secret_pairs=data.get("secret_pairs"),
-            enabled=data.get("enabled"),
             metadata=data.get("metadata"),
             documentation=data.get("documentation"),
             tags=data.get("tags"),
@@ -269,8 +282,40 @@ def update_secret(id):
             "read": True,
             "read_with_alert": True,
             "update": True,
+            "delete": acl_module_check(
+                resource_type="secret",
+                action="delete",
+                resource_id=id,
+            ),
         }
         return secret_response_schema.dumps(response)
+
+
+@blueprint.route("/v1/secrets/<id>", methods=["DELETE"])
+@misc.prevent_xss_decorator
+@authnz.require_auth
+@authnz.require_csrf_token
+@maintenance.check_maintenance_mode
+def delete_secret(id):
+    tenant_id = authnz.get_tenant_id()
+    if not acl_module_check(
+        resource_type="secret",
+        action="delete",
+        resource_id=id,
+    ):
+        msg = (
+            f"{authnz.get_logged_in_user()} does not have access "
+            f"to delete secret {id}"
+        )
+        return jsonify({"error": msg, "reference": id}), 403
+    response, error = secretmanager.delete_secret(
+        tenant_id=tenant_id,
+        secret_id=id,
+    )
+    if error:
+        status = 409 if error.get("groups") else 404
+        return jsonify(error), status
+    return secret_response_schema.dumps(response)
 
 
 @blueprint.route(

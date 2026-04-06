@@ -39,7 +39,7 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 ### Backend
 - **Flask app** (`confidant/app.py`) with blueprints registered from `confidant/routes/`
 - **Auth** (`confidant/authnz/`): JWT-only. The backend validates Bearer tokens against `JWKS_URL`, derives `user` vs `service` from a JWT claim (`JWT_PRINCIPAL_TYPE_CLAIM`), and populates `flask.g` with a normalized request principal. Browser login is handled by the React app via OIDC PKCE against Authentik.
-- **Models** (`confidant/models/`): PynamoDB (DynamoDB ORM). `Secret` stores `secret_pairs` as KMS-encrypted blobs. `Group` stores a list of secret IDs.
+- **Storage layer** (`confidant/services/dynamodbstore.py`): single-table DynamoDB access. Secret and group records, versions, and archive partitions are all stored via explicit PK/SK patterns rather than ORM models.
 - **Groups layer** (`confidant/groups/`): business logic; `secretmanager` and `groupmanager` handle ACL checks and call `keymanager`/`ciphermanager` for encryption.
 - **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `SecretResponse` has both `secret_keys` (always populated — the key names) and `secret_pairs` (only populated when `metadata_only=False` — the decrypted values). Group responses expose secret IDs only; secret payloads are returned from the secret endpoints after ACL and mapped-service authorization checks.
 - **Settings** (`confidant/settings.py`): all configuration via environment variables.

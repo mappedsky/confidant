@@ -11,6 +11,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import TypeSerializer
+from botocore.config import Config
 
 from confidant import settings
 
@@ -112,12 +113,28 @@ def _secret_list_pk(tenant_id: str) -> str:
     return f"{_tenant_prefix(tenant_id)}#SECRET_LIST"
 
 
+def _archive_secret_pk(tenant_id: str, secret_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#ARCHIVE_SECRET#{secret_id}"
+
+
+def _archive_secret_list_pk(tenant_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#ARCHIVE_SECRET_LIST"
+
+
 def _group_pk(tenant_id: str, group_id: str) -> str:
     return f"{_tenant_prefix(tenant_id)}#GROUP#{group_id}"
 
 
 def _group_list_pk(tenant_id: str) -> str:
     return f"{_tenant_prefix(tenant_id)}#GROUP_LIST"
+
+
+def _archive_group_pk(tenant_id: str, group_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#ARCHIVE_GROUP#{group_id}"
+
+
+def _archive_group_list_pk(tenant_id: str) -> str:
+    return f"{_tenant_prefix(tenant_id)}#ARCHIVE_GROUP_LIST"
 
 
 def _version_sk(version: int) -> str:
@@ -133,6 +150,11 @@ def get_boto_resource() -> Any:
         "dynamodb",
         region_name=settings.AWS_DEFAULT_REGION,
         endpoint_url=settings.DYNAMODB_URL or None,
+        config=Config(
+            connect_timeout=settings.DYNAMODB_CONNECT_TIMEOUT_SECONDS,
+            read_timeout=settings.DYNAMODB_READ_TIMEOUT_SECONDS,
+            max_pool_connections=settings.DYNAMODB_CONNECTION_POOL_SIZE,
+        ),
     )
 
 
@@ -145,6 +167,11 @@ def _get_client() -> Any:
         "dynamodb",
         region_name=settings.AWS_DEFAULT_REGION,
         endpoint_url=settings.DYNAMODB_URL or None,
+        config=Config(
+            connect_timeout=settings.DYNAMODB_CONNECT_TIMEOUT_SECONDS,
+            read_timeout=settings.DYNAMODB_READ_TIMEOUT_SECONDS,
+            max_pool_connections=settings.DYNAMODB_CONNECTION_POOL_SIZE,
+        ),
     )
 
 
@@ -176,6 +203,13 @@ def _get_item(pk: str, sk: str) -> dict[str, Any] | None:
     table = _get_table()
     resp = table.get_item(Key={"PK": pk, "SK": sk})
     return resp.get("Item")
+
+
+def _batch_put_items(items: Sequence[dict[str, Any]]) -> None:
+    table = _get_table()
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=_normalize_item_value(item))
 
 
 def _transact_put_items(items: Sequence[dict[str, Any]]) -> None:
@@ -306,6 +340,49 @@ class DynamoDBConfidantStore:
         )
         return resp.get("Items", [])
 
+    def get_archive_secret_latest(
+        self,
+        tenant_id: str,
+        secret_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_archive_secret_pk(tenant_id, secret_id), _SK_LATEST)
+
+    def get_archive_secret_version(
+        self,
+        tenant_id: str,
+        secret_id: str,
+        version: int,
+    ) -> dict[str, Any] | None:
+        return _get_item(
+            _archive_secret_pk(tenant_id, secret_id),
+            _version_sk(version),
+        )
+
+    def list_archive_secret_versions(
+        self,
+        tenant_id: str,
+        secret_id: str,
+    ) -> list[dict[str, Any]]:
+        resp = _query_items(
+            _archive_secret_pk(tenant_id, secret_id),
+            begins_with_sk="VERSION#",
+            scan_index_forward=False,
+        )
+        return resp.get("Items", [])
+
+    def list_archive_secrets(
+        self,
+        tenant_id: str,
+        limit: int | None = None,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return _query_items(
+            _archive_secret_list_pk(tenant_id),
+            scan_index_forward=False,
+            limit=limit,
+            last_evaluated_key=last_evaluated_key,
+        )
+
     def get_group_metadata(
         self,
         tenant_id: str,
@@ -340,11 +417,33 @@ class DynamoDBConfidantStore:
         )
         return resp.get("Items", [])
 
+    def get_archive_group_latest(
+        self,
+        tenant_id: str,
+        group_id: str,
+    ) -> dict[str, Any] | None:
+        return _get_item(_archive_group_pk(tenant_id, group_id), _SK_LATEST)
+
+    def list_archive_group_versions(
+        self,
+        tenant_id: str,
+        group_id: str,
+    ) -> list[dict[str, Any]]:
+        resp = _query_items(
+            _archive_group_pk(tenant_id, group_id),
+            begins_with_sk="VERSION#",
+            scan_index_forward=False,
+        )
+        return resp.get("Items", [])
+
     def put_version_bundle(
         self,
         items: Sequence[dict[str, Any]],
     ) -> None:
         _transact_put_items(items)
+
+    def batch_put_items(self, items: Sequence[dict[str, Any]]) -> None:
+        _batch_put_items(items)
 
     def update_secret_last_decrypted_date(
         self,
@@ -391,6 +490,52 @@ class DynamoDBConfidantStore:
             }
         )
 
+    def put_archive_secret(
+        self,
+        tenant_id: str,
+        secret_id: str,
+        items: Sequence[dict[str, Any]],
+    ) -> None:
+        _batch_put_items(
+            [
+                *items,
+                {
+                    "PK": _archive_secret_list_pk(tenant_id),
+                    "SK": f"SECRET#{secret_id}",
+                    "tenant_id": tenant_id,
+                    "id": secret_id,
+                    "revision": items[0]["revision"],
+                    "name": items[0]["name"],
+                    "modified_date": items[0]["modified_date"],
+                    "modified_by": items[0]["modified_by"],
+                    "documentation": items[0].get("documentation"),
+                    "metadata": items[0].get("metadata"),
+                    "tags": items[0].get("tags"),
+                    "last_decrypted_date": items[0].get("last_decrypted_date"),
+                    "last_rotation_date": items[0].get("last_rotation_date"),
+                    "secret_keys": items[0].get("secret_keys"),
+                    "created_at": items[0].get("created_at"),
+                    "updated_at": _now(),
+                },
+            ]
+        )
+
+    def delete_archive_secret(self, tenant_id: str, secret_id: str) -> None:
+        table = _get_table()
+        resp = _query_items(
+            _archive_secret_pk(tenant_id, secret_id),
+            scan_index_forward=False,
+        )
+        for item in resp.get("Items", []):
+            table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+
+        table.delete_item(
+            Key={
+                "PK": _archive_secret_list_pk(tenant_id),
+                "SK": f"SECRET#{secret_id}",
+            }
+        )
+
     def delete_group(self, tenant_id: str, group_id: str) -> None:
         table = _get_table()
         resp = _query_items(
@@ -403,6 +548,46 @@ class DynamoDBConfidantStore:
         table.delete_item(
             Key={
                 "PK": _group_list_pk(tenant_id),
+                "SK": f"GROUP#{group_id}",
+            }
+        )
+
+    def put_archive_group(
+        self,
+        tenant_id: str,
+        group_id: str,
+        items: Sequence[dict[str, Any]],
+    ) -> None:
+        _batch_put_items(
+            [
+                *items,
+                {
+                    "PK": _archive_group_list_pk(tenant_id),
+                    "SK": f"GROUP#{group_id}",
+                    "tenant_id": tenant_id,
+                    "id": group_id,
+                    "revision": items[0]["revision"],
+                    "secrets": items[0].get("secrets", []),
+                    "modified_date": items[0]["modified_date"],
+                    "modified_by": items[0]["modified_by"],
+                    "created_at": items[0].get("created_at"),
+                    "updated_at": _now(),
+                },
+            ]
+        )
+
+    def delete_archive_group(self, tenant_id: str, group_id: str) -> None:
+        table = _get_table()
+        resp = _query_items(
+            _archive_group_pk(tenant_id, group_id),
+            scan_index_forward=False,
+        )
+        for item in resp.get("Items", []):
+            table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+
+        table.delete_item(
+            Key={
+                "PK": _archive_group_list_pk(tenant_id),
                 "SK": f"GROUP#{group_id}",
             }
         )

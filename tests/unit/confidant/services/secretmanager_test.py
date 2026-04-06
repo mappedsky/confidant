@@ -1,19 +1,12 @@
 import base64
 
-from pynamodb.exceptions import DoesNotExist
 from pytest_mock.plugin import MockerFixture
 
-from confidant.models.secret import Secret
 from confidant.services import secretmanager
 
 
 def test_get_revision_ids_for_secret():
-    secret = Secret(
-        id="1234",
-        revision=3,
-        name="test",
-        enabled=True,
-    )
+    secret = type("SecretStub", (), {"id": "1234", "revision": 3})()
     assert secretmanager.get_revision_ids_for_secret(secret) == [
         "1234-1",
         "1234-2",
@@ -21,9 +14,7 @@ def test_get_revision_ids_for_secret():
     ]
 
 
-def test_get_latest_secret_revision(mocker: MockerFixture):
-    get = mocker.patch("confidant.models.secret.Secret.get")
-    get.side_effect = DoesNotExist()
+def test_get_latest_secret_revision():
     res = secretmanager.get_latest_secret_revision("123", 1)
     assert res == 2
 

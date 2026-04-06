@@ -149,6 +149,21 @@ This check controls revert access to specific secrets. Fine-grained controls can
 
 This action does not require access to view or edit secret pairs, so it can be used to allow folks to rollback changes to resources without access to view/edit them.
 
+#### Delete secret
+
+```python
+acl_module_check(
+    resource_type='secret',
+    action='delete',
+    resource_id=id,
+)
+```
+
+This check controls delete access to specific secrets. Deletes archive the
+secret and all of its versions under the same secret ID, then remove the
+active record from the primary secret partitions. Fine-grained controls can be
+applied using the provided `resource_id`.
+
 ### Groups
 
 #### List groups
@@ -234,3 +249,18 @@ acl_module_check(
 This check controls revert access to specific groups. Fine-grained controls can be applied using the provided `resource_id`. Note that if you're controlling access to this, you probably also want to control access to [Update service](#update-service).
 
 This action does not require access to view or update groups, so it can be used to allow folks to rollback changes to resources without access to view/update them.
+
+#### Delete service
+
+```python
+acl_module_check(
+    resource_type='group',
+    action='delete',
+    resource_id=id,
+)
+```
+
+This check controls delete access to specific groups. Deletes archive the
+group and all of its versions under the same group ID, then remove the active
+record from the primary group partitions. Fine-grained controls can be applied
+using the provided `resource_id`.
