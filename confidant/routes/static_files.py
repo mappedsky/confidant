@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from flask import blueprints
 from flask import current_app
+from flask import g
 from flask import redirect
 from flask import request
 from flask import send_from_directory
@@ -49,7 +50,15 @@ def _serve_spa_index():
     redirect_response = _redirect_to_frontend_dev_server()
     if redirect_response is not None:
         return redirect_response
-    return current_app.send_static_file("index.html")
+    return _render_static_html("index.html")
+
+
+def _render_static_html(filename):
+    html_path = os.path.join(current_app.static_folder, filename)
+    with open(html_path, encoding="utf-8") as html_file:
+        html = html_file.read()
+    html = html.replace("%CSP_NONCE%", g.csp_nonce)
+    return current_app.response_class(html, mimetype="text/html")
 
 
 @blueprint.route("/")
@@ -74,7 +83,7 @@ def oidc_callback():
         # development. oidc-client-ts stores PKCE/OIDC state per-origin, so
         # moving `code` and `state` from :80 to :3000 causes a redirect loop.
         return redirect(f"{origin}/")
-    return current_app.send_static_file("index.html")
+    return _render_static_html("index.html")
 
 
 @blueprint.route("/loggedout")
