@@ -1,9 +1,10 @@
 import logging
+import secrets as stdlib_secrets
 from urllib.parse import urlparse
 
 import boto3
-import guard
 from flask import Flask
+from flask import g
 from flask_sslify import SSLify
 
 from confidant import settings
@@ -18,11 +19,11 @@ if not settings.get("DEBUG"):
     logging.getLogger("botocore").setLevel(logging.CRITICAL)
 
 
-def _build_csp_policy():
+def _build_csp_policy(nonce):
     policy = {
         "default-src": ["'self'"],
         "connect-src": ["'self'"],
-        "style-src": ["'self'", "'unsafe-inline'"],  # for spin.js
+        "style-src": ["'self'", f"'nonce-{nonce}'"],
     }
     if settings.OIDC_AUTHORITY:
         parsed = urlparse(settings.OIDC_AUTHORITY)
@@ -31,6 +32,13 @@ def _build_csp_policy():
             policy["connect-src"].append(oidc_origin)
         policy["frame-src"] = [oidc_origin]
     return policy
+
+
+def _format_csp_policy(policy):
+    parts = []
+    for directive, sources in policy.items():
+        parts.append(f"{directive} {' '.join(sources)}")
+    return "; ".join(parts)
 
 
 def create_app():
@@ -44,10 +52,16 @@ def create_app():
     if settings.SSLIFY and not settings.DEBUG:
         SSLify(app, skips=["healthcheck"])
 
-    app.wsgi_app = guard.ContentSecurityPolicy(
-        app.wsgi_app,
-        _build_csp_policy(),
-    )
+    @app.before_request
+    def _set_csp_nonce():
+        g.csp_nonce = stdlib_secrets.token_urlsafe(16)
+
+    @app.after_request
+    def _add_csp_header(response):
+        response.headers["Content-Security-Policy"] = _format_csp_policy(
+            _build_csp_policy(g.csp_nonce),
+        )
+        return response
 
     if settings.REDIS_URL_FLASK_SESSIONS:
         import redis
