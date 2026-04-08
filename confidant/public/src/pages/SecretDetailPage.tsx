@@ -316,9 +316,9 @@ export default function SecretDetailPage() {
       return;
     }
 
-    const complexity = (Object.entries(generateComplexity)
+    const complexity: string[] = Object.entries(generateComplexity)
       .filter(([, enabled]) => enabled)
-      .map(([name]) => name)) as GenerateValueRequest['complexity'];
+      .map(([name]) => name);
     if (!complexity.length) {
       setGenerateError('Select at least one character class.');
       return;
@@ -473,7 +473,11 @@ export default function SecretDetailPage() {
                       variant="outlined"
                       startIcon={<NavigateBeforeIcon />}
                       disabled={prevVersion === null}
-                      onClick={() => navigate(secretVersionPath(id!, prevVersion))}
+                      onClick={() => {
+                        if (prevVersion !== null) {
+                          navigate(secretVersionPath(id!, prevVersion));
+                        }
+                      }}
                     >
                       {prevVersion !== null ? `v${prevVersion}` : 'Older'}
                     </Button>
@@ -485,7 +489,11 @@ export default function SecretDetailPage() {
                       variant="outlined"
                       endIcon={<NavigateNextIcon />}
                       disabled={nextVersion === null}
-                      onClick={() => navigate(secretVersionPath(id!, nextVersion))}
+                      onClick={() => {
+                        if (nextVersion !== null) {
+                          navigate(secretVersionPath(id!, nextVersion));
+                        }
+                      }}
                     >
                       {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
                     </Button>
