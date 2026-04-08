@@ -14,6 +14,7 @@ def _value(obj, key, default=None):
 
 
 class CreateSecretRequest(BaseModel):
+    id: str
     name: str
     secret_pairs: dict[Any, Any]
     metadata: dict[Any, Any] = Field(default_factory=dict)

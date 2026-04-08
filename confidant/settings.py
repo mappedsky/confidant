@@ -133,6 +133,8 @@ JWT_SUB_CLAIM = str_env("JWT_SUB_CLAIM", "sub")
 JWT_EMAIL_CLAIM = str_env("JWT_EMAIL_CLAIM", "email")
 # The JWT claim that contains the tenant id in multi-tenant mode.
 JWT_TENANT_ID_CLAIM = str_env("JWT_TENANT_ID_CLAIM", "tenant_id")
+# The JWT claim that contains the principal's group ids.
+JWT_GROUPS_CLAIM = str_env("JWT_GROUPS_CLAIM", "groups")
 # The claim used to differentiate between end-user and service principals.
 JWT_PRINCIPAL_TYPE_CLAIM = str_env("JWT_PRINCIPAL_TYPE_CLAIM", "principal_type")
 # The principal type value that represents a user.

@@ -14,6 +14,7 @@ from boto3.dynamodb.types import TypeSerializer
 from botocore.config import Config
 
 from confidant import settings
+from confidant.utils import resource_ids
 
 logger = logging.getLogger(__name__)
 
@@ -285,12 +286,18 @@ class DynamoDBConfidantStore:
         tenant_id: str,
         limit: int | None = None,
         last_evaluated_key: dict[str, Any] | None = None,
+        prefix: str | None = None,
     ) -> dict[str, Any]:
+        query_kwargs = {
+            "scan_index_forward": False,
+            "limit": limit,
+            "last_evaluated_key": last_evaluated_key,
+        }
+        if prefix:
+            query_kwargs["begins_with_sk"] = prefix
         return _query_items(
             _secret_list_pk(tenant_id),
-            scan_index_forward=False,
-            limit=limit,
-            last_evaluated_key=last_evaluated_key,
+            **query_kwargs,
         )
 
     def list_groups(
@@ -463,7 +470,7 @@ class DynamoDBConfidantStore:
             {"PK": _secret_pk(tenant_id, secret_id), "SK": _SK_LATEST},
             {
                 "PK": _secret_list_pk(tenant_id),
-                "SK": f"SECRET#{secret_id}",
+                "SK": secret_id,
             },
         ]
         for key in keys:
@@ -486,7 +493,7 @@ class DynamoDBConfidantStore:
         table.delete_item(
             Key={
                 "PK": _secret_list_pk(tenant_id),
-                "SK": f"SECRET#{secret_id}",
+                "SK": secret_id,
             }
         )
 
@@ -501,7 +508,7 @@ class DynamoDBConfidantStore:
                 *items,
                 {
                     "PK": _archive_secret_list_pk(tenant_id),
-                    "SK": f"SECRET#{secret_id}",
+                    "SK": secret_id,
                     "tenant_id": tenant_id,
                     "id": secret_id,
                     "revision": items[0]["revision"],
@@ -532,7 +539,7 @@ class DynamoDBConfidantStore:
         table.delete_item(
             Key={
                 "PK": _archive_secret_list_pk(tenant_id),
-                "SK": f"SECRET#{secret_id}",
+                "SK": secret_id,
             }
         )
 
@@ -567,7 +574,7 @@ class DynamoDBConfidantStore:
                     "tenant_id": tenant_id,
                     "id": group_id,
                     "revision": items[0]["revision"],
-                    "secrets": items[0].get("secrets", []),
+                    "policies": items[0].get("policies", {}),
                     "modified_date": items[0]["modified_date"],
                     "modified_by": items[0]["modified_by"],
                     "created_at": items[0].get("created_at"),
@@ -612,8 +619,11 @@ class DynamoDBConfidantStore:
         resp = self.list_groups(tenant_id)
         groups = []
         for item in resp.get("Items", []):
-            secrets = item.get("secrets", [])
-            if secret_id in secrets:
+            policies = item.get("policies", {})
+            if any(
+                resource_ids.secret_policy_matches(policy_path, secret_id)
+                for policy_path in policies
+            ):
                 groups.append(item)
         return groups
 

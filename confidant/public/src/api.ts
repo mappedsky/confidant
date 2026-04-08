@@ -2,16 +2,20 @@ import {
   ApiError,
   ApiErrorData,
   ClientConfigResponse,
+  CreateSecretPayload,
   SecretDetail,
   SecretVersionsResponse,
   SecretsListResponse,
   SecretGroupsResponse,
   GenerateValueResponse,
+  GenerateValueRequest,
+  GroupWritePayload,
   GroupVersionsResponse,
   GroupsListResponse,
   GroupDetail,
   UserEmailResponse,
 } from './types/api';
+import { encodeSecretId } from './utils/resourceIds';
 
 let xsrfCookieName: string | null = null;
 let accessTokenGetter: (() => string | null) | null = null;
@@ -20,6 +24,7 @@ let unauthorizedHandler: (() => Promise<unknown> | unknown) | null = null;
 interface CursorPageParams {
   limit?: number;
   page?: string | null;
+  prefix?: string | null;
 }
 
 export function setXsrfCookieName(name: string) {
@@ -92,6 +97,9 @@ function withCursorParams(url: string, params?: CursorPageParams): string {
   if (params.page) {
     searchParams.set('page', params.page);
   }
+  if (params.prefix) {
+    searchParams.set('prefix', params.prefix);
+  }
 
   const query = searchParams.toString();
   return query ? `${url}?${query}` : url;
@@ -104,42 +112,60 @@ export const api = {
   getSecrets: (params?: CursorPageParams) =>
     request<SecretsListResponse>(withCursorParams('/v1/secrets', params)),
   getSecret: (id: string, metadataOnly = true) =>
-    request<SecretDetail>(`/v1/secrets/${id}?metadata_only=${metadataOnly}`),
-  createSecret: (data: unknown) =>
+    request<SecretDetail>(
+      `/v1/secrets/${encodeSecretId(id)}?metadata_only=${metadataOnly}`,
+    ),
+  decryptSecret: (id: string) =>
+    request<SecretDetail>(`/v1/secrets/${encodeSecretId(id)}/decrypt`, {
+      method: 'POST',
+    }),
+  createSecret: (data: CreateSecretPayload) =>
     request<SecretDetail>('/v1/secrets', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateSecret: (id: string, data: unknown) =>
-    request<SecretDetail>(`/v1/secrets/${id}`, {
+  updateSecret: (id: string, data: CreateSecretPayload | unknown) =>
+    request<SecretDetail>(`/v1/secrets/${encodeSecretId(id)}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   deleteSecret: (id: string) =>
-    request<SecretDetail>(`/v1/secrets/${id}`, {
+    request<SecretDetail>(`/v1/secrets/${encodeSecretId(id)}`, {
       method: 'DELETE',
     }),
   getSecretGroups: (id: string) =>
-    request<SecretGroupsResponse>(`/v1/secrets/${id}/groups`),
+    request<SecretGroupsResponse>(`/v1/secrets/${encodeSecretId(id)}/groups`),
   getSecretVersions: (id: string) =>
-    request<SecretVersionsResponse>(`/v1/secrets/${id}/versions`),
+    request<SecretVersionsResponse>(`/v1/secrets/${encodeSecretId(id)}/versions`),
   getSecretVersion: (id: string, version: number | string) =>
-    request<SecretDetail>(`/v1/secrets/${id}/versions/${version}`),
+    request<SecretDetail>(
+      `/v1/secrets/${encodeSecretId(id)}/versions/${version}`,
+    ),
+  decryptSecretVersion: (id: string, version: number | string) =>
+    request<SecretDetail>(
+      `/v1/secrets/${encodeSecretId(id)}/versions/${version}/decrypt`,
+      {
+        method: 'POST',
+      },
+    ),
   restoreSecretVersion: (id: string, version: number | string) =>
-    request<SecretDetail>(`/v1/secrets/${id}/versions/${version}/restore`, {
-      method: 'POST',
-    }),
+    request<SecretDetail>(
+      `/v1/secrets/${encodeSecretId(id)}/versions/${version}/restore`,
+      {
+        method: 'POST',
+      },
+    ),
 
   getGroups: (params?: CursorPageParams) =>
     request<GroupsListResponse>(withCursorParams('/v1/groups', params)),
   getGroup: (id: string) =>
     request<GroupDetail>(`/v1/groups/${id}`),
-  createGroup: (id: string, data: unknown) =>
+  createGroup: (id: string, data: GroupWritePayload) =>
     request<GroupDetail>(`/v1/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  updateGroup: (id: string, data: unknown) =>
+  updateGroup: (id: string, data: GroupWritePayload) =>
     request<GroupDetail>(`/v1/groups/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -156,5 +182,19 @@ export const api = {
     request<GroupDetail>(`/v1/groups/${id}/versions/${version}/restore`, {
       method: 'POST',
     }),
-  generateValue: () => request<GenerateValueResponse>('/v1/value_generator'),
+  generateValue: (params?: GenerateValueRequest) => {
+    const searchParams = new URLSearchParams();
+    if (params?.length != null) {
+      searchParams.set('length', String(params.length));
+    }
+    if (params?.complexity?.length) {
+      for (const value of params.complexity) {
+        searchParams.append('complexity', value);
+      }
+    }
+    const query = searchParams.toString();
+    return request<GenerateValueResponse>(
+      query ? `/v1/value_generator?${query}` : '/v1/value_generator',
+    );
+  },
 };

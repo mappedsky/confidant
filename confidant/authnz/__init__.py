@@ -27,6 +27,7 @@ class RequestPrincipal:
     username: str
     email: str | None
     tenant_id: str | None
+    group_ids: list[str]
     jwt_claims: dict[str, Any]
 
 
@@ -51,6 +52,32 @@ def _get_required_claim(payload: dict[str, Any], claim_name: str) -> str:
     if value is None:
         raise AuthenticationError(f"Missing required JWT claim {claim_name!r}")
     return value
+
+
+def _normalize_string_list(
+    payload: dict[str, Any],
+    claim_name: str,
+) -> list[str]:
+    value = payload.get(claim_name)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise AuthenticationError(
+            f"JWT claim {claim_name!r} must be a list of strings."
+        )
+    normalized = []
+    seen = set()
+    for item in value:
+        normalized_item = _normalize_optional_string(item)
+        if normalized_item is None:
+            raise AuthenticationError(
+                f"JWT claim {claim_name!r} must be a list of strings."
+            )
+        if normalized_item in seen:
+            continue
+        seen.add(normalized_item)
+        normalized.append(normalized_item)
+    return normalized
 
 
 def _decode_jwt(token: str) -> dict[str, Any]:
@@ -152,11 +179,13 @@ def _principal_from_payload(payload: dict[str, Any]) -> RequestPrincipal:
     email = _normalize_optional_string(payload.get(settings.JWT_EMAIL_CLAIM))
     tenant_id_claim = settings.JWT_TENANT_ID_CLAIM
     tenant_id = _normalize_optional_string(payload.get(tenant_id_claim))
+    group_ids = _normalize_string_list(payload, settings.JWT_GROUPS_CLAIM)
     return RequestPrincipal(
         user_type=user_type,
         username=username,
         email=email,
         tenant_id=tenant_id,
+        group_ids=group_ids,
         jwt_claims=payload,
     )
 
@@ -168,6 +197,7 @@ def _set_request_principal(principal: RequestPrincipal) -> None:
     g.username = principal.username
     g.jwt_claims = principal.jwt_claims
     g.tenant_id = principal.tenant_id
+    g.group_ids = principal.group_ids
 
 
 def _get_request_principal() -> RequestPrincipal:
@@ -199,6 +229,12 @@ def get_tenant_id():
     if tenant_id is not None:
         return tenant_id
     raise UserUnknownError()
+
+
+def get_logged_in_group_ids() -> list[str]:
+    if not settings.USE_AUTH:
+        return []
+    return list(_get_request_principal().group_ids)
 
 
 def user_is_user_type(user_type):

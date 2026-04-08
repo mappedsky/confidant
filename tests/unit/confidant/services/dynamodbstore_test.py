@@ -1,6 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
 
 from confidant.services.dynamodbstore import _serialize_item
+from confidant.services.dynamodbstore import DynamoDBConfidantStore
 
 
 def test_serialize_item_converts_datetime_to_string():
@@ -75,7 +77,7 @@ def test_serialize_item_coerces_unknown_scalars_to_strings():
     assert serialized["value"]["S"] == "custom-value"
 
 
-def test_serialize_item_strips_empty_dict_keys_and_stringifies_non_string_keys():
+def test_serialize_item_strips_empty_dict_keys_and_stringifies_keys() -> None:
     item = {
         "metadata": {
             "": "drop",
@@ -90,3 +92,40 @@ def test_serialize_item_strips_empty_dict_keys_and_stringifies_non_string_keys()
         "keep": {"S": "value"},
         "1": {"S": "one"},
     }
+
+
+def test_list_groups_for_secret_matches_policy_glob(mocker):
+    list_groups_mock = mocker.patch.object(
+        DynamoDBConfidantStore,
+        "list_groups",
+        return_value={
+            "Items": [
+                {
+                    "id": "policy-a",
+                    "policies": {"apps/*": ["decrypt"]},
+                },
+                {
+                    "id": "policy-b",
+                    "policies": {"other/*": ["decrypt"]},
+                },
+            ]
+        },
+    )
+
+    store = DynamoDBConfidantStore()
+    groups = store.list_groups_for_secret("singletenant", "apps/service-a")
+
+    list_groups_mock.assert_called_once_with("singletenant")
+    assert [group["id"] for group in groups] == ["policy-a"]
+
+
+def test_list_secrets_uses_prefix_query(mocker):
+    query_mock = mocker.patch(
+        "confidant.services.dynamodbstore._query_items",
+        return_value={"Items": []},
+    )
+
+    store = DynamoDBConfidantStore()
+    store.list_secrets("singletenant", prefix="apps/")
+
+    assert query_mock.call_args.kwargs["begins_with_sk"] == "apps/"

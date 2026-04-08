@@ -102,10 +102,15 @@ def get_client_config():
     """
     permissions = {
         "secrets": {
-            "list": acl_module_check(resource_type="secret", action="list"),
+            "list": acl_module_check(
+                resource_type="secret",
+                action="list",
+                resource_id="*",
+            ),
             "create": acl_module_check(
                 resource_type="secret",
                 action="create",
+                resource_id="*",
             ),
         },
         "groups": {

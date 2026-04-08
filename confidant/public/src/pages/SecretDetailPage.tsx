@@ -15,11 +15,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Checkbox,
   IconButton,
   Tooltip,
   Select,
   MenuItem,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   InputLabel,
   Link,
   Chip,
@@ -41,10 +44,18 @@ import CenteredSpinner from '../components/CenteredSpinner';
 import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
 import {
+  CreateSecretPayload,
   SecretDetail,
   SecretGroupsResponse,
   ConflictMap,
+  GenerateValueRequest,
 } from '../types/api';
+import {
+  secretDetailPath,
+  secretHistoryPath,
+  secretVersionPath,
+  validateSecretId,
+} from '../utils/resourceIds';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -104,8 +115,19 @@ export default function SecretDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [generateTargetIdx, setGenerateTargetIdx] = useState<number | null>(null);
+  const [generateLength, setGenerateLength] = useState('32');
+  const [generateComplexity, setGenerateComplexity] = useState({
+    lowercase: true,
+    uppercase: true,
+    digits: true,
+    symbols: true,
+  });
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const [formName, setFormName] = useState('');
+  const [formId, setFormId] = useState('');
   const [formPairs, setFormPairs] = useState<KeyValueRow[]>([{ key: '', value: '' }]);
   const [formMetadata, setFormMetadata] = useState<KeyValueRow[]>([]);
   const [formTags, setFormTags] = useState<string[]>([]);
@@ -113,6 +135,7 @@ export default function SecretDetailPage() {
 
   const populateForm = useCallback((cred: SecretDetail) => {
     setFormName(cred.name ?? '');
+    setFormId(cred.id ?? '');
     const pairs = Object.entries(cred.secret_pairs ?? {}).map(([key, value]) => ({
       key,
       value,
@@ -138,7 +161,7 @@ export default function SecretDetailPage() {
     }
 
     setShowValues(false);
-    setDecrypted(isVersionView);
+    setDecrypted(false);
     setLatestRevision(null);
     setCanRestore(false);
     setVersionRevisions([]);
@@ -148,7 +171,7 @@ export default function SecretDetailPage() {
     if (isVersionView && id && versionNumber !== null) {
       Promise.all([
         api.getSecretVersion(id, versionNumber),
-        api.getSecret(id, true),
+        api.getSecret(id),
         api.getSecretVersions(id),
       ])
         .then(([cred, current, history]) => {
@@ -156,7 +179,9 @@ export default function SecretDetailPage() {
           populateForm(cred);
           setSecretGroups([]);
           setLatestRevision(current.revision);
-          setCanRestore(current.permissions?.update ?? false);
+          setCanRestore(
+            current.permissions?.revert ?? current.permissions?.update ?? false,
+          );
           setVersionRevisions(
             [...(history.versions ?? [])]
               .map((item) => item.revision)
@@ -168,7 +193,7 @@ export default function SecretDetailPage() {
       return;
     }
 
-    Promise.all([api.getSecret(id, true), api.getSecretGroups(id)])
+    Promise.all([api.getSecret(id), api.getSecretGroups(id)])
       .then(([cred, svcData]) => {
         setSecret(cred);
         populateForm(cred);
@@ -184,13 +209,11 @@ export default function SecretDetailPage() {
       setShowValues(false);
       return;
     }
-    if (isVersionView) {
-      setShowValues(true);
-      return;
-    }
     if (!decrypted && id) {
       try {
-        const full = await api.getSecret(id, false);
+        const full = isVersionView && versionNumber !== null
+          ? await api.decryptSecretVersion(id, versionNumber)
+          : await api.decryptSecret(id);
         setSecret(full);
         populateForm(full);
         setDecrypted(true);
@@ -208,7 +231,7 @@ export default function SecretDetailPage() {
     }
     if (!decrypted && id) {
       try {
-        const full = await api.getSecret(id, false);
+        const full = await api.decryptSecret(id);
         setSecret(full);
         populateForm(full);
         setDecrypted(true);
@@ -231,7 +254,7 @@ export default function SecretDetailPage() {
     setRestoring(true);
     try {
       const restored = await api.restoreSecretVersion(id, versionNumber);
-      navigate(`/secrets/${restored.id}`);
+      navigate(secretDetailPath(restored.id));
     } catch (err) {
       setSaveError((err as Error).message);
     } finally {
@@ -270,11 +293,44 @@ export default function SecretDetailPage() {
   };
 
   const handleGenerate = async (idx: number) => {
+    setGenerateTargetIdx(idx);
+    setGenerateLength('32');
+    setGenerateComplexity({
+      lowercase: true,
+      uppercase: true,
+      digits: true,
+      symbols: true,
+    });
+    setGenerateError(null);
+    setGenerateDialogOpen(true);
+  };
+
+  const handleRunGenerate = async () => {
+    if (generateTargetIdx === null) {
+      return;
+    }
+
+    const length = Number(generateLength);
+    if (!Number.isInteger(length) || length < 1) {
+      setGenerateError('Length must be a positive integer.');
+      return;
+    }
+
+    const complexity = (Object.entries(generateComplexity)
+      .filter(([, enabled]) => enabled)
+      .map(([name]) => name)) as GenerateValueRequest['complexity'];
+    if (!complexity.length) {
+      setGenerateError('Select at least one character class.');
+      return;
+    }
+
     try {
-      const { value } = await api.generateValue();
-      setFormPairs((prev) => prev.map((r, i) => (i === idx ? { ...r, value } : r)));
+      const { value } = await api.generateValue({ length, complexity });
+      setFormPairs((prev) => prev.map((r, i) => (i === generateTargetIdx ? { ...r, value } : r)));
+      setGenerateError(null);
+      setGenerateDialogOpen(false);
     } catch (err) {
-      setSaveError((err as Error).message);
+      setGenerateError((err as Error).message);
     }
   };
 
@@ -292,8 +348,16 @@ export default function SecretDetailPage() {
       setSaveError('Metadata keys must be unique.');
       return;
     }
+    if (isNew) {
+      const idError = validateSecretId(formId);
+      if (idError) {
+        setSaveError(idError);
+        return;
+      }
+    }
 
-    const payload = {
+    const payload: CreateSecretPayload = {
+      id: formId,
       name: formName,
       documentation: formDocumentation,
       secret_pairs: Object.fromEntries(
@@ -317,7 +381,7 @@ export default function SecretDetailPage() {
         if (!saved.id) {
           throw new Error('Secret was created, but no secret ID was returned.');
         }
-        window.location.replace(`/secrets/${saved.id}`);
+        window.location.replace(secretDetailPath(saved.id));
         return;
       } else if (id) {
         saved = await api.updateSecret(id, payload);
@@ -359,6 +423,7 @@ export default function SecretDetailPage() {
 
   const canEdit = !isVersionView && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
   const canDelete = !isVersionView && !isNew && secret?.permissions?.delete;
+  const canDecrypt = !isNew && !!secret?.permissions?.decrypt;
   const daysTillRotation =
     secret?.next_rotation_date
       ? Math.round(
@@ -385,7 +450,9 @@ export default function SecretDetailPage() {
         <Box>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(isVersionView ? `/secrets/${id}/history` : '/secrets')}
+            onClick={() => navigate(
+              isVersionView ? secretHistoryPath(id!) : '/secrets',
+            )}
             sx={{ mb: 2 }}
           >
             {isVersionView ? 'Back to History' : 'Back to Secrets'}
@@ -406,7 +473,7 @@ export default function SecretDetailPage() {
                       variant="outlined"
                       startIcon={<NavigateBeforeIcon />}
                       disabled={prevVersion === null}
-                      onClick={() => navigate(`/secrets/${id}/versions/${prevVersion}`)}
+                      onClick={() => navigate(secretVersionPath(id!, prevVersion))}
                     >
                       {prevVersion !== null ? `v${prevVersion}` : 'Older'}
                     </Button>
@@ -418,7 +485,7 @@ export default function SecretDetailPage() {
                       variant="outlined"
                       endIcon={<NavigateNextIcon />}
                       disabled={nextVersion === null}
-                      onClick={() => navigate(`/secrets/${id}/versions/${nextVersion}`)}
+                      onClick={() => navigate(secretVersionPath(id!, nextVersion))}
                     >
                       {nextVersion !== null ? `v${nextVersion}` : 'Newer'}
                     </Button>
@@ -446,7 +513,7 @@ export default function SecretDetailPage() {
               <Button
                 variant="outlined"
                 startIcon={<HistoryIcon />}
-                onClick={() => navigate(`/secrets/${id}/history`)}
+                onClick={() => navigate(secretHistoryPath(id!))}
               >
                 History
               </Button>
@@ -521,6 +588,114 @@ export default function SecretDetailPage() {
         </DialogActions>
       </Dialog>
 
+        <Dialog
+        open={generateDialogOpen}
+        onClose={() => {
+          setGenerateDialogOpen(false);
+          setGenerateTargetIdx(null);
+          setGenerateError(null);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Generate Random Value</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <TextField
+              label="Length"
+              type="number"
+              size="small"
+              value={generateLength}
+              onChange={(event) => setGenerateLength(event.target.value)}
+              inputProps={{ min: 1, max: 1024, step: 1 }}
+              helperText="Length must be between 1 and 1024."
+            />
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Character classes
+              </Typography>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={generateComplexity.lowercase}
+                      onChange={(event) =>
+                        setGenerateComplexity((prev) => ({
+                          ...prev,
+                          lowercase: event.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Lowercase letters"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={generateComplexity.uppercase}
+                      onChange={(event) =>
+                        setGenerateComplexity((prev) => ({
+                          ...prev,
+                          uppercase: event.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Uppercase letters"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={generateComplexity.digits}
+                      onChange={(event) =>
+                        setGenerateComplexity((prev) => ({
+                          ...prev,
+                          digits: event.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Digits"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={generateComplexity.symbols}
+                      onChange={(event) =>
+                        setGenerateComplexity((prev) => ({
+                          ...prev,
+                          symbols: event.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Symbols"
+                />
+              </FormGroup>
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              The generated value will include at least one character from each
+              selected class.
+            </Typography>
+            {generateError && <Alert severity="error">{generateError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setGenerateDialogOpen(false);
+              setGenerateTargetIdx(null);
+              setGenerateError(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleRunGenerate}>
+            Generate
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
@@ -533,7 +708,7 @@ export default function SecretDetailPage() {
                   {info.secrets?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
                       Secret:{' '}
-                      <Link component={RouterLink} to={`/secrets/${cid}`}>
+                      <Link component={RouterLink} to={secretDetailPath(cid)}>
                         {cid}
                       </Link>
                     </Typography>
@@ -559,6 +734,20 @@ export default function SecretDetailPage() {
       <Card elevation={1}>
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={3}>
+            {editing && isNew ? (
+              <TextField
+                label="Secret ID"
+                size="small"
+                fullWidth
+                required
+                value={formId}
+                onChange={(e) => setFormId(e.target.value)}
+                helperText={
+                  'Use letters, numbers, and /_+=.@-. Max 512 chars; no trailing /.'
+                }
+              />
+            ) : null}
+
             {editing ? (
               <TextField
                 label="Secret Name"
@@ -576,21 +765,30 @@ export default function SecretDetailPage() {
               <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
                 <SectionLabel>Secret Pairs</SectionLabel>
                 <LockIcon sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: '2px' }} />
-                {!editing && (
+                {!editing && canDecrypt && (
                   <Tooltip
-                    title={
-                      showValues
+                    title={canDecrypt
+                      ? (showValues
                         ? 'Hide values'
-                        : 'Show decrypted values (may affect rotation schedule)'
-                    }
+                        : isVersionView
+                          ? 'Decrypt version values'
+                          : 'Decrypt values (may affect rotation schedule)')
+                      : 'You do not have permission to decrypt this secret.'}
                   >
-                    <IconButton size="small" onClick={handleToggleShow} sx={{ ml: 0.5 }}>
-                      {showValues ? (
-                        <VisibilityOffIcon fontSize="small" />
-                      ) : (
-                        <VisibilityIcon fontSize="small" />
-                      )}
-                    </IconButton>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={handleToggleShow}
+                        sx={{ ml: 0.5 }}
+                        disabled={!canDecrypt}
+                      >
+                        {showValues ? (
+                          <VisibilityOffIcon fontSize="small" />
+                        ) : (
+                          <VisibilityIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </span>
                   </Tooltip>
                 )}
               </Stack>

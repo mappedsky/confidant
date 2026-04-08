@@ -31,7 +31,7 @@ docker compose up    # starts: app (port 80), frontend (port 3000), dynamodb-loc
 docker compose down
 ```
 
-Use `localhost:3000` (the Vite dev server) during development, not port 80. The OIDC callback is configured to round-trip through port 3000. Authentik runs at `http://localhost:9000` with dev secrets `akadmin/devpassword`, `developer/devpassword`, and `confidant-development/devpassword` for service-principal testing.
+Use `localhost:3000` (the Vite dev server) during development, not port 80. The OIDC callback is configured to round-trip through port 3000. Authentik runs at `http://localhost:9000` with dev secrets `akadmin/devpassword`, `confidant-administrator/devpassword`, `confidant-group-administrator/devpassword`, `confidant-auditor/devpassword`, and `dashboard-engineering/devpassword`.
 Prefer running Bun and Pipenv commands through `docker compose`; avoid host-installed toolchains so the local environment matches the containers used for builds and tests.
 
 ## Architecture
@@ -41,7 +41,7 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 - **Auth** (`confidant/authnz/`): JWT-only. The backend validates Bearer tokens against `JWKS_URL`, derives `user` vs `service` from a JWT claim (`JWT_PRINCIPAL_TYPE_CLAIM`), and populates `flask.g` with a normalized request principal. Browser login is handled by the React app via OIDC PKCE against Authentik.
 - **Storage layer** (`confidant/services/dynamodbstore.py`): single-table DynamoDB access. Secret and group records, versions, and archive partitions are all stored via explicit PK/SK patterns rather than ORM models.
 - **Groups layer** (`confidant/groups/`): business logic; `secretmanager` and `groupmanager` handle ACL checks and call `keymanager`/`ciphermanager` for encryption.
-- **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `SecretResponse` has both `secret_keys` (always populated — the key names) and `secret_pairs` (only populated when `metadata_only=False` — the decrypted values). Group responses expose secret IDs only; secret payloads are returned from the secret endpoints after ACL and mapped-service authorization checks.
+- **Schemas** (`confidant/schema/`): Pydantic v2 models for API response serialization. `SecretResponse` has both `secret_keys` (always populated — the key names) and `secret_pairs` (only populated on explicit decrypt responses — the decrypted values). Group responses expose secret IDs only; secret payloads are returned from the secret endpoints after ACL and mapped-service authorization checks.
 - **Settings** (`confidant/settings.py`): all configuration via environment variables.
 
 ### Frontend
@@ -50,14 +50,20 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 - **Theme**: `src/theme.ts` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
 - **API client**: `src/api.ts` — wraps `fetch`; attaches a Bearer token supplied by the OIDC auth provider and redirects back into the OIDC flow on 401s.
 - **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags, xsrf_cookie_name) and `userEmail` once on mount.
-- **Secret detail flow**: on initial load, `getSecret(id, metadata_only=true)` returns `secret_keys` (names only) but not values. `populateForm` uses `secret_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers a second fetch with `metadata_only=false` to decrypt. Groups no longer hydrate secrets in group detail responses.
+- **Secret detail flow**: on initial load, `getSecret(id)` returns `secret_keys` (names only) but not values. `populateForm` uses `secret_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers an explicit `POST /v1/secrets/{id}/decrypt` call; version pages use `POST /v1/secrets/{id}/versions/{version}/decrypt`. Groups no longer hydrate secrets in group detail responses.
 - **View vs edit rendering**: detail pages use a local `ReadOnlyField` component (label + Typography) for view mode, and `TextField`/`Select` for edit mode. Never use `InputProps={{ readOnly }}` on TextField for display — it looks editable.
 - **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` so OIDC/logout redirects return to the Vite dev server cleanly.
 
 ### Key data flow: secret decryption
 ```
-GET /v1/secrets/{id}?metadata_only=false
-  → route checks ACL (action='get')
+POST /v1/secrets/{id}/decrypt
+  → route checks ACL (action='decrypt')
+  → SecretResponse.from_secret(..., include_secret_pairs=True)
+  → secret.decrypted_secret_pairs  (KMS decrypt)
+  → JSON response with secret_pairs populated
+
+POST /v1/secrets/{id}/versions/{version}/decrypt
+  → route checks ACL (action='decrypt')
   → SecretResponse.from_secret(..., include_secret_pairs=True)
   → secret.decrypted_secret_pairs  (KMS decrypt)
   → JSON response with secret_pairs populated

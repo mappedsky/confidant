@@ -3,7 +3,6 @@ from datetime import timezone
 
 from confidant.app import create_app
 from confidant.routes import secrets as secret_routes
-from confidant.schema.groups import GroupResponse
 from confidant.schema.secrets import RevisionsResponse
 from confidant.schema.secrets import SecretResponse
 from confidant.schema.secrets import SecretsResponse
@@ -24,82 +23,31 @@ def _secret(secret_id="c1", revision=1, name="Test secret", secret_pairs=None):
     )
 
 
-def _group(group_id="service-a", secrets=None):
-    return GroupResponse(
-        tenant_id="singletenant",
-        id=group_id,
-        revision=1,
-        modified_date=datetime.now(timezone.utc),
-        modified_by="user@example.com",
-        secrets=secrets or ["c1"],
-    )
-
-
-def test_service_can_access_mapped_secret(mocker):
-    mocker.patch("confidant.settings.USE_AUTH", True)
-    mocker.patch(
-        "confidant.routes.secrets.authnz.user_is_user_type",
-        side_effect=lambda user_type: user_type == "service",
-    )
-    mocker.patch(
-        "confidant.routes.secrets.authnz.get_logged_in_user",
-        return_value="service-a",
-    )
-    mocker.patch(
-        "confidant.routes.secrets.groupmanager.get_group_latest",
-        return_value=_group(),
-    )
-
-    has_access = secret_routes._service_has_secret_access("singletenant", "c1")
-    assert has_access is True
-    has_access = secret_routes._service_has_secret_access("singletenant", "c2")
-    assert has_access is False
-
-
-def test_can_read_secret_falls_back_to_service_mapping(mocker):
+def test_can_decrypt_secret_uses_acl_only(mocker):
     mocker.patch(
         "confidant.routes.secrets.acl_module_check",
-        return_value=False,
-    )
-    mocker.patch(
-        "confidant.routes.secrets._service_has_secret_access",
         return_value=True,
     )
 
-    assert secret_routes._can_read_secret("singletenant", "c1", "read") is True
-
-
-def test_read_action_for_request_defaults_to_read_with_alert(mocker):
-    mocker.patch("confidant.settings.USE_AUTH", False)
-
-    assert secret_routes._read_action_for_request() == "read_with_alert"
-    assert secret_routes._should_alert_on_read() is True
-
-
-def test_read_action_for_service_request_is_read(mocker):
-    mocker.patch("confidant.settings.USE_AUTH", True)
-    mocker.patch(
-        "confidant.routes.secrets.authnz.user_is_user_type",
-        side_effect=lambda user_type: user_type == "service",
+    assert (
+        secret_routes._can_decrypt_secret(
+            "singletenant",
+            "c1",
+            "decrypt",
+        )
+        is True
     )
 
-    assert secret_routes._read_action_for_request() == "read"
-    assert secret_routes._should_alert_on_read() is False
 
-
-def test_metadata_access_allows_read_permissions(mocker):
+def test_metadata_access_allows_decrypt_permissions(mocker):
     acl_mock = mocker.patch(
         "confidant.routes.secrets.acl_module_check",
         side_effect=[False, True],
     )
-    mocker.patch(
-        "confidant.routes.secrets._service_has_secret_access",
-        return_value=False,
-    )
 
     assert secret_routes._can_view_secret_metadata("singletenant", "c1") is True
     assert acl_mock.call_args_list[0].kwargs["action"] == "metadata"
-    assert acl_mock.call_args_list[1].kwargs["action"] == "read"
+    assert acl_mock.call_args_list[1].kwargs["action"] == "decrypt"
 
 
 def test_get_secret_list(mocker):
@@ -109,7 +57,9 @@ def test_get_secret_list(mocker):
         "confidant.routes.secrets.authnz.get_logged_in_user",
         return_value="user@example.com",
     )
-    mocker.patch("confidant.routes.secrets.acl_module_check", return_value=True)
+    acl_mock = mocker.patch(
+        "confidant.routes.secrets.acl_module_check", return_value=True
+    )
     mocker.patch(
         "confidant.routes.secrets.secretmanager.list_secrets",
         return_value=SecretsResponse(secrets=[_secret()]),
@@ -120,6 +70,7 @@ def test_get_secret_list(mocker):
     body = ret.get_json()
     assert body["secrets"][0]["tenant_id"] == "singletenant"
     assert body["secrets"][0]["id"] == "c1"
+    assert acl_mock.call_args.kwargs["resource_id"] == "c1"
 
 
 def test_get_secret_list_uses_auth_tenant(mocker):
@@ -142,10 +93,72 @@ def test_get_secret_list_uses_auth_tenant(mocker):
 
     ret = app.test_client().get("/v1/secrets")
     assert ret.status_code == 200
-    list_mock.assert_called_once_with("tenant-a", limit=None, page=None)
+    list_mock.assert_called_once_with(
+        "tenant-a",
+        limit=None,
+        page=None,
+        prefix=None,
+    )
 
 
-def test_get_secret_detail_and_metadata_only(mocker):
+def test_get_secret_list_passes_prefix(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.MULTI_TENANT", True)
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_tenant_id",
+        return_value="tenant-a",
+    )
+    mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        return_value=True,
+    )
+    list_mock = mocker.patch(
+        "confidant.routes.secrets.secretmanager.list_secrets",
+        return_value=SecretsResponse(secrets=[_secret()]),
+    )
+
+    ret = app.test_client().get("/v1/secrets?prefix=apps/")
+
+    assert ret.status_code == 200
+    list_mock.assert_called_once_with(
+        "tenant-a",
+        limit=None,
+        page=None,
+        prefix="apps/",
+    )
+
+
+def test_get_secret_list_filters_by_path_acl(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    acl_mock = mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        side_effect=lambda **kwargs: kwargs["resource_id"] == "apps/test",
+    )
+    mocker.patch(
+        "confidant.routes.secrets.secretmanager.list_secrets",
+        return_value=SecretsResponse(
+            secrets=[_secret("apps/test"), _secret("other/test")],
+        ),
+    )
+
+    ret = app.test_client().get("/v1/secrets")
+    assert ret.status_code == 200
+    body = ret.get_json()
+    assert [secret["id"] for secret in body["secrets"]] == ["apps/test"]
+    assert acl_mock.call_count == 2
+
+
+def test_get_secret_detail_metadata_only_and_decrypt(mocker):
     app = create_app()
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch(
@@ -155,29 +168,14 @@ def test_get_secret_detail_and_metadata_only(mocker):
     mocker.patch("confidant.routes.secrets.acl_module_check", return_value=True)
     latest_mock = mocker.patch(
         "confidant.routes.secrets.secretmanager.get_secret_latest",
-        return_value=_secret(),
+        side_effect=lambda *args, **kwargs: _secret(),
     )
 
-    ret = app.test_client().get("/v1/secrets/c1?metadata_only=false")
-    assert ret.status_code == 200
-    body = ret.get_json()
-    assert body["secret_pairs"] == {"api_key": "value"}
-    assert body["permissions"]["read_with_alert"] is True
-    assert body["permissions"]["read"] is False
-    assert body["permissions"]["delete"] is True
-    latest_mock.assert_any_call(
-        "singletenant",
-        "c1",
-        metadata_only=False,
-        alert_on_access=True,
-    )
-
-    ret = app.test_client().get("/v1/secrets/c1?metadata_only=true")
+    ret = app.test_client().get("/v1/secrets/c1")
     assert ret.status_code == 200
     body = ret.get_json()
     assert body["secret_pairs"] == {}
-    assert body["permissions"]["read"] is False
-    assert body["permissions"]["read_with_alert"] is False
+    assert body["permissions"]["decrypt"] is True
     assert body["permissions"]["delete"] is True
     latest_mock.assert_any_call(
         "singletenant",
@@ -186,8 +184,22 @@ def test_get_secret_detail_and_metadata_only(mocker):
         alert_on_access=False,
     )
 
+    latest_mock.reset_mock()
+    ret = app.test_client().post("/v1/secrets/c1/decrypt")
+    assert ret.status_code == 200
+    body = ret.get_json()
+    assert body["secret_pairs"] == {"api_key": "value"}
+    assert body["permissions"]["decrypt"] is True
+    assert body["permissions"]["delete"] is True
+    latest_mock.assert_called_once_with(
+        "singletenant",
+        "c1",
+        metadata_only=False,
+        alert_on_access=True,
+    )
 
-def test_get_secret_dependencies_allows_read_permissions(mocker):
+
+def test_get_secret_dependencies_allows_decrypt_permissions(mocker):
     app = create_app()
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch(
@@ -209,6 +221,43 @@ def test_get_secret_dependencies_allows_read_permissions(mocker):
     deps_mock.assert_called_once_with("singletenant", "c1")
 
 
+def test_generate_value(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.stdlib_secrets.choice",
+        side_effect=lambda charset: charset[0],
+    )
+    mocker.patch("confidant.routes.secrets.stdlib_secrets.SystemRandom.shuffle")
+
+    ret = app.test_client().get(
+        "/v1/value_generator?length=6&complexity=lowercase&complexity=digits",
+    )
+
+    assert ret.status_code == 200
+    assert ret.get_json() == {"value": "a0aaaa"}
+
+
+def test_generate_value_rejects_invalid_complexity(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+
+    ret = app.test_client().get("/v1/value_generator?complexity=emoji")
+
+    assert ret.status_code == 400
+    assert "complexity" in ret.get_json()["error"]
+
+
+def test_generate_value_rejects_invalid_length(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+
+    ret = app.test_client().get("/v1/value_generator?length=not-a-number")
+
+    assert ret.status_code == 400
+    assert "length" in ret.get_json()["error"]
+
+
 def test_create_and_update_secret(mocker):
     app = create_app()
     mocker.patch("confidant.settings.USE_AUTH", False)
@@ -217,7 +266,7 @@ def test_create_and_update_secret(mocker):
         return_value="user@example.com",
     )
     mocker.patch("confidant.routes.secrets.acl_module_check", return_value=True)
-    mocker.patch(
+    create_mock = mocker.patch(
         "confidant.routes.secrets.secretmanager.create_secret",
         return_value=(_secret(), None),
     )
@@ -229,12 +278,14 @@ def test_create_and_update_secret(mocker):
     ret = app.test_client().post(
         "/v1/secrets",
         json={
+            "id": "apps/test",
             "name": "Test secret",
             "secret_pairs": {"API_KEY": "value"},
         },
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 1
+    assert create_mock.call_args.kwargs["secret_id"] == "apps/test"
 
     ret = app.test_client().put(
         "/v1/secrets/c1",
@@ -244,6 +295,56 @@ def test_create_and_update_secret(mocker):
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 2
+
+
+def test_create_secret_checks_path_based_acl(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    acl_mock = mocker.patch(
+        "confidant.routes.secrets.acl_module_check", return_value=True
+    )
+    mocker.patch(
+        "confidant.routes.secrets.secretmanager.create_secret",
+        return_value=(_secret(), None),
+    )
+
+    ret = app.test_client().post(
+        "/v1/secrets",
+        json={
+            "id": "apps/test",
+            "name": "Test secret",
+            "secret_pairs": {"API_KEY": "value"},
+        },
+    )
+
+    assert ret.status_code == 200
+    create_call = None
+    for acl_call in acl_mock.call_args_list:
+        if acl_call.kwargs["action"] == "create":
+            create_call = acl_call
+            break
+    assert create_call is not None
+    assert create_call.kwargs["resource_id"] == "apps/test"
+
+
+def test_create_secret_rejects_invalid_id(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.secrets.acl_module_check", return_value=True)
+    ret = app.test_client().post(
+        "/v1/secrets",
+        json={
+            "id": "apps/test/",
+            "name": "Test secret",
+            "secret_pairs": {"API_KEY": "value"},
+        },
+    )
+    assert ret.status_code == 400
+    assert ret.get_json()["error"] == "secret id must not end with /"
 
 
 def test_list_and_get_versions(mocker):
@@ -261,7 +362,11 @@ def test_list_and_get_versions(mocker):
     )
     version_mock = mocker.patch(
         "confidant.routes.secrets.secretmanager.get_secret_version",
-        return_value=_secret(revision=2),
+        side_effect=lambda *args, **kwargs: (
+            _secret(revision=2, secret_pairs={})
+            if kwargs.get("metadata_only")
+            else _secret(revision=2)
+        ),
     )
 
     ret = app.test_client().get("/v1/secrets/c1/versions")
@@ -272,12 +377,28 @@ def test_list_and_get_versions(mocker):
     assert ret.status_code == 200
     body = ret.get_json()
     assert body["revision"] == 2
-    assert body["permissions"]["read_with_alert"] is True
+    assert body["secret_pairs"] == {}
+    assert body["permissions"]["decrypt"] is True
     assert body["permissions"]["delete"] is True
     version_mock.assert_called_once_with(
         "singletenant",
         "c1",
         2,
+        metadata_only=True,
+    )
+
+    version_mock.reset_mock()
+    ret = app.test_client().post("/v1/secrets/c1/versions/2/decrypt")
+    assert ret.status_code == 200
+    body = ret.get_json()
+    assert body["revision"] == 2
+    assert body["secret_pairs"] == {"api_key": "value"}
+    assert body["permissions"]["decrypt"] is True
+    version_mock.assert_called_once_with(
+        "singletenant",
+        "c1",
+        2,
+        metadata_only=False,
         alert_on_access=True,
     )
 

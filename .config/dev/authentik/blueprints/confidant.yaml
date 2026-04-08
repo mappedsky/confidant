@@ -25,29 +25,81 @@ entries:
     attrs:
       name: confidant-service
 
-  - model: authentik_core.user
+  - model: authentik_core.group
     state: present
     identifiers:
-      username: developer
+      name: confidant-administrator
     attrs:
-      name: Developer
-      email: developer@localhost
-      is_active: true
-      password: devpassword
-      groups:
-        - !Find [authentik_core.group, [name, confidant-user]]
+      name: confidant-administrator
+
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: confidant-group-administrator
+    attrs:
+      name: confidant-group-administrator
+
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: confidant-auditor
+    attrs:
+      name: confidant-auditor
+
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: dashboard-engineering
+    attrs:
+      name: dashboard-engineering
 
   - model: authentik_core.user
     state: present
     identifiers:
-      username: confidant-development
+      username: confidant-administrator
     attrs:
-      name: Confidant Development Service
-      email: confidant-development@localhost
+      name: Confidant Administrator
+      email: confidant-administrator@localhost
       is_active: true
       password: devpassword
       groups:
-        - !Find [authentik_core.group, [name, confidant-service]]
+        - !Find [authentik_core.group, [name, confidant-administrator]]
+
+  - model: authentik_core.user
+    state: present
+    identifiers:
+      username: confidant-group-administrator
+    attrs:
+      name: Confidant Group Administrator
+      email: confidant-group-administrator@localhost
+      is_active: true
+      password: devpassword
+      groups:
+        - !Find [authentik_core.group, [name, confidant-group-administrator]]
+
+  - model: authentik_core.user
+    state: present
+    identifiers:
+      username: confidant-auditor
+    attrs:
+      name: Confidant Auditor
+      email: confidant-auditor@localhost
+      is_active: true
+      password: devpassword
+      groups:
+        - !Find [authentik_core.group, [name, confidant-auditor]]
+
+  - model: authentik_core.user
+    state: present
+    identifiers:
+      username: dashboard-engineering
+    attrs:
+      name: Dashboard Engineering
+      email: dashboard-engineering@localhost
+      is_active: true
+      password: devpassword
+      groups:
+        - !Find [authentik_core.group, [name, dashboard-engineering]]
 
   - model: authentik_providers_oauth2.scopemapping
     state: present

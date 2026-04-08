@@ -49,7 +49,11 @@ def test_get_user_info_no_user(mocker: MockerFixture):
 
 
 def test_get_client_config(mocker: MockerFixture):
-    def acl_module_check(resource_type: str, action: str) -> bool | None:
+    def acl_module_check(
+        resource_type: str,
+        action: str,
+        resource_id: str | None = None,
+    ) -> bool | None:
         if resource_type == "secret":
             if action == "create":
                 return False

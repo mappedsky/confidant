@@ -24,6 +24,10 @@ import CenteredSpinner from '../components/CenteredSpinner';
 import { baseDataGridSx } from '../components/dataGridStyles';
 import { api } from '../api';
 import { SecretDetail, SecretSummary } from '../types/api';
+import {
+  secretDetailPath,
+  secretVersionPath,
+} from '../utils/resourceIds';
 
 type RouteParams = {
   id?: string;
@@ -50,7 +54,7 @@ export default function SecretHistoryPage() {
     setError(null);
     Promise.all([
       api.getSecretVersions(id),
-      api.getSecret(id, true),
+      api.getSecret(id),
     ])
       .then(([history, current]) => {
         const sorted = [...(history.versions || [])].sort((a, b) => b.revision - a.revision);
@@ -62,7 +66,10 @@ export default function SecretHistoryPage() {
   }, [id]);
 
   const latestRevision = currentSecret?.revision ?? versions[0]?.revision;
-  const canRestore = currentSecret?.permissions?.update ?? false;
+  const canRestore =
+    currentSecret?.permissions?.revert
+    ?? currentSecret?.permissions?.update
+    ?? false;
 
   const handleRestore = async (revision: number) => {
     if (!id) {
@@ -73,7 +80,7 @@ export default function SecretHistoryPage() {
     setRestoringRevision(revision);
     try {
       await api.restoreSecretVersion(id, revision);
-      navigate(`/secrets/${id}`);
+      navigate(secretDetailPath(id!));
     } catch (err) {
       setRestoreError((err as Error).message);
     } finally {
@@ -92,7 +99,7 @@ export default function SecretHistoryPage() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Link
               component={RouterLink}
-              to={`/secrets/${id}/versions/${params.row.revision}`}
+              to={secretVersionPath(id!, params.row.revision)}
               underline="hover"
               onClick={(event) => event.stopPropagation()}
             >
@@ -156,7 +163,8 @@ export default function SecretHistoryPage() {
               {
                 label: 'View',
                 icon: <VisibilityIcon fontSize="small" />,
-                onClick: () => navigate(`/secrets/${id}/versions/${params.row.revision}`),
+                onClick: () =>
+                  navigate(secretVersionPath(id!, params.row.revision)),
               },
               {
                 label: restoringRevision === params.row.revision ? 'Restoring…' : 'Restore',
@@ -176,7 +184,7 @@ export default function SecretHistoryPage() {
     <Box>
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/secrets/${id}`)}
+        onClick={() => navigate(secretDetailPath(id!))}
         sx={{ mb: 2 }}
       >
         Back to Secret

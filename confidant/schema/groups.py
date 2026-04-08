@@ -13,11 +13,11 @@ def _value(obj, key, default=None):
 
 
 class CreateGroupRequest(BaseModel):
-    secrets: list[str] = Field(default_factory=list)
+    policies: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class UpdateGroupRequest(BaseModel):
-    secrets: list[str] | None = None
+    policies: dict[str, list[str]] | None = None
 
 
 class RestoreGroupVersionRequest(BaseModel):
@@ -30,7 +30,7 @@ class GroupResponse(BaseModel):
     revision: int
     modified_date: datetime
     modified_by: str
-    secrets: list[str] = Field(default_factory=list)
+    policies: dict[str, list[str]] = Field(default_factory=dict)
     permissions: dict[str, bool] = Field(default_factory=dict)
 
     class Config:
@@ -44,10 +44,10 @@ class GroupResponse(BaseModel):
             "revision": _value(group, "revision"),
             "modified_date": _value(group, "modified_date"),
             "modified_by": _value(group, "modified_by"),
-            "secrets": _value(
+            "policies": _value(
                 group,
-                "secret_ids",
-                _value(group, "secrets", []),
+                "policies",
+                {},
             ),
         }
         return cls(**data)
