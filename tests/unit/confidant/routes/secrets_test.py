@@ -158,7 +158,7 @@ def test_get_secret_list_filters_by_path_acl(mocker):
     assert acl_mock.call_count == 2
 
 
-def test_get_secret_detail_metadata_only_and_decrypt(mocker):
+def test_get_secret_detail_and_explicit_decrypt(mocker):
     app = create_app()
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch(

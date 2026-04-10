@@ -145,17 +145,7 @@ def get_secret_list():
 def get_secret(id):
     with stats.timer("get_secret_by_id"):
         tenant_id = authnz.get_tenant_id()
-        metadata_only = misc.get_boolean(
-            request.args.get("metadata_only"),
-            True,
-        )
-        action = "metadata" if metadata_only else _SECRET_DECRYPT_ACTION
-        can_access = (
-            _can_view_secret_metadata(tenant_id, id)
-            if metadata_only
-            else _can_decrypt_secret(tenant_id, id, action)
-        )
-        if not can_access:
+        if not _can_view_secret_metadata(tenant_id, id):
             msg = "{} does not have access to secret {}".format(
                 authnz.get_logged_in_user(),
                 id,
@@ -164,13 +154,12 @@ def get_secret(id):
         response = secretmanager.get_secret_latest(
             tenant_id,
             id,
-            metadata_only=metadata_only,
-            alert_on_access=not metadata_only,
+            metadata_only=True,
+            alert_on_access=False,
         )
         if not response:
             return jsonify({}), 404
-        if metadata_only:
-            response.secret_pairs = {}
+        response.secret_pairs = {}
         response.permissions = _secret_permissions(tenant_id, id)
         return secret_response_schema.dumps(response)
 

@@ -111,10 +111,8 @@ export const api = {
 
   getSecrets: (params?: CursorPageParams) =>
     request<SecretsListResponse>(withCursorParams('/v1/secrets', params)),
-  getSecret: (id: string, metadataOnly = true) =>
-    request<SecretDetail>(
-      `/v1/secrets/${encodeSecretId(id)}?metadata_only=${metadataOnly}`,
-    ),
+  getSecret: (id: string) =>
+    request<SecretDetail>(`/v1/secrets/${encodeSecretId(id)}`),
   decryptSecret: (id: string) =>
     request<SecretDetail>(`/v1/secrets/${encodeSecretId(id)}/decrypt`, {
       method: 'POST',

@@ -198,6 +198,30 @@ def test_create_group_rejects_invalid_id(mocker):
     )
 
 
+def test_create_group_rejects_old_permission_names(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.groups.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.groups.groupmanager.get_group_latest",
+        return_value=None,
+    )
+    mocker.patch(
+        "confidant.routes.groups.secretmanager.get_secrets",
+        return_value=[],
+    )
+
+    ret = app.test_client().put(
+        "/v1/groups/s1",
+        json={
+            "policies": {"c1": ["read_with_alert"]},
+        },
+    )
+
+    assert ret.status_code == 400
+    assert ret.get_json()["error"].startswith("Unknown policy permission")
+
+
 def test_delete_group(mocker):
     app = create_app()
     mocker.patch("confidant.settings.USE_AUTH", False)

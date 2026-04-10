@@ -10,10 +10,6 @@ from confidant.services.dynamodbstore import store
 from confidant.utils import resource_ids
 
 logger = logging.getLogger(__name__)
-_SECRET_ACTION_ALIASES = {
-    "read": "decrypt",
-    "read_with_alert": "decrypt",
-}
 
 
 def _value(obj, key, default=None):
@@ -41,7 +37,6 @@ def _group_response_from_item(item):
         for action in allowed_actions:
             if not isinstance(action, str):
                 continue
-            action = _SECRET_ACTION_ALIASES.get(action, action)
             if action in seen:
                 continue
             seen.add(action)
@@ -120,10 +115,9 @@ def group_grants_secret_action(group, secret_id, action):
     policies = _value(group, "policies", {})
     if not isinstance(policies, dict):
         return False
-    action = _SECRET_ACTION_ALIASES.get(action, action)
     for policy_path, allowed_actions in policies.items():
         normalized_actions = {
-            _SECRET_ACTION_ALIASES.get(allowed_action, allowed_action)
+            allowed_action
             for allowed_action in allowed_actions
             if isinstance(allowed_action, str)
         }

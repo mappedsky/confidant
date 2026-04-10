@@ -31,10 +31,6 @@ _ALLOWED_POLICY_ACTIONS = {
     "delete",
     "revert",
 }
-_POLICY_ACTION_ALIASES = {
-    "read": "decrypt",
-    "read_with_alert": "decrypt",
-}
 
 
 def _normalize_group_policies(data):
@@ -58,7 +54,6 @@ def _normalize_group_policies(data):
                     "error": "policy permissions must be lists of strings",
                 }
             action = action.strip().lower()
-            action = _POLICY_ACTION_ALIASES.get(action, action)
             if action not in _ALLOWED_POLICY_ACTIONS:
                 return None, {"error": f"Unknown policy permission {action}"}
             if action in seen:
