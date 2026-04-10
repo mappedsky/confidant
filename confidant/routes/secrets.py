@@ -24,7 +24,6 @@ blueprint = blueprints.Blueprint("secrets", __name__)
 acl_module_check = misc.load_module(settings.ACL_MODULE)
 _VALUE_GENERATOR_MIN_LENGTH = 1
 _VALUE_GENERATOR_MAX_LENGTH = 1024
-_SECRET_DECRYPT_ACTION = "decrypt"
 _VALUE_GENERATOR_CHARSETS = {
     "lowercase": string.ascii_lowercase,
     "uppercase": string.ascii_uppercase,
@@ -34,23 +33,43 @@ _VALUE_GENERATOR_CHARSETS = {
 
 
 def _can_view_secret_metadata(tenant_id, secret_id):
-    if _can_decrypt_secret(tenant_id, secret_id, "metadata"):
+    if acl_module_check(
+        resource_type="secret",
+        action="metadata",
+        resource_id=secret_id,
+    ):
         return True
-    return _can_decrypt_secret(tenant_id, secret_id, _SECRET_DECRYPT_ACTION)
+    return _can_decrypt_secret(tenant_id, secret_id)
 
 
-def _can_decrypt_secret(tenant_id, secret_id, action):
+def _can_decrypt_secret(tenant_id, secret_id):
     return acl_module_check(
         resource_type="secret",
-        action=action,
+        action="decrypt",
         resource_id=secret_id,
     )
 
 
-def _can_manage_secret(tenant_id, secret_id, action):
+def _can_revert_secret(tenant_id, secret_id):
     return acl_module_check(
         resource_type="secret",
-        action=action,
+        action="revert",
+        resource_id=secret_id,
+    )
+
+
+def _can_update_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="update",
+        resource_id=secret_id,
+    )
+
+
+def _can_delete_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="delete",
         resource_id=secret_id,
     )
 
@@ -58,14 +77,10 @@ def _can_manage_secret(tenant_id, secret_id, action):
 def _secret_permissions(tenant_id, secret_id):
     return {
         "metadata": True,
-        "decrypt": _can_decrypt_secret(
-            tenant_id,
-            secret_id,
-            _SECRET_DECRYPT_ACTION,
-        ),
-        "revert": _can_manage_secret(tenant_id, secret_id, "revert"),
-        "update": _can_manage_secret(tenant_id, secret_id, "update"),
-        "delete": _can_manage_secret(tenant_id, secret_id, "delete"),
+        "decrypt": _can_decrypt_secret(tenant_id, secret_id),
+        "revert": _can_revert_secret(tenant_id, secret_id),
+        "update": _can_update_secret(tenant_id, secret_id),
+        "delete": _can_delete_secret(tenant_id, secret_id),
     }
 
 
@@ -170,7 +185,7 @@ def get_secret(id):
 @authnz.require_csrf_token
 def decrypt_secret(id):
     tenant_id = authnz.get_tenant_id()
-    if not _can_decrypt_secret(tenant_id, id, _SECRET_DECRYPT_ACTION):
+    if not _can_decrypt_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
             f"to decrypt secret {id}"
@@ -240,7 +255,7 @@ def get_secret_version(id, version):
 @authnz.require_csrf_token
 def decrypt_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
-    if not _can_decrypt_secret(tenant_id, id, _SECRET_DECRYPT_ACTION):
+    if not _can_decrypt_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
             f"to decrypt secret {id} version {version}"
@@ -308,7 +323,7 @@ def create_secret():
             "metadata": True,
             "decrypt": acl_module_check(
                 resource_type="secret",
-                action=_SECRET_DECRYPT_ACTION,
+                action="decrypt",
                 resource_id=response.id,
             ),
             "revert": acl_module_check(
@@ -339,7 +354,7 @@ def create_secret():
 def update_secret(id):
     with stats.timer("update_secret"):
         tenant_id = authnz.get_tenant_id()
-        if not _can_manage_secret(tenant_id, id, "update"):
+        if not _can_update_secret(tenant_id, id):
             msg = (
                 f"{authnz.get_logged_in_user()} does not have access "
                 f"to update secret {id}"
@@ -367,20 +382,12 @@ def update_secret(id):
             "metadata": True,
             "decrypt": acl_module_check(
                 resource_type="secret",
-                action=_SECRET_DECRYPT_ACTION,
+                action="decrypt",
                 resource_id=id,
             ),
-            "revert": _can_manage_secret(tenant_id, id, "revert"),
-            "update": acl_module_check(
-                resource_type="secret",
-                action="update",
-                resource_id=id,
-            ),
-            "delete": acl_module_check(
-                resource_type="secret",
-                action="delete",
-                resource_id=id,
-            ),
+            "revert": _can_revert_secret(tenant_id, id),
+            "update": _can_update_secret(tenant_id, id),
+            "delete": _can_delete_secret(tenant_id, id),
         }
         return secret_response_schema.dumps(response)
 
@@ -392,7 +399,7 @@ def update_secret(id):
 @maintenance.check_maintenance_mode
 def delete_secret(id):
     tenant_id = authnz.get_tenant_id()
-    if not _can_manage_secret(tenant_id, id, "delete"):
+    if not _can_delete_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
             f"to delete secret {id}"
@@ -418,7 +425,7 @@ def delete_secret(id):
 @maintenance.check_maintenance_mode
 def restore_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
-    if not _can_manage_secret(tenant_id, id, "revert"):
+    if not _can_revert_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
             f"to restore secret {id}"
@@ -434,26 +441,10 @@ def restore_secret_version(id, version):
         return jsonify({}), 404
     response.permissions = {
         "metadata": True,
-        "decrypt": acl_module_check(
-            resource_type="secret",
-            action=_SECRET_DECRYPT_ACTION,
-            resource_id=id,
-        ),
-        "revert": acl_module_check(
-            resource_type="secret",
-            action="revert",
-            resource_id=id,
-        ),
-        "update": acl_module_check(
-            resource_type="secret",
-            action="update",
-            resource_id=id,
-        ),
-        "delete": acl_module_check(
-            resource_type="secret",
-            action="delete",
-            resource_id=id,
-        ),
+        "decrypt": _can_decrypt_secret(tenant_id, id),
+        "revert": _can_revert_secret(tenant_id, id),
+        "update": _can_update_secret(tenant_id, id),
+        "delete": _can_delete_secret(tenant_id, id),
     }
     return secret_response_schema.dumps(response)
 

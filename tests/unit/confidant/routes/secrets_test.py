@@ -29,14 +29,7 @@ def test_can_decrypt_secret_uses_acl_only(mocker):
         return_value=True,
     )
 
-    assert (
-        secret_routes._can_decrypt_secret(
-            "singletenant",
-            "c1",
-            "decrypt",
-        )
-        is True
-    )
+    assert secret_routes._can_decrypt_secret("singletenant", "c1") is True
 
 
 def test_metadata_access_allows_decrypt_permissions(mocker):
