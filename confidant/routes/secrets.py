@@ -50,6 +50,22 @@ def _can_decrypt_secret(tenant_id, secret_id):
     )
 
 
+def _can_list_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="list",
+        resource_id=secret_id,
+    )
+
+
+def _can_create_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="create",
+        resource_id=secret_id,
+    )
+
+
 def _can_revert_secret(tenant_id, secret_id):
     return acl_module_check(
         resource_type="secret",
@@ -143,11 +159,7 @@ def get_secret_list():
                 "secrets": [
                     secret
                     for secret in response.secrets
-                    if acl_module_check(
-                        resource_type="secret",
-                        action="list",
-                        resource_id=secret.id,
-                    )
+                    if _can_list_secret(tenant_id, secret.id)
                 ]
             }
         )
@@ -291,11 +303,7 @@ def create_secret():
         id_error = resource_ids.validate_secret_id(data.get("id"))
         if id_error:
             return jsonify({"error": id_error}), 400
-        if not acl_module_check(
-            resource_type="secret",
-            action="create",
-            resource_id=data.get("id"),
-        ):
+        if not _can_create_secret(tenant_id, data.get("id")):
             msg = (
                 f"{authnz.get_logged_in_user()} does not have access "
                 f"to create secret {data.get('id')}"
@@ -321,26 +329,10 @@ def create_secret():
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "decrypt": acl_module_check(
-                resource_type="secret",
-                action="decrypt",
-                resource_id=response.id,
-            ),
-            "revert": acl_module_check(
-                resource_type="secret",
-                action="revert",
-                resource_id=response.id,
-            ),
-            "update": acl_module_check(
-                resource_type="secret",
-                action="update",
-                resource_id=response.id,
-            ),
-            "delete": acl_module_check(
-                resource_type="secret",
-                action="delete",
-                resource_id=response.id,
-            ),
+            "decrypt": _can_decrypt_secret(tenant_id, response.id),
+            "revert": _can_revert_secret(tenant_id, response.id),
+            "update": _can_update_secret(tenant_id, response.id),
+            "delete": _can_delete_secret(tenant_id, response.id),
         }
         return secret_response_schema.dumps(response)
 
@@ -380,11 +372,7 @@ def update_secret(id):
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "decrypt": acl_module_check(
-                resource_type="secret",
-                action="decrypt",
-                resource_id=id,
-            ),
+            "decrypt": _can_decrypt_secret(tenant_id, id),
             "revert": _can_revert_secret(tenant_id, id),
             "update": _can_update_secret(tenant_id, id),
             "delete": _can_delete_secret(tenant_id, id),
