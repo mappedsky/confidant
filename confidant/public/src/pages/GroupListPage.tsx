@@ -58,13 +58,15 @@ export default function GroupListPage() {
       align: 'left',
     },
     {
-      field: 'secrets',
-      headerName: 'Secrets',
+      field: 'policies',
+      headerName: 'Policies',
       width: 120,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<GroupSummary, string[]>) => (
+      renderCell: (
+        params: GridRenderCellParams<GroupSummary, GroupSummary['policies']>,
+      ) => (
         <Typography variant="body2" color="text.secondary">
-          {params.value?.length ?? 0}
+          {params.value ? Object.keys(params.value).length : 0}
         </Typography>
       ),
     },

@@ -7,6 +7,7 @@ from confidant.schema.groups import GroupsResponse
 from confidant.schema.groups import RevisionsResponse
 from confidant.services import graphite
 from confidant.services.dynamodbstore import store
+from confidant.utils import resource_ids
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,23 @@ def _as_datetime(value):
 
 
 def _group_response_from_item(item):
+    policies = {}
+    raw_policies = item.get("policies", {})
+    if not isinstance(raw_policies, dict):
+        raw_policies = {}
+    for policy_path, allowed_actions in raw_policies.items():
+        if not isinstance(allowed_actions, list):
+            continue
+        normalized_actions = []
+        seen = set()
+        for action in allowed_actions:
+            if not isinstance(action, str):
+                continue
+            if action in seen:
+                continue
+            seen.add(action)
+            normalized_actions.append(action)
+        policies[policy_path] = normalized_actions
     data = {
         "tenant_id": item["tenant_id"],
         "id": item["id"],
@@ -31,7 +49,7 @@ def _group_response_from_item(item):
         "modified_date": _as_datetime(item["modified_date"]),
         "modified_by": item["modified_by"],
     }
-    data["secrets"] = item.get("secrets", [])
+    data["policies"] = policies
     return GroupResponse(**data)
 
 
@@ -80,10 +98,41 @@ def get_groups_for_secret(tenant_id, secret_id):
     return [item["id"] for item in groups]
 
 
+def get_groups_by_ids(tenant_id, group_ids):
+    groups = []
+    seen = set()
+    for group_id in group_ids:
+        if group_id in seen:
+            continue
+        seen.add(group_id)
+        group = get_group_latest(tenant_id, group_id)
+        if group is not None:
+            groups.append(group)
+    return groups
+
+
+def group_grants_secret_action(group, secret_id, action):
+    policies = _value(group, "policies", {})
+    if not isinstance(policies, dict):
+        return False
+    for policy_path, allowed_actions in policies.items():
+        normalized_actions = {
+            allowed_action
+            for allowed_action in allowed_actions
+            if isinstance(allowed_action, str)
+        }
+        if (
+            resource_ids.secret_policy_matches(policy_path, secret_id)
+            and action in normalized_actions
+        ):
+            return True
+    return False
+
+
 def get_group_map(groups):
     group_map = {}
     for group in groups:
-        for secret in _value(group, "secrets", []):
+        for secret in _value(group, "policies", {}).keys():
             if secret in group_map:
                 group_map[secret]["group_ids"].append(_value(group, "id"))
             else:
@@ -96,11 +145,12 @@ def get_group_map(groups):
 
 def send_group_mapping_graphite_event(new_group, old_group):
     if old_group:
-        old_secret_ids = _value(old_group, "secrets", [])
+        old_secret_ids = list(_value(old_group, "policies", {}).keys())
     else:
         old_secret_ids = []
-    added = list(set(_value(new_group, "secrets", [])) - set(old_secret_ids))
-    removed = list(set(old_secret_ids) - set(_value(new_group, "secrets", [])))
+    new_secret_ids = list(_value(new_group, "policies", {}).keys())
+    added = list(set(new_secret_ids) - set(old_secret_ids))
+    removed = list(set(old_secret_ids) - set(new_secret_ids))
     msg = "Added secrets: {0}; Removed secrets {1}; Revision {2}"
     msg = msg.format(added, removed, _value(new_group, "revision"))
     graphite.send_event([_value(new_group, "id")], msg)
@@ -114,7 +164,7 @@ def _build_group_items(
     tenant_id,
     group_id,
     revision,
-    secrets,
+    policies,
     modified_by,
     created_at,
     previous_created_at=None,
@@ -123,7 +173,7 @@ def _build_group_items(
         "tenant_id": tenant_id,
         "id": group_id,
         "revision": revision,
-        "secrets": list(secrets),
+        "policies": dict(policies),
         "modified_date": created_at,
         "modified_by": modified_by,
     }
@@ -158,7 +208,7 @@ def _build_group_items(
 def create_group(
     tenant_id,
     group_id,
-    secrets,
+    policies,
     created_by,
 ):
     revision = 1
@@ -167,7 +217,7 @@ def create_group(
         tenant_id,
         group_id,
         revision,
-        secrets,
+        policies,
         created_by,
         now,
     )
@@ -205,7 +255,7 @@ def create_group(
 def update_group(
     tenant_id,
     group_id,
-    secrets,
+    policies,
     created_by,
 ):
     current = store.get_group_latest(tenant_id, group_id)
@@ -218,7 +268,7 @@ def update_group(
         tenant_id,
         group_id,
         revision,
-        secrets,
+        policies,
         created_by,
         now,
         previous_created_at=current.get("created_at", current["modified_date"]),
@@ -266,7 +316,7 @@ def restore_group_version(
     return update_group(
         tenant_id=tenant_id,
         group_id=group_id,
-        secrets=source.get("secrets", []),
+        policies=source.get("policies", {}),
         created_by=created_by,
     )[0]
 

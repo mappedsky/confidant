@@ -126,3 +126,46 @@ def test_sanitize_write_items_strips_empty_values():
             "ConditionExpression": "attribute_not_exists(PK)",
         }
     ]
+
+
+def test_build_secret_items_uses_raw_secret_id_for_list_item():
+    metadata_item, latest_item, version_item, list_item = (
+        secretmanager._build_secret_items(
+            tenant_id="tenant-a",
+            secret_id="apps/payments/prod/db",
+            name="Database",
+            revision=1,
+            secret_keys=["api_key"],
+            secret_pairs="encrypted",
+            data_key="key",
+            cipher_version=2,
+            metadata={},
+            modified_by="user@example.com",
+            documentation=None,
+            tags=[],
+            last_rotation_date=None,
+            last_decrypted_date=None,
+            created_at="2026-04-08T00:00:00+00:00",
+        )
+    )
+
+    assert metadata_item["SK"] == "#METADATA"
+    assert latest_item["SK"] == "#LATEST"
+    assert version_item["SK"] == "VERSION#0000000001"
+    assert list_item["SK"] == "apps/payments/prod/db"
+
+
+def test_list_secrets_passes_prefix_to_store(mocker: MockerFixture):
+    store_mock = mocker.patch(
+        "confidant.services.secretmanager.store.list_secrets",
+        return_value={"Items": []},
+    )
+
+    secretmanager.list_secrets(
+        "tenant-a",
+        limit=25,
+        page={"PK": "x"},
+        prefix="apps/",
+    )
+
+    assert store_mock.call_args.kwargs["prefix"] == "apps/"

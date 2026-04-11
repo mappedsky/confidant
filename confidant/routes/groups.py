@@ -14,6 +14,7 @@ from confidant.services import groupmanager
 from confidant.services import secretmanager
 from confidant.utils import maintenance
 from confidant.utils import misc
+from confidant.utils import resource_ids
 from confidant.utils import stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
@@ -21,6 +22,53 @@ logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("groups", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
+_ALLOWED_POLICY_ACTIONS = {
+    "list",
+    "create",
+    "metadata",
+    "decrypt",
+    "update",
+    "delete",
+    "revert",
+}
+
+
+def _normalize_group_policies(data):
+    policies = data.get("policies", {})
+    if not isinstance(policies, dict):
+        return None, {"error": "policies must be a dict"}
+    normalized = {}
+    for secret_id, actions in policies.items():
+        id_error = resource_ids.validate_secret_policy_path(secret_id)
+        if id_error:
+            return None, {"error": id_error}
+        if not isinstance(actions, list):
+            return None, {
+                "error": "policy permissions must be lists of strings",
+            }
+        normalized_actions = []
+        seen = set()
+        for action in actions:
+            if not isinstance(action, str):
+                return None, {
+                    "error": "policy permissions must be lists of strings",
+                }
+            action = action.strip().lower()
+            if action not in _ALLOWED_POLICY_ACTIONS:
+                return None, {"error": f"Unknown policy permission {action}"}
+            if action in seen:
+                continue
+            seen.add(action)
+            normalized_actions.append(action)
+        if not normalized_actions:
+            return None, {
+                "error": (
+                    f"policy for secret {secret_id} must include at least "
+                    "one permission"
+                )
+            }
+        normalized[secret_id] = normalized_actions
+    return normalized, None
 
 
 @blueprint.route("/v1/groups", methods=["GET"])
@@ -73,23 +121,21 @@ def get_group(id):
         group = groupmanager.get_group_latest(tenant_id, id)
         if not group:
             return jsonify({}), 404
-        if authnz.user_is_user_type("user"):
-            permissions["update"] = acl_module_check(
-                resource_type="group",
-                action="update",
-                resource_id=id,
-                kwargs={
-                    "secret_ids": list(group.secrets),
-                },
-            )
-            permissions["delete"] = acl_module_check(
-                resource_type="group",
-                action="delete",
-                resource_id=id,
-                kwargs={
-                    "secret_ids": list(group.secrets),
-                },
-            )
+        permissions["revert"] = acl_module_check(
+            resource_type="group",
+            action="revert",
+            resource_id=id,
+        )
+        permissions["update"] = acl_module_check(
+            resource_type="group",
+            action="update",
+            resource_id=id,
+        )
+        permissions["delete"] = acl_module_check(
+            resource_type="group",
+            action="delete",
+            resource_id=id,
+        )
 
         response = GroupResponse.from_group(group)
         response.permissions = permissions
@@ -138,6 +184,11 @@ def get_group_version(id, version):
     expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "get": True,
+        "revert": acl_module_check(
+            resource_type="group",
+            action="revert",
+            resource_id=id,
+        ),
         "update": acl_module_check(
             resource_type="group",
             action="update",
@@ -161,18 +212,29 @@ def get_group_version(id, version):
 def update_group(id):
     data = request.get_json() or {}
     tenant_id = authnz.get_tenant_id()
+    id_error = resource_ids.validate_group_id(id)
+    if id_error:
+        return jsonify({"error": id_error}), 400
+    body_id = data.get("id")
+    if body_id is not None and body_id != id:
+        return jsonify({"error": "body id must match the request path"}), 400
     existing = groupmanager.get_group_latest(tenant_id, id)
-    secrets = data.get("secrets", [])
-    if not isinstance(secrets, list):
-        return jsonify({"error": "secrets must be a list"}), 400
+    policies, error = _normalize_group_policies(data)
+    if error:
+        return jsonify(error), 400
+    exact_secret_ids = [
+        policy_path
+        for policy_path in policies
+        if not resource_ids.secret_policy_has_glob(policy_path)
+    ]
 
     found_secrets = secretmanager.get_secrets(
         tenant_id,
-        secrets,
+        exact_secret_ids,
         include_secret_keys=True,
         include_secret_pairs=True,
     )
-    if len(found_secrets) != len(secrets):
+    if len(found_secrets) != len(exact_secret_ids):
         return jsonify({"error": "Secret not found."}), 404
 
     if existing is None:
@@ -190,7 +252,7 @@ def update_group(id):
         response, error = groupmanager.create_group(
             tenant_id=tenant_id,
             group_id=id,
-            secrets=[secret.id for secret in found_secrets],
+            policies=policies,
             created_by=authnz.get_logged_in_user(),
         )
     else:
@@ -207,7 +269,7 @@ def update_group(id):
         response, error = groupmanager.update_group(
             tenant_id=tenant_id,
             group_id=id,
-            secrets=[secret.id for secret in found_secrets],
+            policies=policies,
             created_by=authnz.get_logged_in_user(),
         )
     if error:
@@ -217,7 +279,16 @@ def update_group(id):
         "create": existing is None,
         "metadata": True,
         "get": True,
-        "update": True,
+        "revert": acl_module_check(
+            resource_type="group",
+            action="revert",
+            resource_id=response.id,
+        ),
+        "update": acl_module_check(
+            resource_type="group",
+            action="update",
+            resource_id=response.id,
+        ),
         "delete": acl_module_check(
             resource_type="group",
             action="delete",
@@ -259,7 +330,16 @@ def restore_group_version(id, version):
     expanded.permissions = {
         "metadata": True,
         "get": True,
-        "update": True,
+        "revert": acl_module_check(
+            resource_type="group",
+            action="revert",
+            resource_id=id,
+        ),
+        "update": acl_module_check(
+            resource_type="group",
+            action="update",
+            resource_id=id,
+        ),
         "delete": acl_module_check(
             resource_type="group",
             action="delete",
@@ -296,7 +376,12 @@ def delete_group(id):
     expanded.permissions = {
         "metadata": True,
         "get": True,
+        "revert": False,
         "update": False,
-        "delete": True,
+        "delete": acl_module_check(
+            resource_type="group",
+            action="delete",
+            resource_id=id,
+        ),
     }
     return group_response_schema.dumps(expanded)

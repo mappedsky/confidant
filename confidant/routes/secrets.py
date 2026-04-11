@@ -1,4 +1,6 @@
 import logging
+import secrets as stdlib_secrets
+import string
 
 from flask import blueprints
 from flask import jsonify
@@ -9,10 +11,10 @@ from confidant import settings
 from confidant.schema.secrets import revisions_response_schema
 from confidant.schema.secrets import secret_response_schema
 from confidant.schema.secrets import secrets_response_schema
-from confidant.services import groupmanager
 from confidant.services import secretmanager
 from confidant.utils import maintenance
 from confidant.utils import misc
+from confidant.utils import resource_ids
 from confidant.utils import stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
@@ -20,46 +22,115 @@ logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("secrets", __name__)
 
 acl_module_check = misc.load_module(settings.ACL_MODULE)
-
-
-def _service_has_secret_access(tenant_id, secret_id):
-    if not settings.USE_AUTH or not authnz.user_is_user_type("service"):
-        return False
-    group = groupmanager.get_group_latest(
-        tenant_id,
-        authnz.get_logged_in_user(),
-    )
-    if not group:
-        return False
-    return secret_id in (group.secrets or [])
-
-
-def _read_action_for_request():
-    if settings.USE_AUTH and authnz.user_is_user_type("service"):
-        return "read"
-    return "read_with_alert"
-
-
-def _should_alert_on_read():
-    return _read_action_for_request() == "read_with_alert"
+_VALUE_GENERATOR_MIN_LENGTH = 1
+_VALUE_GENERATOR_MAX_LENGTH = 1024
+_VALUE_GENERATOR_CHARSETS = {
+    "lowercase": string.ascii_lowercase,
+    "uppercase": string.ascii_uppercase,
+    "digits": string.digits,
+    "symbols": string.punctuation,
+}
 
 
 def _can_view_secret_metadata(tenant_id, secret_id):
-    if _can_read_secret(tenant_id, secret_id, "metadata"):
-        return True
-    if _can_read_secret(tenant_id, secret_id, "read"):
-        return True
-    return _can_read_secret(tenant_id, secret_id, "read_with_alert")
-
-
-def _can_read_secret(tenant_id, secret_id, action):
     if acl_module_check(
         resource_type="secret",
-        action=action,
+        action="metadata",
         resource_id=secret_id,
     ):
         return True
-    return _service_has_secret_access(tenant_id, secret_id)
+    return _can_decrypt_secret(tenant_id, secret_id)
+
+
+def _can_decrypt_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="decrypt",
+        resource_id=secret_id,
+    )
+
+
+def _can_list_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="list",
+        resource_id=secret_id,
+    )
+
+
+def _can_create_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="create",
+        resource_id=secret_id,
+    )
+
+
+def _can_revert_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="revert",
+        resource_id=secret_id,
+    )
+
+
+def _can_update_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="update",
+        resource_id=secret_id,
+    )
+
+
+def _can_delete_secret(tenant_id, secret_id):
+    return acl_module_check(
+        resource_type="secret",
+        action="delete",
+        resource_id=secret_id,
+    )
+
+
+def _secret_permissions(tenant_id, secret_id):
+    return {
+        "metadata": True,
+        "decrypt": _can_decrypt_secret(tenant_id, secret_id),
+        "revert": _can_revert_secret(tenant_id, secret_id),
+        "update": _can_update_secret(tenant_id, secret_id),
+        "delete": _can_delete_secret(tenant_id, secret_id),
+    }
+
+
+def _parse_value_generator_complexity(args):
+    raw_values = args.getlist("complexity")
+    if not raw_values:
+        return list(_VALUE_GENERATOR_CHARSETS)
+
+    values = []
+    for raw_value in raw_values:
+        if raw_value is None:
+            continue
+        for item in str(raw_value).split(","):
+            item = item.strip().lower()
+            if not item:
+                continue
+            if item not in _VALUE_GENERATOR_CHARSETS:
+                return None
+            if item not in values:
+                values.append(item)
+    return values or None
+
+
+def _build_generated_value(length, complexity):
+    charsets = [_VALUE_GENERATOR_CHARSETS[item] for item in complexity]
+    if length < len(charsets):
+        return None
+
+    chars = [stdlib_secrets.choice(charset) for charset in charsets]
+    all_chars = "".join(charsets)
+    remaining = length - len(chars)
+    chars.extend(stdlib_secrets.choice(all_chars) for _ in range(remaining))
+    stdlib_secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
 
 
 @blueprint.route("/v1/secrets", methods=["GET"])
@@ -67,14 +138,10 @@ def _can_read_secret(tenant_id, secret_id, action):
 @authnz.require_auth
 def get_secret_list():
     with stats.timer("list_secrets"):
-        if not acl_module_check(resource_type="secret", action="list"):
-            msg = "{} does not have access to list secrets".format(
-                authnz.get_logged_in_user()
-            )
-            return jsonify({"error": msg}), 403
         tenant_id = authnz.get_tenant_id()
         limit = request.args.get("limit", default=None, type=int)
         page = request.args.get("page", default=None, type=str)
+        prefix = request.args.get("prefix", default=None, type=str)
         if page:
             try:
                 page = decode_last_evaluated_key(page)
@@ -85,24 +152,27 @@ def get_secret_list():
             tenant_id,
             limit=limit,
             page=page,
+            prefix=prefix,
+        )
+        response = response.model_copy(
+            update={
+                "secrets": [
+                    secret
+                    for secret in response.secrets
+                    if _can_list_secret(tenant_id, secret.id)
+                ]
+            }
         )
         return secrets_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>", methods=["GET"])
+@blueprint.route("/v1/secrets/<path:id>", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 def get_secret(id):
     with stats.timer("get_secret_by_id"):
         tenant_id = authnz.get_tenant_id()
-        metadata_only = misc.get_boolean(request.args.get("metadata_only"))
-        action = "metadata" if metadata_only else _read_action_for_request()
-        can_access = (
-            _can_view_secret_metadata(tenant_id, id)
-            if metadata_only
-            else _can_read_secret(tenant_id, id, action)
-        )
-        if not can_access:
+        if not _can_view_secret_metadata(tenant_id, id):
             msg = "{} does not have access to secret {}".format(
                 authnz.get_logged_in_user(),
                 id,
@@ -111,32 +181,41 @@ def get_secret(id):
         response = secretmanager.get_secret_latest(
             tenant_id,
             id,
-            metadata_only=metadata_only,
-            alert_on_access=not metadata_only and _should_alert_on_read(),
+            metadata_only=True,
+            alert_on_access=False,
         )
         if not response:
             return jsonify({}), 404
-        if metadata_only:
-            response.secret_pairs = {}
-        response.permissions = {
-            "metadata": True,
-            "read": not metadata_only and not _should_alert_on_read(),
-            "read_with_alert": not metadata_only and _should_alert_on_read(),
-            "update": acl_module_check(
-                resource_type="secret",
-                action="update",
-                resource_id=id,
-            ),
-            "delete": acl_module_check(
-                resource_type="secret",
-                action="delete",
-                resource_id=id,
-            ),
-        }
+        response.secret_pairs = {}
+        response.permissions = _secret_permissions(tenant_id, id)
         return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>/versions", methods=["GET"])
+@blueprint.route("/v1/secrets/<path:id>/decrypt", methods=["POST"])
+@misc.prevent_xss_decorator
+@authnz.require_auth
+@authnz.require_csrf_token
+def decrypt_secret(id):
+    tenant_id = authnz.get_tenant_id()
+    if not _can_decrypt_secret(tenant_id, id):
+        msg = (
+            f"{authnz.get_logged_in_user()} does not have access "
+            f"to decrypt secret {id}"
+        )
+        return jsonify({"error": msg, "reference": id}), 403
+    response = secretmanager.get_secret_latest(
+        tenant_id,
+        id,
+        metadata_only=False,
+        alert_on_access=True,
+    )
+    if not response:
+        return jsonify({}), 404
+    response.permissions = _secret_permissions(tenant_id, id)
+    return secret_response_schema.dumps(response)
+
+
+@blueprint.route("/v1/secrets/<path:id>/versions", methods=["GET"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 def list_secret_versions(id):
@@ -153,13 +232,15 @@ def list_secret_versions(id):
     return revisions_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>/versions/<int:version>", methods=["GET"])
+@blueprint.route(
+    "/v1/secrets/<path:id>/versions/<int:version>",
+    methods=["GET"],
+)
 @misc.prevent_xss_decorator
 @authnz.require_auth
 def get_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
-    read_action = _read_action_for_request()
-    if not _can_read_secret(tenant_id, id, read_action):
+    if not _can_view_secret_metadata(tenant_id, id):
         msg = "{} does not have access to secret {}".format(
             authnz.get_logged_in_user(),
             id,
@@ -169,25 +250,39 @@ def get_secret_version(id, version):
         tenant_id,
         id,
         version,
-        alert_on_access=_should_alert_on_read(),
+        metadata_only=True,
     )
     if not response:
         return jsonify({}), 404
-    response.permissions = {
-        "metadata": True,
-        "read": not _should_alert_on_read(),
-        "read_with_alert": _should_alert_on_read(),
-        "update": acl_module_check(
-            resource_type="secret",
-            action="update",
-            resource_id=id,
-        ),
-        "delete": acl_module_check(
-            resource_type="secret",
-            action="delete",
-            resource_id=id,
-        ),
-    }
+    response.permissions = _secret_permissions(tenant_id, id)
+    return secret_response_schema.dumps(response)
+
+
+@blueprint.route(
+    "/v1/secrets/<path:id>/versions/<int:version>/decrypt",
+    methods=["POST"],
+)
+@misc.prevent_xss_decorator
+@authnz.require_auth
+@authnz.require_csrf_token
+def decrypt_secret_version(id, version):
+    tenant_id = authnz.get_tenant_id()
+    if not _can_decrypt_secret(tenant_id, id):
+        msg = (
+            f"{authnz.get_logged_in_user()} does not have access "
+            f"to decrypt secret {id} version {version}"
+        )
+        return jsonify({"error": msg, "reference": id}), 403
+    response = secretmanager.get_secret_version(
+        tenant_id,
+        id,
+        version,
+        metadata_only=False,
+        alert_on_access=True,
+    )
+    if not response:
+        return jsonify({}), 404
+    response.permissions = _secret_permissions(tenant_id, id)
     return secret_response_schema.dumps(response)
 
 
@@ -198,17 +293,22 @@ def get_secret_version(id, version):
 @maintenance.check_maintenance_mode
 def create_secret():
     with stats.timer("create_secret"):
-        if not acl_module_check(resource_type="secret", action="create"):
-            msg = (
-                f"{authnz.get_logged_in_user()} does not have access "
-                "to create secrets"
-            )
-            return jsonify({"error": msg}), 403
         data = request.get_json() or {}
         tenant_id = authnz.get_tenant_id()
         enforce_documentation = settings.get("ENFORCE_DOCUMENTATION")
         if not data.get("documentation") and enforce_documentation:
             return jsonify({"error": "documentation is a required field"}), 400
+        if not data.get("id"):
+            return jsonify({"error": "id is a required field"}), 400
+        id_error = resource_ids.validate_secret_id(data.get("id"))
+        if id_error:
+            return jsonify({"error": id_error}), 400
+        if not _can_create_secret(tenant_id, data.get("id")):
+            msg = (
+                f"{authnz.get_logged_in_user()} does not have access "
+                f"to create secret {data.get('id')}"
+            )
+            return jsonify({"error": msg, "reference": data.get("id")}), 403
         if not data.get("name"):
             return jsonify({"error": "name is a required field"}), 400
         if not data.get("secret_pairs"):
@@ -217,6 +317,7 @@ def create_secret():
             return jsonify({"error": "metadata must be a dict"}), 400
         response, error = secretmanager.create_secret(
             tenant_id=tenant_id,
+            secret_id=data.get("id"),
             name=data.get("name"),
             secret_pairs=data["secret_pairs"],
             created_by=authnz.get_logged_in_user(),
@@ -228,38 +329,30 @@ def create_secret():
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "read": True,
-            "read_with_alert": True,
-            "update": True,
-            "delete": acl_module_check(
-                resource_type="secret",
-                action="delete",
-                resource_id=response.id,
-            ),
+            "decrypt": _can_decrypt_secret(tenant_id, response.id),
+            "revert": _can_revert_secret(tenant_id, response.id),
+            "update": _can_update_secret(tenant_id, response.id),
+            "delete": _can_delete_secret(tenant_id, response.id),
         }
         return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>", methods=["PUT"])
-@blueprint.route("/v1/secrets/<id>/versions", methods=["POST"])
+@blueprint.route("/v1/secrets/<path:id>", methods=["PUT"])
+@blueprint.route("/v1/secrets/<path:id>/versions", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def update_secret(id):
     with stats.timer("update_secret"):
-        if not acl_module_check(
-            resource_type="secret",
-            action="update",
-            resource_id=id,
-        ):
+        tenant_id = authnz.get_tenant_id()
+        if not _can_update_secret(tenant_id, id):
             msg = (
                 f"{authnz.get_logged_in_user()} does not have access "
                 f"to update secret {id}"
             )
             return jsonify({"error": msg, "reference": id}), 403
         data = request.get_json() or {}
-        tenant_id = authnz.get_tenant_id()
         if (
             not isinstance(data.get("metadata", {}), dict)
             and data.get("metadata") is not None
@@ -279,30 +372,22 @@ def update_secret(id):
             return jsonify(error), 400
         response.permissions = {
             "metadata": True,
-            "read": True,
-            "read_with_alert": True,
-            "update": True,
-            "delete": acl_module_check(
-                resource_type="secret",
-                action="delete",
-                resource_id=id,
-            ),
+            "decrypt": _can_decrypt_secret(tenant_id, id),
+            "revert": _can_revert_secret(tenant_id, id),
+            "update": _can_update_secret(tenant_id, id),
+            "delete": _can_delete_secret(tenant_id, id),
         }
         return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>", methods=["DELETE"])
+@blueprint.route("/v1/secrets/<path:id>", methods=["DELETE"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
 @authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def delete_secret(id):
     tenant_id = authnz.get_tenant_id()
-    if not acl_module_check(
-        resource_type="secret",
-        action="delete",
-        resource_id=id,
-    ):
+    if not _can_delete_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
             f"to delete secret {id}"
@@ -319,7 +404,7 @@ def delete_secret(id):
 
 
 @blueprint.route(
-    "/v1/secrets/<id>/versions/<int:version>/restore",
+    "/v1/secrets/<path:id>/versions/<int:version>/restore",
     methods=["POST"],
 )
 @misc.prevent_xss_decorator
@@ -328,14 +413,10 @@ def delete_secret(id):
 @maintenance.check_maintenance_mode
 def restore_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
-    if not acl_module_check(
-        resource_type="secret",
-        action="update",
-        resource_id=id,
-    ):
+    if not _can_revert_secret(tenant_id, id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access "
-            f"to update secret {id}"
+            f"to restore secret {id}"
         )
         return jsonify({"error": msg, "reference": id}), 403
     response = secretmanager.restore_secret_version(
@@ -348,14 +429,15 @@ def restore_secret_version(id, version):
         return jsonify({}), 404
     response.permissions = {
         "metadata": True,
-        "read": True,
-        "read_with_alert": True,
-        "update": True,
+        "decrypt": _can_decrypt_secret(tenant_id, id),
+        "revert": _can_revert_secret(tenant_id, id),
+        "update": _can_update_secret(tenant_id, id),
+        "delete": _can_delete_secret(tenant_id, id),
     }
     return secret_response_schema.dumps(response)
 
 
-@blueprint.route("/v1/secrets/<id>/groups", methods=["GET"])
+@blueprint.route("/v1/secrets/<path:id>/groups", methods=["GET"])
 @authnz.require_auth
 def get_secret_dependencies(id):
     tenant_id = authnz.get_tenant_id()
@@ -365,3 +447,55 @@ def get_secret_dependencies(id):
         return jsonify({"error": msg, "reference": id}), 403
     groups = secretmanager.get_secret_dependencies(tenant_id, id)
     return jsonify({"groups": groups})
+
+
+@blueprint.route("/v1/value_generator", methods=["GET"])
+@misc.prevent_xss_decorator
+@authnz.require_auth
+def generate_value():
+    raw_length = request.args.get("length")
+    if raw_length is None:
+        length = 32
+    else:
+        try:
+            length = int(raw_length)
+        except (TypeError, ValueError):
+            return jsonify({"error": "length must be an integer"}), 400
+
+    if length is None:
+        return jsonify({"error": "length must be an integer"}), 400
+    too_short = length < _VALUE_GENERATOR_MIN_LENGTH
+    too_long = length > _VALUE_GENERATOR_MAX_LENGTH
+    if too_short or too_long:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        f"length must be between {_VALUE_GENERATOR_MIN_LENGTH} "
+                        f"and {_VALUE_GENERATOR_MAX_LENGTH}"
+                    )
+                }
+            ),
+            400,
+        )
+
+    complexity = _parse_value_generator_complexity(request.args)
+    if complexity is None:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "complexity must be one or more of "
+                        "lowercase, uppercase, digits, symbols"
+                    )
+                }
+            ),
+            400,
+        )
+
+    value = _build_generated_value(length, complexity)
+    if value is None:
+        error = "length must be at least the number of selected classes"
+        return jsonify({"error": error}), 400
+
+    return jsonify({"value": value})

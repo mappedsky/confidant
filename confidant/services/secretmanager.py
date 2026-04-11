@@ -3,7 +3,6 @@ import copy
 import json
 import logging
 import re
-import uuid
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -181,11 +180,12 @@ def get_secrets(
         return secrets
 
 
-def list_secrets(tenant_id, limit=None, page=None):
+def list_secrets(tenant_id, limit=None, page=None, prefix=None):
     results = store.list_secrets(
         tenant_id,
         limit=limit,
         last_evaluated_key=page,
+        prefix=prefix,
     )
     items = results.get("Items", [])
     secrets = [_secret_response_from_item(item) for item in items]
@@ -230,16 +230,22 @@ def list_secret_versions(tenant_id, secret_id):
     return RevisionsResponse.from_secrets(secrets)
 
 
-def get_secret_version(tenant_id, secret_id, version, alert_on_access=False):
+def get_secret_version(
+    tenant_id,
+    secret_id,
+    version,
+    alert_on_access=False,
+    metadata_only=False,
+):
     item = store.get_secret_version(tenant_id, secret_id, version)
     if not item:
         return None
-    if alert_on_access:
+    if alert_on_access and not metadata_only:
         item = _save_last_decryption_time(tenant_id, secret_id, item)
     return _secret_response_from_item(
         item,
         include_secret_keys=True,
-        include_secret_pairs=True,
+        include_secret_pairs=not metadata_only,
     )
 
 
@@ -322,7 +328,7 @@ def _build_secret_items(
     }
     list_item = {
         "PK": f"TENANT#{tenant_id}#SECRET_LIST",
-        "SK": f"SECRET#{secret_id}",
+        "SK": secret_id,
         "tenant_id": tenant_id,
         "id": secret_id,
         "name": name,
@@ -358,6 +364,7 @@ def _sanitize_write_items(items):
 
 def create_secret(
     tenant_id,
+    secret_id,
     name,
     secret_pairs,
     created_by,
@@ -365,7 +372,8 @@ def create_secret(
     documentation=None,
     tags=None,
 ):
-    secret_id = str(uuid.uuid4()).replace("-", "")
+    if store.get_secret_latest(tenant_id, secret_id):
+        return None, {"error": "Secret already exists."}
     revision = 1
     secret_pairs = lowercase_secret_pairs(secret_pairs)
     ok, ret = check_secret_pair_values(secret_pairs)

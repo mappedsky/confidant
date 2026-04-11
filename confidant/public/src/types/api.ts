@@ -2,9 +2,9 @@ import type { OidcMetadata } from 'oidc-client-ts';
 
 export interface EntityPermissions {
   metadata?: boolean;
-  read?: boolean;
-  read_with_alert?: boolean;
+  decrypt?: boolean;
   get?: boolean;
+  revert?: boolean;
   update?: boolean;
   delete?: boolean;
   create?: boolean;
@@ -58,6 +58,15 @@ export interface SecretIdentifier {
   id: string;
 }
 
+export interface CreateSecretPayload {
+  id: string;
+  name: string;
+  secret_pairs: Record<string, string>;
+  metadata: Record<string, string>;
+  documentation: string;
+  tags: string[];
+}
+
 export interface SecretBase {
   id: string;
   name: string;
@@ -95,6 +104,13 @@ export interface SecretGroupsResponse {
   groups: SecretIdentifier[];
 }
 
+export type GroupPolicies = Record<string, string[]>;
+
+export interface GroupWritePayload {
+  id?: string;
+  policies: GroupPolicies;
+}
+
 export interface GroupBase {
   id: string;
   revision: number;
@@ -104,11 +120,11 @@ export interface GroupBase {
 }
 
 export interface GroupSummary extends GroupBase {
-  secrets: string[];
+  policies: GroupPolicies;
 }
 
 export interface GroupDetail extends GroupBase {
-  secrets: string[];
+  policies: GroupPolicies;
 }
 
 export interface GroupsListResponse {
@@ -123,6 +139,11 @@ export interface GroupVersionsResponse {
 
 export interface GenerateValueResponse {
   value: string;
+}
+
+export interface GenerateValueRequest {
+  length?: number;
+  complexity?: string[];
 }
 
 export type ConflictInfo = {

@@ -7,14 +7,14 @@ from confidant.schema.groups import GroupsResponse
 from confidant.schema.groups import RevisionsResponse
 
 
-def _group(group_id="s1", revision=1, secrets=None):
+def _group(group_id="s1", revision=1, policies=None):
     return GroupResponse(
         tenant_id="singletenant",
         id=group_id,
         revision=revision,
         modified_date=datetime.now(timezone.utc),
         modified_by="user@example.com",
-        secrets=secrets or ["c1"],
+        policies=policies or {"c1": ["decrypt"]},
     )
 
 
@@ -53,7 +53,7 @@ def test_get_group_detail(mocker):
     ret = app.test_client().get("/v1/groups/s1")
     assert ret.status_code == 200
     body = ret.get_json()
-    assert body["secrets"] == ["c1"]
+    assert body["policies"] == {"c1": ["decrypt"]}
     assert body["permissions"]["get"] is True
     assert body["permissions"]["delete"] is True
 
@@ -87,7 +87,7 @@ def test_get_group_versions_and_version_detail(mocker):
     assert ret.status_code == 200
     body = ret.get_json()
     assert body["revision"] == 2
-    assert body["secrets"] == ["c1"]
+    assert body["policies"] == {"c1": ["decrypt"]}
     assert body["permissions"]["delete"] is True
 
 
@@ -123,22 +123,103 @@ def test_create_and_update_group(mocker):
     ret = app.test_client().put(
         "/v1/groups/s1",
         json={
-            "secrets": ["c1"],
+            "policies": {"c1": ["decrypt"]},
         },
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 1
-    assert ret.get_json()["secrets"] == ["c1"]
+    assert ret.get_json()["policies"] == {"c1": ["decrypt"]}
 
     ret = app.test_client().put(
         "/v1/groups/s1",
         json={
-            "secrets": ["c1"],
+            "policies": {"c1": ["decrypt"]},
         },
     )
     assert ret.status_code == 200
     assert ret.get_json()["revision"] == 2
-    assert ret.get_json()["secrets"] == ["c1"]
+    assert ret.get_json()["policies"] == {"c1": ["decrypt"]}
+
+
+def test_create_group_accepts_glob_policy_without_secret_lookup_failure(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.groups.authnz.get_logged_in_user",
+        return_value="user@example.com",
+    )
+    mocker.patch("confidant.routes.groups.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.groups.groupmanager.get_group_latest",
+        return_value=None,
+    )
+    create_mock = mocker.patch(
+        "confidant.routes.groups.groupmanager.create_group",
+        return_value=(_group(policies={"*": ["list", "create"]}), None),
+    )
+    get_secrets_mock = mocker.patch(
+        "confidant.routes.groups.secretmanager.get_secrets",
+        return_value=[],
+    )
+
+    ret = app.test_client().put(
+        "/v1/groups/s1",
+        json={
+            "policies": {"*": ["list", "create"]},
+        },
+    )
+
+    assert ret.status_code == 200
+    get_secrets_mock.assert_called_once_with(
+        "singletenant",
+        [],
+        include_secret_keys=True,
+        include_secret_pairs=True,
+    )
+    assert create_mock.call_args.kwargs["policies"] == {"*": ["list", "create"]}
+
+
+def test_create_group_rejects_invalid_id(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.groups.acl_module_check", return_value=True)
+
+    ret = app.test_client().put(
+        "/v1/groups/bad!group",
+        json={
+            "policies": {"c1": ["decrypt"]},
+        },
+    )
+
+    assert ret.status_code == 400
+    assert (
+        ret.get_json()["error"]
+        == "group id may only contain alphanumeric characters and _+=.@-"
+    )
+
+
+def test_create_group_rejects_old_permission_names(mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.groups.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.groups.groupmanager.get_group_latest",
+        return_value=None,
+    )
+    mocker.patch(
+        "confidant.routes.groups.secretmanager.get_secrets",
+        return_value=[],
+    )
+
+    ret = app.test_client().put(
+        "/v1/groups/s1",
+        json={
+            "policies": {"c1": ["read_with_alert"]},
+        },
+    )
+
+    assert ret.status_code == 400
+    assert ret.get_json()["error"].startswith("Unknown policy permission")
 
 
 def test_delete_group(mocker):

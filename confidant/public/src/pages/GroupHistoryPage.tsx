@@ -62,7 +62,10 @@ export default function GroupHistoryPage() {
   }, [id]);
 
   const latestRevision = currentGroup?.revision ?? versions[0]?.revision;
-  const canRestore = currentGroup?.permissions?.update ?? false;
+  const canRestore =
+    currentGroup?.permissions?.revert
+    ?? currentGroup?.permissions?.update
+    ?? false;
 
   const handleRestore = async (revision: number) => {
     if (!id) {
@@ -104,13 +107,15 @@ export default function GroupHistoryPage() {
       },
     },
     {
-      field: 'secrets',
-      headerName: 'Secrets',
+      field: 'policies',
+      headerName: 'Policies',
       width: 140,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<GroupSummary, string[]>) => (
+      renderCell: (
+        params: GridRenderCellParams<GroupSummary, GroupSummary['policies']>,
+      ) => (
         <Typography variant="body2" color="text.secondary">
-          {params.value?.length ?? 0}
+          {params.value ? Object.keys(params.value).length : 0}
         </Typography>
       ),
     },

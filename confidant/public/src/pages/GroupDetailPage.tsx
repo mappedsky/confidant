@@ -22,6 +22,9 @@ import {
   FormControl,
   Link,
   Stack,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
   Paper,
   Table,
   TableBody,
@@ -30,7 +33,6 @@ import {
   TableContainer,
   TableRow,
 } from '@mui/material';
-import type { SelectChangeEvent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -44,9 +46,16 @@ import { useAppContext } from '../contexts/AppContext';
 import CenteredSpinner from '../components/CenteredSpinner';
 import {
   ConflictMap,
+  GroupWritePayload,
   SecretSummary,
   GroupDetail,
 } from '../types/api';
+import {
+  secretDetailPath,
+  secretPolicyHasGlob,
+  validateSecretPolicyPath,
+  validateGroupId,
+} from '../utils/resourceIds';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -74,15 +83,19 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-function secretDisplayLabel(secret: Pick<SecretSummary, 'name' | 'id'>) {
-  return `${secret.name} (${secret.id})`;
-}
+const POLICY_ACTIONS = [
+  'list',
+  'create',
+  'metadata',
+  'decrypt',
+  'update',
+  'delete',
+  'revert',
+] as const;
 
-interface GroupFormSecret {
-  id: string;
-  name: string;
-  revision?: number;
-  isNew?: boolean;
+interface GroupPolicyRow {
+  secretId: string;
+  permissions: string[];
 }
 
 type GroupDetailParams = { id?: string; version?: string };
@@ -114,15 +127,14 @@ export default function GroupDetailPage() {
   const [versionRevisions, setVersionRevisions] = useState<number[]>([]);
 
   const [formId, setFormId] = useState('');
-  const [formSecrets, setFormSecrets] = useState<GroupFormSecret[]>([]);
+  const [formPolicies, setFormPolicies] = useState<GroupPolicyRow[]>([]);
 
   const populateForm = useCallback((svc: GroupDetail) => {
     setFormId(svc.id ?? '');
-    setFormSecrets(
-      (svc.secrets ?? []).map((secret) => ({
-        id: secret,
-        name: secret,
-        isNew: false,
+    setFormPolicies(
+      Object.entries(svc.policies ?? {}).map(([secretId, permissions]) => ({
+        secretId,
+        permissions: [...permissions],
       })),
     );
   }, []);
@@ -153,7 +165,9 @@ export default function GroupDetailPage() {
           setGroup(svc);
           populateForm(svc);
           setLatestRevision(current.revision);
-          setCanRestore(current.permissions?.update ?? false);
+          setCanRestore(
+            current.permissions?.revert ?? current.permissions?.update ?? false,
+          );
           setVersionRevisions(
             [...(history.versions ?? [])]
               .map((item) => item.revision)
@@ -175,43 +189,36 @@ export default function GroupDetailPage() {
       .finally(() => setLoading(false));
   }, [id, isNew, isVersionView, populateForm, versionNumber]);
 
-  useEffect(() => {
-    if (allSecrets.length === 0) {
-      return;
-    }
-
-    setFormSecrets((previous) => previous.map((secret) => {
-      const match = allSecrets.find((item) => item.id === secret.id);
-      if (!match) {
-        return secret;
-      }
-        return {
-          ...secret,
-          name: match.name,
-          revision: secret.revision ?? match.revision,
-        };
-      }));
-  }, [allSecrets]);
-
-  const handleAddSecret = () => {
-    setFormSecrets((prev) => [...prev, { id: '', name: '', isNew: true }]);
+  const handleAddPolicy = () => {
+    setFormPolicies((prev) => [...prev, { secretId: '', permissions: [] }]);
   };
 
-  const handleRemoveSecret = (idx: number) => {
-    setFormSecrets((prev) => prev.filter((_, i) => i !== idx));
+  const handleRemovePolicy = (idx: number) => {
+    setFormPolicies((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSecretChange = (idx: number, credId: string) => {
-    const cred = allSecrets.find((c) => c.id === credId);
-    setFormSecrets((prev) =>
-      prev.map((c, i) =>
+  const handleSecretChange = (idx: number, secretId: string) => {
+    setFormPolicies((prev) =>
+      prev.map((policy, i) =>
         i === idx
           ? {
-              id: credId,
-              name: cred?.name ?? credId,
-              revision: cred?.revision,
+              ...policy,
+              secretId,
             }
-          : c,
+          : policy,
+      ),
+    );
+  };
+
+  const handlePermissionsChange = (idx: number, permissions: string[]) => {
+    setFormPolicies((prev) =>
+      prev.map((policy, i) =>
+        i === idx
+          ? {
+              ...policy,
+              permissions,
+            }
+          : policy,
       ),
     );
   };
@@ -220,9 +227,30 @@ export default function GroupDetailPage() {
     setSaveError(null);
     setConflicts(null);
 
-    const credIds = formSecrets.map((c) => c.id).filter(Boolean);
-    if (new Set(credIds).size !== credIds.length) {
-      setSaveError('Secrets must be unique.');
+    const idError = validateGroupId(formId);
+    if (idError) {
+      setSaveError(idError);
+      return;
+    }
+
+    const secretIds = formPolicies.map((policy) => policy.secretId).filter(Boolean);
+    if (new Set(secretIds).size !== secretIds.length) {
+      setSaveError('Each policy must reference a unique secret.');
+      return;
+    }
+    if (formPolicies.some((policy) => !policy.secretId)) {
+      setSaveError('Each policy row must select a secret.');
+      return;
+    }
+    for (const policy of formPolicies) {
+      const policyError = validateSecretPolicyPath(policy.secretId);
+      if (policyError) {
+        setSaveError(policyError);
+        return;
+      }
+    }
+    if (formPolicies.some((policy) => policy.permissions.length === 0)) {
+      setSaveError('Each policy row must include at least one permission.');
       return;
     }
 
@@ -240,9 +268,14 @@ export default function GroupDetailPage() {
       }
     }
 
-    const payload = {
+    const payload: GroupWritePayload = {
       id: formId,
-      secrets: credIds,
+      policies: Object.fromEntries(
+        formPolicies.map((policy) => [
+          policy.secretId,
+          [...new Set(policy.permissions)],
+        ]),
+      ),
     };
 
     setSaving(true);
@@ -511,7 +544,7 @@ export default function GroupDetailPage() {
                   {info.secrets?.map((cid) => (
                     <Typography key={cid} variant="body2" ml={2}>
                       Secret:
-                      <Link component={RouterLink} to={`/secrets/${cid}`}>
+                      <Link component={RouterLink} to={secretDetailPath(cid)}>
                         {cid}
                       </Link>
                     </Typography>
@@ -537,13 +570,14 @@ export default function GroupDetailPage() {
                 value={formId}
                 onChange={(event) => setFormId(event.target.value)}
                 placeholder="Enter a group ID"
+                helperText="Use letters, numbers, and _+=.@-. Max 512 chars."
               />
             ) : (
               <ReadOnlyField label="Group ID" value={group?.id} valueSx={{ fontFamily: 'monospace' }} />
             )}
 
             <Box>
-              <SectionLabel>Secrets</SectionLabel>
+              <SectionLabel>Policies</SectionLabel>
               <TableContainer
                 component={Paper}
                 variant="outlined"
@@ -552,69 +586,106 @@ export default function GroupDetailPage() {
                 <Table size="small" sx={{ minWidth: 640 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, width: editing ? '48%' : '40%' }}>Secret</TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: '32%' }}>Secret ID</TableCell>
-                      {!editing && <TableCell sx={{ fontWeight: 600, width: '14%' }}>Revision</TableCell>}
+                      <TableCell sx={{ fontWeight: 600, width: editing ? '34%' : '28%' }}>Secret</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: '28%' }}>Secret ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: editing ? '30%' : '36%' }}>Permissions</TableCell>
                       {editing && <TableCell sx={{ fontWeight: 600, width: 60 }} />}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {formSecrets.length === 0 ? (
+                    {formPolicies.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={editing ? 4 : 3} sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                          No secrets assigned.
+                          No policies configured.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      formSecrets.map((cred, idx) => (
+                      formPolicies.map((policy, idx) => {
+                        const secret = allSecrets.find(
+                          (item) => item.id === policy.secretId,
+                        );
+                        return (
                         <TableRow key={idx}>
                           <TableCell>
                             {editing ? (
-                              <FormControl size="small" fullWidth>
-                                <Select
-                                  value={cred.id}
-                                  onChange={(event: SelectChangeEvent<string>) =>
-                                    handleSecretChange(idx, event.target.value)
-                                  }
-                                  displayEmpty
-                                >
-                                  <MenuItem value="">
-                                    <em>Select secret</em>
-                                  </MenuItem>
-                                  {allSecrets.map((c) => (
-                                    <MenuItem key={c.id} value={c.id}>
-                                      {secretDisplayLabel(c)}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={policy.secretId}
+                                onChange={(event) =>
+                                  handleSecretChange(idx, event.target.value)
+                                }
+                                placeholder="secret-id or glob like apps/*"
+                              />
                             ) : (
                               <Box>
-                                <Link component={RouterLink} to={`/secrets/${cred.id}`}>
-                                  {cred.name || cred.id}
-                                </Link>
+                                {secretPolicyHasGlob(policy.secretId) ? (
+                                  <Typography variant="body2">
+                                    {policy.secretId}
+                                  </Typography>
+                                ) : (
+                                  <Link
+                                    component={RouterLink}
+                                    to={secretDetailPath(policy.secretId)}
+                                  >
+                                    {secret?.name || policy.secretId}
+                                  </Link>
+                                )}
                               </Box>
                             )}
                           </TableCell>
                           <TableCell>
                             <Typography color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                              {cred.id || '—'}
+                              {policy.secretId || '—'}
                             </Typography>
                           </TableCell>
-                          {!editing && (
-                            <TableCell>
-                              <Typography color="text.secondary">{cred.revision}</Typography>
-                            </TableCell>
-                          )}
+                          <TableCell>
+                            {editing ? (
+                              <FormControl size="small" fullWidth>
+                                <Select
+                                  multiple
+                                  value={policy.permissions}
+                                  onChange={(event) =>
+                                    handlePermissionsChange(
+                                      idx,
+                                      event.target.value as string[],
+                                    )
+                                  }
+                                  input={<OutlinedInput />}
+                                  renderValue={(selected) =>
+                                    (selected as string[]).join(', ') || 'Select permissions'
+                                  }
+                                >
+                                  {POLICY_ACTIONS.map((action) => (
+                                    <MenuItem key={action} value={action}>
+                                      <Checkbox
+                                        checked={policy.permissions.includes(action)}
+                                      />
+                                      <ListItemText primary={action} />
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography color="text.secondary">
+                                {policy.permissions.join(', ') || '—'}
+                              </Typography>
+                            )}
+                          </TableCell>
                           {editing && (
                             <TableCell>
-                              <IconButton size="small" color="error" onClick={() => handleRemoveSecret(idx)}>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemovePolicy(idx)}
+                              >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </TableCell>
                           )}
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -623,11 +694,17 @@ export default function GroupDetailPage() {
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={handleAddSecret}
+                  onClick={handleAddPolicy}
                   sx={{ mt: 1 }}
                 >
-                  Add secret
+                  Add policy
                 </Button>
+              )}
+              {editing && allSecrets.length > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Existing secrets can be referenced directly, or use a glob
+                  like `apps/*`. Use `*` for global list/create access.
+                </Typography>
               )}
             </Box>
 

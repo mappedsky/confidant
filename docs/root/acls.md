@@ -93,24 +93,29 @@ This check controls access to specific secret metadata, which does not include s
 ```python
 acl_module_check(
     resource_type='secret',
-    action='read',
+    action='metadata',
     resource_id=id,
 )
 ```
 
-This check controls access to specific secrets without triggering rotation alerting side effects. This is intended for service reads that fetch secret pairs. Fine-grained controls can be applied using the provided `resource_id`.
+This check controls access to specific secret metadata. Secret pairs are not
+returned on the metadata GET route. Fine-grained controls can be applied using
+the provided `resource_id`.
 
-#### Get secret with alert
+#### Decrypt secret
 
 ```python
 acl_module_check(
     resource_type='secret',
-    action='read_with_alert',
+    action='decrypt',
     resource_id=id,
 )
 ```
 
-This check controls access to specific secrets and allows the read path to update `last_decrypted_date`, which can affect required rotation timing. This is intended for human users that fetch secret pairs.
+This check controls access to explicit secret decryption. The decrypt endpoint
+returns secret pairs and may update `last_decrypted_date`, which can affect
+required rotation timing. Fine-grained controls can be applied using the
+provided `resource_id`.
 
 #### Create secret
 
@@ -198,19 +203,23 @@ acl_module_check(
 
 This check controls access to specific service data. Service reads no longer expand mapped secrets; secret payloads are fetched from the secret endpoints instead. Fine-grained controls can be applied using the provided `resource_id`.
 
-#### Get secret via mapped service
+#### Decrypt secret via mapped service
 
-Credential read endpoints also allow access when the authenticated service is mapped to the requested secret:
+Credential decrypt endpoints also allow access when the authenticated service
+is mapped to the requested secret:
 
 ```python
 acl_module_check(
     resource_type='secret',
-    action='read',
+    action='decrypt',
     resource_id=id,
 )
 ```
 
-The default ACL module continues to handle human users. Credential routes add a service-mapping authorization check before returning secret metadata or pairs. Mapped service reads use `read`; interactive user reads use `read_with_alert`.
+The default ACL module continues to handle human users. Credential routes add
+a service-mapping authorization check before returning secret metadata or
+pairs. Both the metadata route and the explicit decrypt route use the same
+`decrypt` permission vocabulary for secret values.
 
 #### Create service
 

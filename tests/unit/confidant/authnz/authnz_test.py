@@ -24,11 +24,13 @@ def test_get_logged_in_user_from_request_principal(mocker: MockerFixture):
             username="user@example.com",
             email="user@example.com",
             tenant_id="tenant-a",
+            group_ids=["engineering"],
             jwt_claims={},
         )
         authnz._set_request_principal(principal)
         assert authnz.get_logged_in_user() == "user@example.com"
         assert authnz.get_logged_in_email() == "user@example.com"
+        assert authnz.get_logged_in_group_ids() == ["engineering"]
 
 
 def test_get_tenant_id_singletenant_default(mocker: MockerFixture):
@@ -155,11 +157,40 @@ def test_principal_from_payload_uses_service_claims(mocker: MockerFixture):
         "principal_type": "service",
         "service_name": "confidant-api",
         "sub": "client-123",
+        "groups": ["policy-a", "policy-b"],
     }
 
     principal = authnz._principal_from_payload(payload)
     assert principal.user_type == "service"
     assert principal.username == "confidant-api"
+    assert principal.group_ids == ["policy-a", "policy-b"]
+
+
+def test_principal_from_payload_rejects_invalid_group_claim(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "confidant.authnz.settings.JWT_PRINCIPAL_TYPE_CLAIM",
+        "principal_type",
+    )
+    mocker.patch("confidant.authnz.settings.JWT_SERVICE_TYPE_VALUE", "service")
+    mocker.patch("confidant.authnz.settings.JWT_USER_TYPE_VALUE", "user")
+    mocker.patch(
+        "confidant.authnz.settings.JWT_ALLOWED_PRINCIPAL_TYPES",
+        ["user", "service"],
+    )
+    mocker.patch(
+        "confidant.authnz.settings.JWT_SERVICE_PRINCIPAL_CLAIM", "service_name"
+    )
+    payload = {
+        "principal_type": "service",
+        "service_name": "confidant-api",
+        "sub": "client-123",
+        "groups": "policy-a",
+    }
+
+    with pytest.raises(authnz.AuthenticationError):
+        authnz._principal_from_payload(payload)
 
 
 def test_decode_jwt_disables_audience_check_when_unset(mocker: MockerFixture):
@@ -259,6 +290,7 @@ def test_require_auth(mocker: MockerFixture):
         "sub": "client-123",
         "email": "service@example.com",
         "tenant_id": "tenant-a",
+        "groups": ["policy-a"],
     }
     mocker.patch(
         "confidant.authnz.settings.JWT_PRINCIPAL_TYPE_CLAIM",
@@ -285,3 +317,4 @@ def test_require_auth(mocker: MockerFixture):
         assert authnz.g.auth_type == "jwt"
         assert authnz.g.username == "confidant-api"
         assert authnz.g.tenant_id == "tenant-a"
+        assert authnz.g.group_ids == ["policy-a"]
