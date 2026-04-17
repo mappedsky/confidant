@@ -2,16 +2,10 @@
 
 ## Code of conduct
 
-This project is governed by [Lyft's code of conduct](https://github.com/lyft/code-of-conduct).
+This project follows the [Contributor Covenant](https://www.contributor-covenant.org/) code of conduct.
 All contributors and participants agree to abide by its terms.
 
 ## Contributing code
-
-### Sign the Contributor License Agreement (CLA)
-
-We require a CLA for code contributions, so before we can accept a pull request
-we need to have a signed CLA. Please [visit our CLA service](https://oss.lyft.com/cla)
-follow the instructions to sign the CLA.
 
 ### File issues in Github
 

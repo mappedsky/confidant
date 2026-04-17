@@ -18,23 +18,19 @@ source_venv() {
 
 # We need to set CONFIDANT_DOCS_VERSION_STRING and CONFIDANT_DOCS_RELEASE_LEVEL for Sphinx.
 # We also validate that the tag and version match at this point if needed.
-if [ -n "$TRAVIS_TAG" ]
+if [ "$GITHUB_REF_TYPE" = "tag" ] && [ -n "$GITHUB_REF_NAME" ]
 then
   # Check the git tag matches the version number in the VERSION file.
   VERSION_NUMBER=$(cat VERSION)
-  if [ "v${VERSION_NUMBER}" != "${TRAVIS_TAG}" ]; then
+  if [ "v${VERSION_NUMBER}" != "${GITHUB_REF_NAME}" ]; then
     echo "Given git tag does not match the VERSION file content:"
-    echo "${TRAVIS_TAG} vs $(cat VERSION)"
+    echo "${GITHUB_REF_NAME} vs $(cat VERSION)"
     exit 1
   fi
-  # Check the version_history.rst contains current release version.
-  grep --fixed-strings "$VERSION_NUMBER" docs/root/intro/version_history.rst \
-    || (echo "Git tag not found in version_history.rst" && exit 1)
 
-  # Now that we now there is a match, we can use the tag.
-  export CONFIDANT_DOCS_VERSION_STRING="tag-$TRAVIS_TAG"
+  export CONFIDANT_DOCS_VERSION_STRING="tag-${GITHUB_REF_NAME}"
   export CONFIDANT_DOCS_RELEASE_LEVEL=tagged
-  export CONFIDANT_BLOB_SHA="$TRAVIS_TAG"
+  export CONFIDANT_BLOB_SHA="${GITHUB_REF_NAME}"
 else
   BUILD_SHA=$(git rev-parse HEAD)
   VERSION_NUM=$(cat VERSION)

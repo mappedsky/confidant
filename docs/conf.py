@@ -82,8 +82,8 @@ extensions = [
     'm2r',
 ]
 extlinks = {
-    'repo': ('https://github.com/lyft/confidant/blob/{}/%s'.format(blob_sha), ''),
-    'api': ('https://github.com/lyft/confidant/blob/{}/api/%s'.format(blob_sha), ''),
+    'repo': ('https://github.com/mappedsky/confidant/blob/{}/%s'.format(blob_sha), ''),
+    'api': ('https://github.com/mappedsky/confidant/blob/{}/api/%s'.format(blob_sha), ''),
 }
 
 # Setup global substitutions
