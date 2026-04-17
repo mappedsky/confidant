@@ -38,9 +38,6 @@ karma-test-results.xml
 # build packages or files that shouldn't be in repo
 node_modules
 npm-debug.log
-components
-!confidant/public/src/components/
-!confidant/public/src/components/*.tsx
 .sass-cache
 .tmp
 confidant/public/dist
@@ -57,6 +54,7 @@ service.env
 .DS_store
 .zedstate
 .idea
+.codex
 
 # virtualenv excludes
 venv

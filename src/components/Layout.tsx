@@ -20,6 +20,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthConfigContext } from '../authConfig.context';
 import { useAppContext } from '../contexts/AppContext';
 import CenteredSpinner from './CenteredSpinner';
+import logoSvgUrl from '../assets/logo.svg';
 
 const DRAWER_WIDTH = 220;
 const APPBAR_HEIGHT = 80;
@@ -111,12 +112,9 @@ export default function Layout({ children }: LayoutProps) {
           <Box sx={{ display: 'flex', alignItems: 'center', width: DRAWER_WIDTH - 24 }}>
             <Box
               component="img"
-              src="/images/logo.svg"
+              src={logoSvgUrl}
               alt="Confidant"
               sx={{ height: 72, width: 'auto' }}
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
-              }}
             />
           </Box>
 

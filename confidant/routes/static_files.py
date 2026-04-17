@@ -18,7 +18,10 @@ _FRONTEND_DEV_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 
 def _get_frontend_dev_origin():
-    if not settings.DEBUG or settings.STATIC_FOLDER != "public":
+    if not settings.DEBUG or settings.STATIC_FOLDER not in {
+        "public",
+        "../public",
+    }:
         return None
     redirect_uri = settings.OIDC_REDIRECT_URI
     if not redirect_uri:
@@ -54,11 +57,19 @@ def _serve_spa_index():
 
 
 def _render_static_html(filename):
-    html_path = os.path.join(current_app.static_folder, filename)
-    with open(html_path, encoding="utf-8") as html_file:
-        html = html_file.read()
-    html = html.replace("%CSP_NONCE%", g.csp_nonce)
-    return current_app.response_class(html, mimetype="text/html")
+    html_paths = [os.path.join(current_app.static_folder, filename)]
+    if filename == "index.html":
+        html_paths.append(os.path.join(current_app.root_path, "..", filename))
+
+    for html_path in html_paths:
+        if not os.path.isfile(html_path):
+            continue
+        with open(html_path, encoding="utf-8") as html_file:
+            html = html_file.read()
+        html = html.replace("%CSP_NONCE%", g.csp_nonce)
+        return current_app.response_class(html, mimetype="text/html")
+
+    raise FileNotFoundError(html_paths[0])
 
 
 @blueprint.route("/")

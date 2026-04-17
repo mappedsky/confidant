@@ -10,4 +10,5 @@ Dockerfile
 docs
 .git
 gunicorn.ctl
+.codex
 *.sock
