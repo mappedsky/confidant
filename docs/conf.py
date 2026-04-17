@@ -72,14 +72,13 @@ blob_sha = os.environ['CONFIDANT_BLOB_SHA']
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosectionlabel',
     'sphinxcontrib.httpdomain',
     'sphinx.ext.extlinks',
     'sphinx.ext.ifconfig',
     'sphinxcontrib.autohttp.flask',
     'sphinxcontrib.autohttp.flaskqref',
     'sphinx.ext.githubpages',
-    'm2r',
+    'myst_parser',
 ]
 extlinks = {
     'repo': ('https://github.com/mappedsky/confidant/blob/{}/%s'.format(blob_sha), ''),
@@ -98,7 +97,12 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 # source_suffix = ['.rst', '.md']
-source_suffix = ['.rst', '.md']
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+myst_heading_anchors = 4
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -128,7 +132,7 @@ release = os.environ['CONFIDANT_DOCS_VERSION_STRING']
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -183,8 +187,6 @@ html_theme_options = {
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #html_title = u'confidant v1.0.0'

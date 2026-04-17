@@ -24,7 +24,7 @@ alphanumeric and the value can be anything. Credential pairs are the secrets
 and are encrypted at-rest. The rest of the metadata is stored along with the secret
 and is un-encrypted, so the friendly name should not contain anything sensitive.
 
-![interface new secret](images/interface-new-secret.png)
+![interface new secret](images/interface-new-credential.png)
 
 Secrets can have more than a single secret pair; however, it's
 important to note that keys must be unique in a secret, and when mapping

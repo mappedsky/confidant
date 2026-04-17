@@ -28,7 +28,7 @@ to enable when upgrading to 2.0.0. Putting Confidant into maintenance mode
 will disallow any writes via the API, ensuring that objects with the
 new data format aren't written until the migration is complete. This is useful
 to allow you to downgrade to an older version, if necessary. See the
-[maintenance mode settings docs](configuration.html#maintenance-mode-settings)
+[maintenance mode settings docs](configuration.md#maintenance-mode-settings)
 for how to enable maintenance mode.
 
 ## Upgrading to 4.0.0
