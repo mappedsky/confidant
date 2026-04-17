@@ -3,8 +3,10 @@ FROM oven/bun:latest AS frontend-build
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
-COPY vite.config.ts ./
-COPY confidant/public ./confidant/public
+COPY vite.config.ts tsconfig.json index.html ./
+COPY src ./src
+COPY public ./public
+COPY styles ./styles
 RUN bun run build
 
 # Backend and Final Stage
@@ -24,10 +26,10 @@ RUN pip3 install --no-cache-dir pipenv
 COPY Pipfile Pipfile.lock /srv/confidant/
 RUN pipenv install --system --deploy
 
-COPY --from=frontend-build /app/confidant/dist /srv/confidant/confidant/dist
+COPY --from=frontend-build /app/dist /srv/confidant/dist
 COPY . /srv/confidant/
 
-ENV STATIC_FOLDER=dist
+ENV STATIC_FOLDER=../dist
 
 EXPOSE 80
 

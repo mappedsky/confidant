@@ -1,12 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import type { Proxy } from 'http-proxy';
 
 // Rewrite any bare http://localhost/ redirects from the backend to port 3000
 // so OIDC/logout redirects land back on the Vite dev server.
-function rewriteLocalhostRedirects(proxy: Proxy) {
-  proxy.on('proxyRes', (proxyRes) => {
+function rewriteLocalhostRedirects(proxy: any) {
+  proxy.on('proxyRes', (proxyRes: any) => {
     const location = proxyRes.headers['location'];
     if (location && /^http:\/\/localhost(\/|$)/.test(location)) {
       proxyRes.headers['location'] = location.replace(
@@ -21,14 +20,13 @@ const backendTarget = 'http://confidant:80';
 
 export default defineConfig({
   plugins: [react()],
-  root: 'confidant/public',
   base: '/',
   build: {
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'confidant/public/index.html'),
+        main: resolve(__dirname, 'index.html'),
       },
     },
   },

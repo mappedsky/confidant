@@ -1,11 +1,18 @@
 # bash needed for pipefail
 SHELL := /bin/bash
+BUILD_CONTEXT := /tmp/confidant-compose-context
 
 clean:
 	find . -name "*.pyc" -delete
 
-up:
-	docker compose up
+frontend_build:
+	bash scripts/build-frontend-dist.sh
+
+build_context:
+	bash scripts/prepare-build-context.sh . $(BUILD_CONTEXT)
+
+up: frontend_build docker_build
+	docker compose up --no-build
 
 down:
 	docker compose down
@@ -15,18 +22,18 @@ drop_db:
 	docker compose run --rm --no-deps --entrypoint sh dynamodb -c \
 		'rm -rf /home/dynamodblocal/data/*'
 
-docker_build: clean
-	DOCKER_BUILDKIT=0 docker build -t mappedsky/confidant .
+docker_build: clean build_context
+	DOCKER_BUILDKIT=0 docker build -t mappedsky/confidant $(BUILD_CONTEXT)
 
 docker_test: docker_build docker_test_unit docker_test_integration down
 
-docker_test_unit:
+docker_test_unit: docker_build
 	docker compose run --rm --no-deps confidant make test_unit
 
-docker_test_integration:
+docker_test_integration: docker_build
 	docker compose run --rm confidant make test_integration
 
-actions_test_integration:
+actions_test_integration: docker_build
 	docker compose -f docker-compose.yml -f docker-compose.integration.yml run confidant bash /srv/confidant/actions_run_integration.sh
 
 test: test_unit test_integration

@@ -83,9 +83,11 @@ DEBUG = bool_env("DEBUG", False)
 HOST = str_env("HOST", "127.0.0.1")
 # The port the WSGI app should use.
 PORT = int_env("PORT", 8080)
-# The directory to use for static content. To use minified resources, set this
-# to 'dist'.
-STATIC_FOLDER = str_env("STATIC_FOLDER", "public")
+# The directory to use for static content. Relative to Flask's root_path
+# (confidant/confidant/). Default serves unbuilt frontend from
+# confidant/public/. Set to '../dist' to serve the built frontend from
+# confidant/dist/.
+STATIC_FOLDER = str_env("STATIC_FOLDER", "../public")
 
 # A custom endpoint url for KMS, for use in development
 KMS_URL = str_env("KMS_URL", None)

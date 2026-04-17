@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets as stdlib_secrets
 from urllib.parse import urlparse
 
@@ -41,8 +42,30 @@ def _format_csp_policy(policy):
     return "; ".join(parts)
 
 
+def _resolve_static_folder(static_folder):
+    candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), static_folder)),
+    ]
+    if not static_folder.startswith("../"):
+        candidates.append(
+            os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", static_folder),
+            ),
+        )
+
+    for candidate in candidates:
+        if os.path.isfile(os.path.join(candidate, "index.html")):
+            return candidate
+
+    for candidate in candidates:
+        if os.path.isdir(candidate):
+            return candidate
+
+    return candidates[0]
+
+
 def create_app():
-    static_folder = settings.STATIC_FOLDER
+    static_folder = _resolve_static_folder(settings.STATIC_FOLDER)
 
     app = Flask(__name__, static_folder=static_folder)
     app.config.from_object(settings)
