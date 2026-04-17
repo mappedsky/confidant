@@ -3,7 +3,7 @@
   "version": "6.6.1",
   "repository": {
     "type": "git",
-    "url": "git://github.com/lyft/confidant.git"
+    "url": "git://github.com/mappedsky/confidant.git"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

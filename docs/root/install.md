@@ -17,16 +17,16 @@ You can either specify them as multiple -e options, or you can put them into
 an environment file and use --env-file.
 
 A production-ready docker image is available in
-[GitHub Container Registry](https://github.com/lyft/confidant/pkgs/container/confidant).
+[GitHub Container Registry](https://github.com/mappedsky/confidant/pkgs/container/confidant).
 
 ```bash
-docker pull ghcr.io/lyft/confidant:master
+docker pull ghcr.io/mappedsky/confidant:master
 ```
 
 This image can then be ran with any of your desired command line flags:
 
 ```bash
-docker run --rm ghcr.io/lyft/confidant:master --help
+docker run --rm ghcr.io/mappedsky/confidant:master --help
 ```
 
 ### To build the image
@@ -35,9 +35,9 @@ If you want to build the image and store it in your private registry, you can
 do the following:
 
 ```bash
-git clone https://github.com/lyft/confidant
+git clone https://github.com/mappedsky/confidant
 cd confidant
-docker build -t lyft/confidant .
+docker build -t mappedsky/confidant .
 ```
 
 ## Local installation (Manual)
@@ -52,7 +52,7 @@ Assumptions:
 
 ```bash
 cd /srv
-git clone https://github.com/lyft/confidant
+git clone https://github.com/mappedsky/confidant
 ```
 
 ### Install Python dependencies

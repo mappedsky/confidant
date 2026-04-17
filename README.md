@@ -1,44 +1,76 @@
-![confidant](./confidant/public/images/confidant_text_purple.svg)
-=========
+<p align="center">
+  <img src="./confidant/public/images/confidant_text_purple.svg" alt="Confidant" width="400">
+</p>
 
-[Archive Confidant Notice]
-----------------------------------
+<p align="center">
+  <strong>Your secret keeper.</strong><br>
+  Open-source secret management service that stores secrets in DynamoDB, encrypted at rest with AWS KMS.
+</p>
 
-As of 02/14/2025, the repository has been marked as archived and read-only. While all existing code remains accessible, we will no longer accept new pull requests or issues. The existing releases will continue to be available for download, but no new features or updates will be developed.
+<p align="center">
+  <a href="https://github.com/mappedsky/confidant/actions/workflows/ci.yml"><img src="https://github.com/mappedsky/confidant/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/mappedsky/confidant/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
+</p>
 
+---
 
-----------------------------------
-Your secret keeper. Stores secrets in DynamoDB, encrypted at rest.
+Confidant is a secret management service built by Mapped Sky that provides secure, user-friendly storage and access to secrets. It uses AWS DynamoDB for persistent storage and AWS KMS for encryption at rest, ensuring your sensitive data is protected with industry-standard cryptography.
 
-Docs
-----
+## Key Features
 
-* [Installation](https://lyft.github.io/confidant/install.html)
-* [Configuration](https://lyft.github.io/confidant/configuration.html)
-* [Usage](https://lyft.github.io/confidant/using_confidant.html)
-* [Contribution](https://lyft.github.io/confidant/contributing.html)
+- **At-rest encryption** — Every secret revision gets a unique KMS data key, using Fernet symmetric authenticated cryptography
+- **Versioned secret history** — Append-only storage with full audit trail, revision browsing, and rollback support
+- **Service and group mappings** — Map secrets to services using user-defined group identifiers with conflict prevention
+- **Modern web interface** — React + TypeScript UI built with Material UI for managing secrets, mappings, and history
+- **RESTful API** — Full programmatic access to all secret management operations
+- **Flexible authentication** — JWT/OIDC, SAML, and KMS authentication support
+- **Fine-grained access control** — Pluggable ACL framework with role-based access control
+- **Docker ready** — Production-ready container images published to GitHub Container Registry
 
-Reporting security vulnerabilities
-----------------------------------
+## Quick Start
 
-If you've found a vulnerability or a potential vulnerability in Confidant
-please let us know at security@lyft.com. We'll send a confirmation email to
-acknowledge your report, and we'll send an additional email when we've
-identified the issue positively or negatively.
+Pull and run the latest Docker image:
 
-Getting support or asking questions
------------------------------------
+```bash
+docker pull ghcr.io/mappedsky/confidant:master
+docker run --rm ghcr.io/mappedsky/confidant:master --help
+```
 
-We have a mailing list for discussion, and a low volume list for announcements:
+For a full local development environment with DynamoDB Local and mock KMS:
 
-* https://groups.google.com/forum/#!forum/confidant-users
-* https://groups.google.com/forum/#!forum/confidant-announce
+```bash
+git clone https://github.com/mappedsky/confidant.git
+cd confidant
+make up
+```
 
-We also have an IRC channel on freenode and a Gitter channel:
+Confidant will be available at `http://localhost` (username: `confidant`, password: `confidant`).
 
-* [#confidant](http://webchat.freenode.net/?channels=confidant)
-* [lyft/confidant on Gitter](https://gitter.im/lyft/confidant)
+## Documentation
 
-Feel free to drop into either Gitter or the IRC channel for any reason, even
-if just to chat. It doesn't matter which one you join, the messages are sync'd
-between the two.
+Full documentation is available at **[mappedsky.github.io/confidant](https://mappedsky.github.io/confidant/)**.
+
+- [Installation](https://mappedsky.github.io/confidant/install.html)
+- [Configuration](https://mappedsky.github.io/confidant/configuration.html)
+- [Usage Guide](https://mappedsky.github.io/confidant/using_confidant.html)
+- [Contributing](https://mappedsky.github.io/confidant/contributing.html)
+
+## Development
+
+See the [development guide](https://mappedsky.github.io/confidant/contributing.html#development-guide) for full details. Quick summary:
+
+```bash
+make up                    # Start local dev environment
+make docker_test           # Run full test suite
+make docker_test_unit      # Run unit tests only
+make docker_test_frontend  # Run frontend tests only
+```
+
+## Security
+
+If you discover a security vulnerability, please report it through [GitHub Security Advisories](https://github.com/mappedsky/confidant/security/advisories). We will acknowledge your report and work to address it promptly.
+
+## License
+
+Confidant is licensed under the [Apache License 2.0](LICENSE).

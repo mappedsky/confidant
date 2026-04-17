@@ -1,5 +1,20 @@
 # Changelog
 
+## 8.0.0 Fork/Rewrite
+* Numerous breaking changes (no migration support is included):
+  * Services and credentials renamed to groups and secrets, respectively
+  * Secrets now require a user-provided ID, which is "path" based and unique.
+  * Multi-tenancy added, enforced via dynamodb path, and based on tenant\_id JWT claim; defaults to single tenancy
+  * Blind credentials removed
+  * kmsauth and saml support removed; confidant now relies on JWTs for all forms of auth
+  * Database schema is now fully single table
+  * UI moved from angular to react/MUI
+  * ACLs are based on groups, glob-based group policy, and are based on JWT claims. UI is reflective of ACLs, including list, so secrets are only listed if user has list permissions. Users can access secrets they have metadata/read/update permissions by direct URL.
+  * user/service is still differentiated for auth, via JWT claim, but is only used for auditing purposes. metadata/decrypt/etc ACLs are used solely for permissions.
+  * decrypt API action for secrets has been split out to its own action, to simplify design
+  * Certificate management has been removed, as AWS natively supports fine-grained IAM policy on certificate data.
+  * JWT generation has been removed, as confidant now directly relies on JWTs from IDPs. Both GCP and AWS now natively support generating JWTs from IAM credentials, and that is the intended approach for IAM auth to confidant, as well as identifying services through IAM credentials.
+
 ## 7.0.0 Archiving Announcement
 * Archive the OSS
 

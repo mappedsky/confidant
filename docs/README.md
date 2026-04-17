@@ -1,21 +1,21 @@
-# Developer-local docs build
-# The public docs has been deprecated, DO NOT build
+# Docs
+
+## Building docs locally
 
 ```bash
 # Just run the make target
-make build_docs
+make docs
 # or directly run the script:
 ./docs/build.sh
 ```
 
 The output can be found in `generated/docs`.
 
-# How the confidant website and docs are updated
+## How docs are published
 
-1. The docs are published to [docs/confidant/latest](https://github.com/lyft/confidant.github.io/tree/master/docs/confidant/latest)
-   on every commit to master. This process is handled by Travis with the
-  [`publish.sh`](https://github.com/lyft/confidant/blob/master/docs/publish.sh) script.
+Docs are built and deployed automatically via the GitHub Actions workflow in
+`.github/workflows/push.yml`. On every push to `master` and on tagged releases:
 
-2. The docs are published to [docs/confidant](https://github.com/lyft/confidant.github.io/tree/master/docs/confidant)
-   in a directory named after every tagged commit in this repo. Thus, on every tagged release there
-   are snapped docs.
+1. Sphinx builds the docs into `generated/docs/`
+2. The `JamesIves/github-pages-deploy-action` deploys that folder to the `gh-pages` branch
+3. GitHub Pages serves the site at https://mappedsky.github.io/confidant/
