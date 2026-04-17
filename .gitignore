@@ -57,6 +57,7 @@ service.env
 .DS_store
 .zedstate
 .idea
+.codex
 
 # virtualenv excludes
 venv
