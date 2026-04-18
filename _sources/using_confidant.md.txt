@@ -1,7 +1,7 @@
 # Managing secrets and mappings
 
 Confidant is simple; it has two concepts: secrets and the mappings of those
-secrets to services. Both secrets and their mappings to services are revisioned
+secrets to groups. Both secrets and their mappings to groups are revisioned
 and no revision is ever deleted. Confidant has two views: the resources view
 and the history view.
 
@@ -11,63 +11,57 @@ and the history view.
 
 ![interface create](images/interface-create.png)
 
-In the left panel of the resources view is the list of secrets and services.
+In the left panel of the resources view is the list of secrets and groups.
 Above that is a filter, and next to the filter is a plus. Clicking on that plus
-gives you the option to create a credential or to create a service.
+gives you the option to create a secret or to create a service.
 
-Click on create credential. This will bring up a new credential resource in the
+Click on create secret. This will bring up a new secret resource in the
 right panel.
 
-Credentials have human readable names, which can be renamed, and a
-set of credential pairs. Credential pairs are key/value pairs, where the key is
+Secrets have human readable names, which can be renamed, and a
+set of secret pairs. Credential pairs are key/value pairs, where the key is
 alphanumeric and the value can be anything. Credential pairs are the secrets
 and are encrypted at-rest. The rest of the metadata is stored along with the secret
 and is un-encrypted, so the friendly name should not contain anything sensitive.
 
-![interface new credential](images/interface-new-credential.png)
+![interface new secret](images/interface-new-credential.png)
 
-Credentials can have more than a single credential pair; however, it's
-important to note that keys must be unique in a credential, and when mapping
-credentials to a service, the keys must be unique across all credentials in
+Secrets can have more than a single secret pair; however, it's
+important to note that keys must be unique in a secret, and when mapping
+secrets to a service, the keys must be unique across all secrets in
 the mapped service. This is to avoid confusion on the service's end, where two
 conflicting keys would force the service to choose which key is valid.
 
-### Mapping secrets to services
+### Mapping secrets to groups
 
 ![interface new service](images/interface-new-service.png)
 
-In the same way you created a new credential, do the same thing, but now click
+In the same way you created a new secret, do the same thing, but now click
 on create service. This will bring up a new service resourse in the right
 panel.
 
-Services in Confidant are extensions of IAM roles, so the new service
-name that you create should match the IAM role you wish to map the credentials
-with. To make things a bit easier, Confidant will auto-complete the IAM role
-name as you type in the service name. Note that Confidant will allow you to
-create a service even if an IAM role with the matching name doesn't exist. This
-is a feature to allow you to map credentials to a service before it's been
-created.
+Groups in Confidant use a user-defined group ID. Choose the identifier you
+want to use for secret mappings and create the service with that value.
 
-### Finding credentials and services in the sidebar
+### Finding secrets and groups in the sidebar
 
 ![interface filter](images/interface-filter.png)
 
-Once you have enough credentials and services, it can be difficult to find them
+Once you have enough secrets and groups, it can be difficult to find them
 in the sidebar. To make this easier, the sidebar has a filter at the top
-that'll let you selectively display credentials and services.
+that'll let you selectively display secrets and groups.
 
 ![interface filter with regex](images/interface-filter-with-regex.png)
 
 By default this filter will match any word in the user-defined name of
-credentials and services, but it's also possible to use a regex filter instead.
+secrets and groups, but it's also possible to use a regex filter instead.
 
 ## Using the history view
 
 ![interface history](images/interface-history.png)
 
-The history view can be used to explore changes in credentials or services. The
+The history view can be used to explore changes in secrets or groups. The
 left panel of the history view shows a list of changes, sorted by date.
-Clicking on any revision in the left panel will bring up a diff view in the
-right panel. In the diff view, you can navigate to older or newer revisions of
-the selected resource, or you can revert to a revision of the selected
-resource.
+Clicking on any revision in the left panel will bring up that revision in the
+right panel. From there, you can inspect the selected revision and revert to
+it if needed.

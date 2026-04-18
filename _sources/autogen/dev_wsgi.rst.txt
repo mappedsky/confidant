@@ -1,7 +1,0 @@
-dev\_wsgi module
-================
-
-.. automodule:: dev_wsgi
-   :members:
-   :undoc-members:
-   :show-inheritance:
