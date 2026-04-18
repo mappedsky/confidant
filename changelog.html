@@ -1,296 +1,173 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Changelog &mdash; confidant 7.0.0-1b7bc6 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=98e714dc" />
-
-  
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=871693e9"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Support" href="support.html" />
-    <link rel="prev" title="Upgrading" href="upgrade.html" /> 
-</head>
-
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="contents.html" class="icon icon-home">
-            confidant
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Changelog - confidant 7.0.0-4dbe28 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Support" href="support.html" /><link rel="prev" title="Upgrading" href="upgrade.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=44020203" />
+    <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=fa8b5cfb" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/><meta property="og:title" content="Changelog"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="index.html">
+      
+      
+      <strong>confidant</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials"></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Archiving Announcement</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#quickstart-for-testing">Quickstart for testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-installation">Docker installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-run-confidant-in-docker">To run confidant in Docker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-build-the-image">To build the image</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation-manual">Local installation (Manual)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#clone-confidant">Clone Confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#install-python-dependencies">Install Python dependencies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#build-the-frontend">Build the frontend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#run-confidant">Run confidant</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#docker-vs-bash">Docker vs bash</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#environment-configuration">Environment configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#session-settings">Session settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#statsd-metrics">statsd metrics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#sending-graphite-events">Sending graphite events</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#auth-token-lifetime">Auth token lifetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#frontend-configuration">Frontend configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#development-and-testing-settings">Development and testing settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#bootstrapping-confidant-s-own-secrets">Bootstrapping Confidant’s own secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-client-configuration">Confidant client configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#maintenance-mode-settings">Maintenance mode settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-performance-settings">Confidant performance settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#settings-for-local-development">Settings for local development</a></li>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="contents.html">Confidant</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">Using the Confidant client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acls.html">Access Controls (ACLs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kms_auth.html">KMS authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threat_model.html">Threat model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maintenance.html">Maintenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="upgrade.html">Upgrading</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="support.html">Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#kms-key-policy-configuration">KMS key policy configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#confidant-dynamodb-table-configuration">Confidant DynamoDB table configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-resources-view">Using the resources view</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#creating-secrets">Creating secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#mapping-secrets-to-groups">Mapping secrets to groups</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#finding-secrets-and-groups-in-the-sidebar">Finding secrets and groups in the sidebar</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-history-view">Using the history view</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="client.html">Using the Confidant client</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="client.html#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#reformatting-get-service-output">Reformatting get_service output</a></li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Advanced</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api.html#api-route-documentation">API route documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="acls.html">Access Controls (ACLs)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="acls.html#design">Design</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acls.html#acl-hookpoints">ACL Hookpoints</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="acls.html#secrets">Secrets</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#list-secrets">List secrets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-secret-metadata">Get secret metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-secret">Get secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#decrypt-secret">Decrypt secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#create-secret">Create secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#update-secret">Update secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#revert-secret">Revert secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#delete-secret">Delete secret</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="acls.html#groups">Groups</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#list-groups">List groups</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-service-metadata">Get service metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-service">Get service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#decrypt-secret-via-mapped-service">Decrypt secret via mapped service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#create-service">Create service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#update-service">Update service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#revert-service">Revert service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#delete-service">Delete service</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="kms_auth.html">KMS authentication</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#service-to-service-authentication">Service-to-service authentication</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="kms_auth.html#iam-policy-configuration-for-service-to-service-auth">IAM policy configuration for service-to-service auth</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#passing-encrypted-data-between-services">Passing encrypted data between services</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#user-to-service-authentication">User-to-service authentication</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="threat_model.html">Threat model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-client-threat-model">Web client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#assumptions">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-authenticated-user-can-achieve">What an authenticated user can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-compromise-of-an-authenticated-user-s-computer-can-achieve">What compromise of an authenticated user’s computer can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-local-network-attacker-who-can-observe-network-traffic-can-achieve">What an unauthenticated local network attacker who can observe network traffic can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-attacker-from-the-internet-can-achieve">What an unauthenticated attacker from the Internet can achieve</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-server-threat-model">Web server threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id1">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-through-compromise-of-the-confidant-web-server">What an attacker can achieve through compromise of the Confidant web server</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#service-client-threat-model">Service client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id2">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-the-service-can-achieve">What the service can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-with-a-filesystem-read-vulnerability">What an attacker can achieve with a filesystem read vulnerability</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#storage-threat-model">Storage threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id3">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-with-dynamodb-access-can-achieve">What an attacker with DynamoDB access can achieve</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-of-conduct">Code of conduct</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#contributing-code">Contributing code</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#file-issues-in-github">File issues in Github</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#submit-pull-requests">Submit pull requests</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#development-guide">Development guide</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#starting-confidant">Starting confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#running-tests">Running tests</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="data_schema.html#at-rest-encryption-model">At-rest encryption model</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="maintenance.html">Maintenance</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="maintenance.html#archiving-and-restoring-deleted-records">Archiving and restoring deleted records</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="upgrade.html">Upgrading</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-2-0-0-or-3-0-0">Upgrading to 2.0.0 or 3.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#performing-the-data-migration">Performing the data migration</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-4-0-0">Upgrading to 4.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#peforming-the-data-migration-for-4-0-0">Peforming the data migration for 4.0.0</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#fork-rewrite">8.0.0 Fork/Rewrite</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#archiving-announcement">7.0.0 Archiving Announcement</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id1">6.6.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">6.6.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">6.5.8</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">6.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">6.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">6.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">6.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">5.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id9">5.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id10">5.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id11">5.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id12">4.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id13">4.3.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id14">4.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id15">4.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id16">4.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id17">4.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id18">3.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id19">2.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id20">2.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id21">1.11.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id22">1.10.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id23">1.10.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id24">1.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id25">1.8.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id26">1.7.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id27">1.6.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id28">1.5.1</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id29">1.5.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id30">1.4.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id31">1.3.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id32">1.2.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id33">1.1.21</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id34">1.1.20</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id35">1.1.19</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id36">1.1.16 - 1.1.18</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id37">1.1.15</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id38">1.1.14</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id39">1.1.13</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Communication</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 
         </div>
       </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="contents.html">confidant</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="contents.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Changelog</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/changelog.md.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="changelog">
-<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#fork-rewrite">8.0.0 Fork/Rewrite</a></li>
+<li><a class="reference internal" href="#archiving-announcement">7.0.0 Archiving Announcement</a></li>
+<li><a class="reference internal" href="#id1">6.6.2</a></li>
+<li><a class="reference internal" href="#id2">6.6.1</a></li>
+<li><a class="reference internal" href="#id3">6.5.8</a></li>
+<li><a class="reference internal" href="#id4">6.4.0</a></li>
+<li><a class="reference internal" href="#id5">6.3.0</a></li>
+<li><a class="reference internal" href="#id6">6.2.0</a></li>
+<li><a class="reference internal" href="#id7">6.0.0</a></li>
+<li><a class="reference internal" href="#id8">5.2.0</a></li>
+<li><a class="reference internal" href="#id9">5.1.0</a></li>
+<li><a class="reference internal" href="#id10">5.0.1</a></li>
+<li><a class="reference internal" href="#id11">5.0.0</a></li>
+<li><a class="reference internal" href="#id12">4.4.0</a></li>
+<li><a class="reference internal" href="#id13">4.3.1</a></li>
+<li><a class="reference internal" href="#id14">4.3.0</a></li>
+<li><a class="reference internal" href="#id15">4.2.0</a></li>
+<li><a class="reference internal" href="#id16">4.1.0</a></li>
+<li><a class="reference internal" href="#id17">4.0.0</a></li>
+<li><a class="reference internal" href="#id18">3.0.0</a></li>
+<li><a class="reference internal" href="#id19">2.0.1</a></li>
+<li><a class="reference internal" href="#id20">2.0.0</a></li>
+<li><a class="reference internal" href="#id21">1.11.0</a></li>
+<li><a class="reference internal" href="#id22">1.10.1</a></li>
+<li><a class="reference internal" href="#id23">1.10.0</a></li>
+<li><a class="reference internal" href="#id24">1.9.0</a><ul>
+<li><a class="reference internal" href="#id25">1.8.0</a></li>
+<li><a class="reference internal" href="#id26">1.7.0</a></li>
+<li><a class="reference internal" href="#id27">1.6.0</a></li>
+<li><a class="reference internal" href="#id28">1.5.1</a></li>
+<li><a class="reference internal" href="#id29">1.5.0</a></li>
+<li><a class="reference internal" href="#id30">1.4.0</a></li>
+<li><a class="reference internal" href="#id31">1.3.0</a></li>
+<li><a class="reference internal" href="#id32">1.2.0</a></li>
+<li><a class="reference internal" href="#id33">1.1.21</a></li>
+<li><a class="reference internal" href="#id34">1.1.20</a></li>
+<li><a class="reference internal" href="#id35">1.1.19</a></li>
+<li><a class="reference internal" href="#id36">1.1.16 - 1.1.18</a></li>
+<li><a class="reference internal" href="#id37">1.1.15</a></li>
+<li><a class="reference internal" href="#id38">1.1.14</a></li>
+<li><a class="reference internal" href="#id39">1.1.13</a></li>
+</ul>
+</li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="contents.html"><span itemprop="name">Confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Changelog</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
 <section id="fork-rewrite">
-<h2>8.0.0 Fork/Rewrite<a class="headerlink" href="#fork-rewrite" title="Link to this heading"></a></h2>
+<h2>8.0.0 Fork/Rewrite<a class="headerlink" href="#fork-rewrite" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Numerous breaking changes (no migration support is included):</p>
 <ul>
@@ -311,38 +188,38 @@
 </ul>
 </section>
 <section id="archiving-announcement">
-<h2>7.0.0 Archiving Announcement<a class="headerlink" href="#archiving-announcement" title="Link to this heading"></a></h2>
+<h2>7.0.0 Archiving Announcement<a class="headerlink" href="#archiving-announcement" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Archive the OSS</p></li>
 </ul>
 </section>
 <section id="id1">
-<h2>6.6.2<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<h2>6.6.2<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>XSS security fix / enhancement for Flask API response</p></li>
 </ul>
 </section>
 <section id="id2">
-<h2>6.6.1<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h2>6.6.1<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Upgrade confidant to python 3.10.14</p></li>
 </ul>
 </section>
 <section id="id3">
-<h2>6.5.8<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<h2>6.5.8<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Migrated to docker compose v2</p></li>
 </ul>
 </section>
 <section id="id4">
-<h2>6.4.0<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<h2>6.4.0<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Updated client with a new logo and updated CSS to match design style guide. The new CSS coloring should
 be more consistent across the client, and should have higher contrast.</p></li>
 </ul>
 </section>
 <section id="id5">
-<h2>6.3.0<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<h2>6.3.0<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h2>
 <ul>
 <li><p>Added support for keeping track of when credentials should be rotated.
 Three new fields have been added to the Credential model:</p>
@@ -387,13 +264,13 @@ local dynamodb, local kms, and a local simplesamlphp IDP.</p></li>
 </ul>
 </section>
 <section id="id6">
-<h2>6.2.0<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<h2>6.2.0<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>This release fixes a python3 stacktrace in SAML auth, when using the <code class="docutils literal notranslate"><span class="pre">SAML_SP_KEY_FILE</span></code> setting.</p></li>
 </ul>
 </section>
 <section id="id7">
-<h2>6.0.0<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<h2>6.0.0<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>This release is a breaking release. This release slightly changes the API
 responses. Though the changes should be backwards incompatible, we’re now
@@ -448,25 +325,25 @@ rather than the older Google+ Sign-In APIs.</p></li>
 </ul>
 </section>
 <section id="id8">
-<h2>5.2.0<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<h2>5.2.0<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Python3 fix in function <code class="docutils literal notranslate"><span class="pre">load_private_key_pem</span></code> in <code class="docutils literal notranslate"><span class="pre">confidant.lib.cryptolib</span></code></p></li>
 </ul>
 </section>
 <section id="id9">
-<h2>5.1.0<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<h2>5.1.0<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Python3 fix in class <code class="docutils literal notranslate"><span class="pre">CipherManager</span></code> in <code class="docutils literal notranslate"><span class="pre">confidant.ciphermanager</span></code></p></li>
 </ul>
 </section>
 <section id="id10">
-<h2>5.0.1<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<h2>5.0.1<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Packaging fixes for docker</p></li>
 </ul>
 </section>
 <section id="id11">
-<h2>5.0.0<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<h2>5.0.0<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>This is a breaking release. This release slightly changes the values needed
 for the <code class="docutils literal notranslate"><span class="pre">AUTH_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">USER_AUTH_KEY</span></code>, and <code class="docutils literal notranslate"><span class="pre">KMS_MASTER_KEY</span></code> settings.
@@ -490,7 +367,7 @@ currently logged in.</p></li>
 </ul>
 </section>
 <section id="id12">
-<h2>4.4.0<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<h2>4.4.0<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Use <code class="docutils literal notranslate"><span class="pre">dict</span></code> and <code class="docutils literal notranslate"><span class="pre">set</span></code> in pynamo models rather than <code class="docutils literal notranslate"><span class="pre">{}</span></code> and <code class="docutils literal notranslate"><span class="pre">set()</span></code>,
 to avoid potential corrupted data in model saves. Based on how confidant
@@ -500,32 +377,32 @@ args to not be mutable.</p></li>
 </ul>
 </section>
 <section id="id13">
-<h2>4.3.1<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<h2>4.3.1<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Packaging fix</p></li>
 </ul>
 </section>
 <section id="id14">
-<h2>4.3.0<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<h2>4.3.0<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Case insentive sort for service and credential list API responses</p></li>
 </ul>
 </section>
 <section id="id15">
-<h2>4.2.0<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<h2>4.2.0<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Don’t in-memory cache the USERS_FILE, but re-read it every time, so that
 the confidant process doesn’t need to restarted whenever this file changes.</p></li>
 </ul>
 </section>
 <section id="id16">
-<h2>4.1.0<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<h2>4.1.0<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Switch from python-saml to python3-saml.</p></li>
 </ul>
 </section>
 <section id="id17">
-<h2>4.0.0<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<h2>4.0.0<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>This is a breaking release. This change upgrades the <code class="docutils literal notranslate"><span class="pre">LegacyBooleanAttributes</span></code>
 to <code class="docutils literal notranslate"><span class="pre">BooleanAttributes</span></code>, which saves data in a new format. Once you upgrade
@@ -535,7 +412,7 @@ the new format and prevent further issues with Pynamo upgrades.</p></li>
 </ul>
 </section>
 <section id="id18">
-<h2>3.0.0<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
+<h2>3.0.0<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>This is a breaking release, if you’re using blind credentials. This change
 upgrades to using pynamodb 3.2.1. If you’re using blind credentials, it’s
@@ -546,7 +423,7 @@ specific versions of pynamodb to migrate the underlying data.</p></li>
 </ul>
 </section>
 <section id="id19">
-<h2>2.0.1<a class="headerlink" href="#id19" title="Link to this heading"></a></h2>
+<h2>2.0.1<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Added additional logging in the v1 routes.</p></li>
 <li><p>Updated the migration script to include both Service and BlindCredential
@@ -554,7 +431,7 @@ migrations, as well as checks to ensure the migration was successful.</p></li>
 </ul>
 </section>
 <section id="id20">
-<h2>2.0.0<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
+<h2>2.0.0<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h2>
 <p>WARNING: If you upgrade to this version, any new writes to blind credentials
 will be in a format that is only compatible in 1.11.0 forward. If you’ve
 upgraded and need to downgrade, you should downgrade to 1.11.0. This is only
@@ -578,77 +455,77 @@ PynamoDB.</p></li>
 </ul>
 </section>
 <section id="id21">
-<h2>1.11.0<a class="headerlink" href="#id21" title="Link to this heading"></a></h2>
+<h2>1.11.0<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Upgrade PynamoDB requirement to 1.5.4</p></li>
 </ul>
 </section>
 <section id="id22">
-<h2>1.10.1<a class="headerlink" href="#id22" title="Link to this heading"></a></h2>
+<h2>1.10.1<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Fix an issue in the angularjs frontend where credential values were having whitespace trimmed.</p></li>
 </ul>
 </section>
 <section id="id23">
-<h2>1.10.0<a class="headerlink" href="#id23" title="Link to this heading"></a></h2>
+<h2>1.10.0<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Upgrade gevent and greenlet for CVE-2016-5180 and gevent/gevent#477</p></li>
 </ul>
 </section>
 <section id="id24">
-<h2>1.9.0<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<h2>1.9.0<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>piptools upgrade of transitive dependencies. Most notably this was run to
 upgrade gunicorn to 19.7.1, which allows for using FORWARDED_ALLOW_IPS in
 the environment, as well as any other newer gunicorn settings.</p></li>
 </ul>
 <section id="id25">
-<h3>1.8.0<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
+<h3>1.8.0<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Switch LRU for in-memory cache from an inefficient python implementation to
 lru-dict.</p></li>
 </ul>
 </section>
 <section id="id26">
-<h3>1.7.0<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
+<h3>1.7.0<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Update appdirs requirement</p></li>
 </ul>
 </section>
 <section id="id27">
-<h3>1.6.0<a class="headerlink" href="#id27" title="Link to this heading"></a></h3>
+<h3>1.6.0<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Update python-saml for CVE-2016-1000252.</p></li>
 </ul>
 </section>
 <section id="id28">
-<h3>1.5.1<a class="headerlink" href="#id28" title="Link to this heading"></a></h3>
+<h3>1.5.1<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Fix docker_push.sh</p></li>
 </ul>
 </section>
 <section id="id29">
-<h3>1.5.0<a class="headerlink" href="#id29" title="Link to this heading"></a></h3>
+<h3>1.5.0<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Added a feature to disable the credential conflict checks; see configuration
 docs for IGNORE_CONFLICTS</p></li>
 </ul>
 </section>
 <section id="id30">
-<h3>1.4.0<a class="headerlink" href="#id30" title="Link to this heading"></a></h3>
+<h3>1.4.0<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Added support for sending basic webhooks; see configuration docs for
 WEBHOOK_URL</p></li>
 </ul>
 </section>
 <section id="id31">
-<h3>1.3.0<a class="headerlink" href="#id31" title="Link to this heading"></a></h3>
+<h3>1.3.0<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Update statsd depencency from 3.1 to 3.2.1</p></li>
 </ul>
 </section>
 <section id="id32">
-<h3>1.2.0<a class="headerlink" href="#id32" title="Link to this heading"></a></h3>
+<h3>1.2.0<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Switch to doing semver in a more proper way. Though generally all previous
 releases were backwards compatible, we had been releasing features in point
@@ -661,21 +538,21 @@ changet he XSRF cookie name.</p></li>
 </ul>
 </section>
 <section id="id33">
-<h3>1.1.21<a class="headerlink" href="#id33" title="Link to this heading"></a></h3>
+<h3>1.1.21<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Move scripts into the confidant module to be able to use the scripts when pip
 installed</p></li>
 </ul>
 </section>
 <section id="id34">
-<h3>1.1.20<a class="headerlink" href="#id34" title="Link to this heading"></a></h3>
+<h3>1.1.20<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Added changes and settings for better performance in confidant. See the
 performance section in the configuration docs</p></li>
 </ul>
 </section>
 <section id="id35">
-<h3>1.1.19<a class="headerlink" href="#id35" title="Link to this heading"></a></h3>
+<h3>1.1.19<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Important change: the location of the wsgi.py has moved inside of the
 confidant module to make the pypi package runnable. This changes the gunicorn
@@ -683,19 +560,19 @@ invocation from <code class="docutils literal notranslate"><span class="pre">gun
 </ul>
 </section>
 <section id="id36">
-<h3>1.1.16 - 1.1.18<a class="headerlink" href="#id36" title="Link to this heading"></a></h3>
+<h3>1.1.16 - 1.1.18<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Getting the pypi package into a working state</p></li>
 </ul>
 </section>
 <section id="id37">
-<h3>1.1.15<a class="headerlink" href="#id37" title="Link to this heading"></a></h3>
+<h3>1.1.15<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Split the client away from the confidant repo</p></li>
 </ul>
 </section>
 <section id="id38">
-<h3>1.1.14<a class="headerlink" href="#id38" title="Link to this heading"></a></h3>
+<h3>1.1.14<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Security fix: While preparing for the 1.1 stable release Lyft found a KMS
 authentication vulnerability in the unreleased 1.1 branch while performing an
@@ -709,7 +586,7 @@ used for auth.</p></li>
 </ul>
 </section>
 <section id="id39">
-<h3>1.1.13<a class="headerlink" href="#id39" title="Link to this heading"></a></h3>
+<h3>1.1.13<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h3>
 <p>versions 1.1.0 - 1.1.12 were pre-release versions of the 1.1 branch. The
 versions were generally increased for changes to the client, during internal
 updates at Lyft. Since 1.1.13 is the first release, we’ll be tracking changes
@@ -778,35 +655,48 @@ ignoring grants when grants are disabled).</p></li>
 </section>
 </section>
 
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="upgrade.html" class="btn btn-neutral float-left" title="Upgrading" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="support.html" class="btn btn-neutral float-right" title="Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2019-2026, Confidant Project Authors.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="upgrade.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Upgrading</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="support.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Support</div>
       </div>
-    </section>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2019-2026, Confidant Project Authors</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials"></div>
+    </div>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+</footer>
+      <script src="_static/documentation_options.js?v=ad67b3d8"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/shibuya.js?v=cac61aee"></script></body>
 </html>

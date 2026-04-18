@@ -1,296 +1,136 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KMS authentication &mdash; confidant 7.0.0-1b7bc6 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=98e714dc" />
-
-  
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=871693e9"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Threat model" href="threat_model.html" />
-    <link rel="prev" title="Access Controls (ACLs)" href="acls.html" /> 
-</head>
-
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="contents.html" class="icon icon-home">
-            confidant
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>KMS authentication - confidant 7.0.0-4dbe28 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Threat model" href="threat_model.html" /><link rel="prev" title="Access Controls (ACLs)" href="acls.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=44020203" />
+    <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=fa8b5cfb" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/><meta property="og:title" content="KMS authentication"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="index.html">
+      
+      
+      <strong>confidant</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials"></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Archiving Announcement</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#quickstart-for-testing">Quickstart for testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-installation">Docker installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-run-confidant-in-docker">To run confidant in Docker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-build-the-image">To build the image</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation-manual">Local installation (Manual)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#clone-confidant">Clone Confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#install-python-dependencies">Install Python dependencies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#build-the-frontend">Build the frontend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#run-confidant">Run confidant</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#docker-vs-bash">Docker vs bash</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#environment-configuration">Environment configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#session-settings">Session settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#statsd-metrics">statsd metrics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#sending-graphite-events">Sending graphite events</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#auth-token-lifetime">Auth token lifetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#frontend-configuration">Frontend configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#development-and-testing-settings">Development and testing settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#bootstrapping-confidant-s-own-secrets">Bootstrapping Confidant’s own secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-client-configuration">Confidant client configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#maintenance-mode-settings">Maintenance mode settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-performance-settings">Confidant performance settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#settings-for-local-development">Settings for local development</a></li>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="contents.html">Confidant</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">Using the Confidant client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acls.html">Access Controls (ACLs)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">KMS authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threat_model.html">Threat model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maintenance.html">Maintenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="upgrade.html">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="support.html">Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#kms-key-policy-configuration">KMS key policy configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#confidant-dynamodb-table-configuration">Confidant DynamoDB table configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-resources-view">Using the resources view</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#creating-secrets">Creating secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#mapping-secrets-to-groups">Mapping secrets to groups</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#finding-secrets-and-groups-in-the-sidebar">Finding secrets and groups in the sidebar</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-history-view">Using the history view</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="client.html">Using the Confidant client</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="client.html#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#reformatting-get-service-output">Reformatting get_service output</a></li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Advanced</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api.html#api-route-documentation">API route documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="acls.html">Access Controls (ACLs)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="acls.html#design">Design</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acls.html#acl-hookpoints">ACL Hookpoints</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="acls.html#secrets">Secrets</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#list-secrets">List secrets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-secret-metadata">Get secret metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-secret">Get secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#decrypt-secret">Decrypt secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#create-secret">Create secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#update-secret">Update secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#revert-secret">Revert secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#delete-secret">Delete secret</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="acls.html#groups">Groups</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#list-groups">List groups</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-service-metadata">Get service metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#get-service">Get service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#decrypt-secret-via-mapped-service">Decrypt secret via mapped service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#create-service">Create service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#update-service">Update service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#revert-service">Revert service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="acls.html#delete-service">Delete service</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">KMS authentication</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#service-to-service-authentication">Service-to-service authentication</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#iam-policy-configuration-for-service-to-service-auth">IAM policy configuration for service-to-service auth</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#passing-encrypted-data-between-services">Passing encrypted data between services</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#user-to-service-authentication">User-to-service authentication</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="threat_model.html">Threat model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-client-threat-model">Web client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#assumptions">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-authenticated-user-can-achieve">What an authenticated user can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-compromise-of-an-authenticated-user-s-computer-can-achieve">What compromise of an authenticated user’s computer can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-local-network-attacker-who-can-observe-network-traffic-can-achieve">What an unauthenticated local network attacker who can observe network traffic can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-attacker-from-the-internet-can-achieve">What an unauthenticated attacker from the Internet can achieve</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-server-threat-model">Web server threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id1">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-through-compromise-of-the-confidant-web-server">What an attacker can achieve through compromise of the Confidant web server</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#service-client-threat-model">Service client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id2">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-the-service-can-achieve">What the service can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-with-a-filesystem-read-vulnerability">What an attacker can achieve with a filesystem read vulnerability</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#storage-threat-model">Storage threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id3">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-with-dynamodb-access-can-achieve">What an attacker with DynamoDB access can achieve</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-of-conduct">Code of conduct</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#contributing-code">Contributing code</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#file-issues-in-github">File issues in Github</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#submit-pull-requests">Submit pull requests</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#development-guide">Development guide</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#starting-confidant">Starting confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#running-tests">Running tests</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="data_schema.html#at-rest-encryption-model">At-rest encryption model</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="maintenance.html">Maintenance</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="maintenance.html#archiving-and-restoring-deleted-records">Archiving and restoring deleted records</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="upgrade.html">Upgrading</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-2-0-0-or-3-0-0">Upgrading to 2.0.0 or 3.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#performing-the-data-migration">Performing the data migration</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-4-0-0">Upgrading to 4.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#peforming-the-data-migration-for-4-0-0">Peforming the data migration for 4.0.0</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#fork-rewrite">8.0.0 Fork/Rewrite</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#archiving-announcement">7.0.0 Archiving Announcement</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">6.6.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">6.6.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id3">6.5.8</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id4">6.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id5">6.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id6">6.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id7">6.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id8">5.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id9">5.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id10">5.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id11">5.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id12">4.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id13">4.3.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id14">4.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id15">4.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id16">4.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id17">4.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id18">3.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id19">2.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id20">2.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id21">1.11.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id22">1.10.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id23">1.10.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id24">1.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id25">1.8.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id26">1.7.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id27">1.6.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id28">1.5.1</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id29">1.5.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id30">1.4.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id31">1.3.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id32">1.2.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id33">1.1.21</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id34">1.1.20</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id35">1.1.19</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id36">1.1.16 - 1.1.18</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id37">1.1.15</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id38">1.1.14</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id39">1.1.13</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Communication</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 
         </div>
       </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="contents.html">confidant</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="contents.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">KMS authentication</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/kms_auth.md.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="kms-authentication">
-<h1>KMS authentication<a class="headerlink" href="#kms-authentication" title="Link to this heading"></a></h1>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#service-to-service-authentication">Service-to-service authentication</a><ul>
+<li><a class="reference internal" href="#iam-policy-configuration-for-service-to-service-auth">IAM policy configuration for service-to-service auth</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#passing-encrypted-data-between-services">Passing encrypted data between services</a></li>
+<li><a class="reference internal" href="#user-to-service-authentication">User-to-service authentication</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="contents.html"><span itemprop="name">Confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">KMS authentication</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="kms-authentication">
+<h1>KMS authentication<a class="headerlink" href="#kms-authentication" title="Link to this heading">¶</a></h1>
 <section id="service-to-service-authentication">
-<h2>Service-to-service authentication<a class="headerlink" href="#service-to-service-authentication" title="Link to this heading"></a></h2>
+<h2>Service-to-service authentication<a class="headerlink" href="#service-to-service-authentication" title="Link to this heading">¶</a></h2>
 <p>When a service is created in Confidant, Confidant, by default, will generate a
 couple of grants on the AUTH_KEY KMS key. One grant allows the service to do
 encryptions or decryptions using the key, as long as the ‘from’ encryption context
@@ -310,64 +150,64 @@ you may want to take a look at the following docs:</p>
 <li><p>http://docs.aws.amazon.com/kms/latest/developerguide/grants.html</p></li>
 </ul>
 <p>Let’s take a quick look at a basic example using boto3:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">not_after</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">not_before</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">not_after</span> <span class="o">=</span> <span class="n">not_after</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;kms&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;{&quot;not_before&quot;: &quot;</span><span class="si">{0}</span><span class="s1">&quot;, &quot;not_after&quot;: &quot;</span><span class="si">{1}</span><span class="s1">&quot;}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">not_before</span><span class="p">,</span> <span class="n">not_after</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">token</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/authnz-testing&#39;</span><span class="p">,</span> <span class="n">Plaintext</span><span class="o">=</span><span class="n">plaintext</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;myservice-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">token</span>
-<span class="go">{u&#39;KeyId&#39;: u&#39;arn:aws:kms:us-east-1:12345:key/abcdefgh-1234-5678-9abcd-ee72ac95ae8c&#39;,</span>
-<span class="go">&#39;ResponseMetadata&#39;: {&#39;HTTPStatusCode&#39;: 200, &#39;RequestId&#39;:</span>
-<span class="go">&#39;3a48f2ad-072d-11e5-88fb-17df9ce1a01a&#39;}, u&#39;CiphertextBlob&#39;: &#39;\n</span>
-<span class="go">\x999\x9e$yO\x92\x1dg\xbbZ^S\x84\xdaI\xbf\x14@\x81\x8a\x1c\xf2\xf8Z\x05\xed\xed\xb2\x8d)T\x12\x8f\x01\x01\x01\x02\x00x\x999\x9e$yO\x92\x1dg\xbbZ^S\x84\xdaI\xbf\x14@\x81\x8a\x1c\xf2\xf8Z\x05\xed\xed\xb2\x8d)T\x00\x00\x00f0d\x06\t*\x86H\x86\xf7\r\x01\x07\x06\xa0W0U\x02\x01\x000P\x06\t*\x86H\x86\xf7\r\x01\x07\x010\x1e\x06\t`\x86H\x01e\x03\x04\x01.0\x11\x04\x0c\xd3\x96\x0c\x91\x83\xd2l!\xfb\xa6\xc2\x90\x02\x01\x10\x80#\x97Z\xd1\xbb\xb4_\x12\xea\x1a\xed\x85\x0e\x9b1\xfa0j\xca1(\xc7\xc3\x8czT\xd4\x8fk\x08\x00\xa8\xcd\xe5\x82\xb3&#39;}</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">],</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;myservice-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
-<span class="go">{u&#39;Plaintext&#39;: &#39;{&quot;not_before&quot;: &quot;20150914T172347Z&quot;, &quot;not_after&quot;: &quot;20150914T182347Z&quot;}&#39;, u&#39;KeyId&#39;:</span>
-<span class="go">u&#39;arn:aws:kms:us-east-1:12345:key/abcdefgh-1234-5678-9abcd-ee72ac95ae8c&#39;,</span>
-<span class="go">&#39;ResponseMetadata&#39;: {&#39;HTTPStatusCode&#39;: 200, &#39;RequestId&#39;:</span>
-<span class="go">&#39;6450392b-072d-11e5-87df-5345698b39e1&#39;}}</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt;</span>
+</span><span data-line="4"><span class="gp">&gt;&gt;&gt; </span><span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+</span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span><span class="n">not_after</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span><span data-line="6"><span class="gp">&gt;&gt;&gt; </span><span class="n">not_before</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
+</span><span data-line="7"><span class="gp">&gt;&gt;&gt; </span><span class="n">not_after</span> <span class="o">=</span> <span class="n">not_after</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
+</span><span data-line="8"><span class="gp">&gt;&gt;&gt;</span>
+</span><span data-line="9"><span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;kms&#39;</span><span class="p">)</span>
+</span><span data-line="10"><span class="gp">&gt;&gt;&gt; </span><span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;{&quot;not_before&quot;: &quot;</span><span class="si">{0}</span><span class="s1">&quot;, &quot;not_after&quot;: &quot;</span><span class="si">{1}</span><span class="s1">&quot;}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">not_before</span><span class="p">,</span> <span class="n">not_after</span><span class="p">)</span>
+</span><span data-line="11"><span class="gp">&gt;&gt;&gt; </span><span class="n">token</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span>
+</span><span data-line="12"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/authnz-testing&#39;</span><span class="p">,</span> <span class="n">Plaintext</span><span class="o">=</span><span class="n">plaintext</span><span class="p">,</span>
+</span><span data-line="13"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
+</span><span data-line="14"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;myservice-production&#39;</span><span class="p">,</span>
+</span><span data-line="15"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
+</span><span data-line="16"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
+</span><span data-line="17"><span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
+</span><span data-line="18"><span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</span><span data-line="19"><span class="gp">&gt;&gt;&gt;</span>
+</span><span data-line="20"><span class="gp">&gt;&gt;&gt; </span><span class="n">token</span>
+</span><span data-line="21"><span class="go">{u&#39;KeyId&#39;: u&#39;arn:aws:kms:us-east-1:12345:key/abcdefgh-1234-5678-9abcd-ee72ac95ae8c&#39;,</span>
+</span><span data-line="22"><span class="go">&#39;ResponseMetadata&#39;: {&#39;HTTPStatusCode&#39;: 200, &#39;RequestId&#39;:</span>
+</span><span data-line="23"><span class="go">&#39;3a48f2ad-072d-11e5-88fb-17df9ce1a01a&#39;}, u&#39;CiphertextBlob&#39;: &#39;\n</span>
+</span><span data-line="24"><span class="go">\x999\x9e$yO\x92\x1dg\xbbZ^S\x84\xdaI\xbf\x14@\x81\x8a\x1c\xf2\xf8Z\x05\xed\xed\xb2\x8d)T\x12\x8f\x01\x01\x01\x02\x00x\x999\x9e$yO\x92\x1dg\xbbZ^S\x84\xdaI\xbf\x14@\x81\x8a\x1c\xf2\xf8Z\x05\xed\xed\xb2\x8d)T\x00\x00\x00f0d\x06\t*\x86H\x86\xf7\r\x01\x07\x06\xa0W0U\x02\x01\x000P\x06\t*\x86H\x86\xf7\r\x01\x07\x010\x1e\x06\t`\x86H\x01e\x03\x04\x01.0\x11\x04\x0c\xd3\x96\x0c\x91\x83\xd2l!\xfb\xa6\xc2\x90\x02\x01\x10\x80#\x97Z\xd1\xbb\xb4_\x12\xea\x1a\xed\x85\x0e\x9b1\xfa0j\xca1(\xc7\xc3\x8czT\xd4\x8fk\x08\x00\xa8\xcd\xe5\x82\xb3&#39;}</span>
+</span><span data-line="25"><span class="gp">&gt;&gt;&gt;</span>
+</span><span data-line="26"><span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
+</span><span data-line="27"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">],</span>
+</span><span data-line="28"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
+</span><span data-line="29"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;myservice-production&#39;</span><span class="p">,</span>
+</span><span data-line="30"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
+</span><span data-line="31"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
+</span><span data-line="32"><span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
+</span><span data-line="33"><span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</span><span data-line="34"><span class="go">{u&#39;Plaintext&#39;: &#39;{&quot;not_before&quot;: &quot;20150914T172347Z&quot;, &quot;not_after&quot;: &quot;20150914T182347Z&quot;}&#39;, u&#39;KeyId&#39;:</span>
+</span><span data-line="35"><span class="go">u&#39;arn:aws:kms:us-east-1:12345:key/abcdefgh-1234-5678-9abcd-ee72ac95ae8c&#39;,</span>
+</span><span data-line="36"><span class="go">&#39;ResponseMetadata&#39;: {&#39;HTTPStatusCode&#39;: 200, &#39;RequestId&#39;:</span>
+</span><span data-line="37"><span class="go">&#39;6450392b-072d-11e5-87df-5345698b39e1&#39;}}</span>
+</span></pre></div>
 </div>
 <p>Notice that we could encrypt something and then decrypt it, as long as we
 passed in the same context.</p>
 <p>Now let’s change the encryption context slightly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">],</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;notmyservice-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
-<span class="gt">Traceback (most recent call last):</span>
-  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
-<span class="gr">  File &quot;/home/rlane/Envs/boto3/lib/python2.7/site-packages/botocore/client.py&quot;,</span>
-<span class="gr">line 249, in _api_call</span>
-<span class="gr">    raise ClientError(parsed_response, operation_name)</span>
-<span class="gr">botocore.exceptions.ClientError</span>: <span class="n">An error occurred (InvalidCiphertextException)</span>
-<span class="x">when calling the Decrypt operation: None</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">],</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
+</span><span data-line="4"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;notmyservice-production&#39;</span><span class="p">,</span>
+</span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;confidant-production&#39;</span><span class="p">,</span>
+</span><span data-line="6"><span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
+</span><span data-line="7"><span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
+</span><span data-line="8"><span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</span><span data-line="9"><span class="gt">Traceback (most recent call last):</span>
+</span><span data-line="10">  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+</span><span data-line="11"><span class="gr">  File &quot;/home/rlane/Envs/boto3/lib/python2.7/site-packages/botocore/client.py&quot;,</span>
+</span><span data-line="12"><span class="gr">line 249, in _api_call</span>
+</span><span data-line="13"><span class="gr">    raise ClientError(parsed_response, operation_name)</span>
+</span><span data-line="14"><span class="gr">botocore.exceptions.ClientError</span>: <span class="n">An error occurred (InvalidCiphertextException)</span>
+</span><span data-line="15"><span class="x">when calling the Decrypt operation: None</span>
+</span></pre></div>
 </div>
 <p>Note that there’s a couple reasons this would fail:</p>
 <ol class="arabic simple">
@@ -379,114 +219,114 @@ context that was used during the encryption action.</p></li>
 </ol>
 <p>Let’s take a look at how to implement an authentication flow using this on the
 server and the client. Here’s the server side (using flask):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_key_arn</span><span class="p">():</span>
-    <span class="c1"># You should cache this.</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">describe_key</span><span class="p">(</span>
-        <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MASTER_KEY_ID&#39;</span><span class="p">])</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;KeyMetadata&#39;</span><span class="p">][</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_parse_username</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
-    <span class="n">username_arr</span> <span class="o">=</span> <span class="n">username</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">username_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="c1"># V2 token format: version/service/myservice or version/user/myuser</span>
-        <span class="n">version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">username_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">user_type</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">username</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">username_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="c1"># Old format, specific to services: myservice</span>
-        <span class="n">version</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">username</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">user_type</span> <span class="o">=</span> <span class="s1">&#39;service&#39;</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">TokenVersionError</span><span class="p">(</span><span class="s1">&#39;Unsupported username format.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">version</span><span class="p">,</span> <span class="n">user_type</span><span class="p">,</span> <span class="n">username</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">decrypt_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
-    <span class="n">version</span><span class="p">,</span> <span class="n">user_type</span><span class="p">,</span> <span class="n">_username</span> <span class="o">=</span> <span class="n">_parse_username</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">token</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
-            <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">,</span>
-            <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
-                <span class="c1"># This token is sent to us.</span>
-                <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;IAM_ROLE&#39;</span><span class="p">],</span>
-                <span class="c1"># From another service.</span>
-                <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="n">_username</span><span class="p">,</span>
-                <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="n">user_type</span>
-            <span class="p">}</span>
-        <span class="p">)</span>
-        <span class="c1"># Decrypt doesn&#39;t take KeyId as an argument. We need to verify the</span>
-        <span class="c1"># correct key was used to do the decryption.</span>
-        <span class="c1"># Annoyingly, the KeyId from the data is actually an arn.</span>
-        <span class="n">key_arn</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeyId&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">key_arn</span> <span class="o">!=</span> <span class="n">get_key_arn</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
-        <span class="n">payload</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Plaintext&#39;</span><span class="p">])</span>
-    <span class="c1"># We don&#39;t care which exception is thrown. If anything fails, we fail.</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
-    <span class="n">time_format</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span>
-    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">not_before</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;not_before&#39;</span><span class="p">),</span> <span class="n">time_format</span><span class="p">)</span>
-        <span class="n">not_after</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;not_after&#39;</span><span class="p">),</span> <span class="n">time_format</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
-    <span class="c1"># Ensure the token is within the validity window.</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">now</span> <span class="o">&lt;</span> <span class="n">not_before</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">now</span> <span class="o">&gt;</span> <span class="n">not_after</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">payload</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">require_auth</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-    <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">decorated</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">payload</span> <span class="o">=</span> <span class="n">keymanager</span><span class="o">.</span><span class="n">decrypt_token</span><span class="p">(</span>
-                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-Auth-Token&#39;</span><span class="p">],</span>
-                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-Auth-From&#39;</span><span class="p">]</span>
-            <span class="p">)</span>
-            <span class="c1"># We could do additional checks here, based on the payload</span>
-            <span class="c1"># contents, like check for scope passed in.</span>
-            <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">TokenDecryptError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
-        <span class="c1"># Paranoia</span>
-        <span class="k">return</span> <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">decorated</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="k">def</span><span class="w"> </span><span class="nf">get_key_arn</span><span class="p">():</span>
+</span><span data-line="2">    <span class="c1"># You should cache this.</span>
+</span><span data-line="3">    <span class="n">key</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">describe_key</span><span class="p">(</span>
+</span><span data-line="4">        <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MASTER_KEY_ID&#39;</span><span class="p">])</span>
+</span><span data-line="5">    <span class="p">)</span>
+</span><span data-line="6">    <span class="k">return</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;KeyMetadata&#39;</span><span class="p">][</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="k">def</span><span class="w"> </span><span class="nf">_parse_username</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+</span><span data-line="9">    <span class="n">username_arr</span> <span class="o">=</span> <span class="n">username</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+</span><span data-line="10">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">username_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+</span><span data-line="11">        <span class="c1"># V2 token format: version/service/myservice or version/user/myuser</span>
+</span><span data-line="12">        <span class="n">version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">username_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="13">        <span class="n">user_type</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="14">        <span class="n">username</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+</span><span data-line="15">    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">username_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="16">        <span class="c1"># Old format, specific to services: myservice</span>
+</span><span data-line="17">        <span class="n">version</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span data-line="18">        <span class="n">username</span> <span class="o">=</span> <span class="n">username_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="19">        <span class="n">user_type</span> <span class="o">=</span> <span class="s1">&#39;service&#39;</span>
+</span><span data-line="20">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="21">        <span class="k">raise</span> <span class="n">TokenVersionError</span><span class="p">(</span><span class="s1">&#39;Unsupported username format.&#39;</span><span class="p">)</span>
+</span><span data-line="22">    <span class="k">return</span> <span class="n">version</span><span class="p">,</span> <span class="n">user_type</span><span class="p">,</span> <span class="n">username</span>
+</span><span data-line="23">
+</span><span data-line="24"><span class="k">def</span><span class="w"> </span><span class="nf">decrypt_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+</span><span data-line="25">    <span class="n">version</span><span class="p">,</span> <span class="n">user_type</span><span class="p">,</span> <span class="n">_username</span> <span class="o">=</span> <span class="n">_parse_username</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+</span><span data-line="26">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="27">        <span class="n">token</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</span><span data-line="28">        <span class="n">data</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span>
+</span><span data-line="29">            <span class="n">CiphertextBlob</span><span class="o">=</span><span class="n">token</span><span class="p">,</span>
+</span><span data-line="30">            <span class="n">EncryptionContext</span><span class="o">=</span><span class="p">{</span>
+</span><span data-line="31">                <span class="c1"># This token is sent to us.</span>
+</span><span data-line="32">                <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;IAM_ROLE&#39;</span><span class="p">],</span>
+</span><span data-line="33">                <span class="c1"># From another service.</span>
+</span><span data-line="34">                <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="n">_username</span><span class="p">,</span>
+</span><span data-line="35">                <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="n">user_type</span>
+</span><span data-line="36">            <span class="p">}</span>
+</span><span data-line="37">        <span class="p">)</span>
+</span><span data-line="38">        <span class="c1"># Decrypt doesn&#39;t take KeyId as an argument. We need to verify the</span>
+</span><span data-line="39">        <span class="c1"># correct key was used to do the decryption.</span>
+</span><span data-line="40">        <span class="c1"># Annoyingly, the KeyId from the data is actually an arn.</span>
+</span><span data-line="41">        <span class="n">key_arn</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeyId&#39;</span><span class="p">]</span>
+</span><span data-line="42">        <span class="k">if</span> <span class="n">key_arn</span> <span class="o">!=</span> <span class="n">get_key_arn</span><span class="p">():</span>
+</span><span data-line="43">            <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
+</span><span data-line="44">        <span class="n">payload</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Plaintext&#39;</span><span class="p">])</span>
+</span><span data-line="45">    <span class="c1"># We don&#39;t care which exception is thrown. If anything fails, we fail.</span>
+</span><span data-line="46">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="47">        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
+</span><span data-line="48">    <span class="n">time_format</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span>
+</span><span data-line="49">    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+</span><span data-line="50">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="51">        <span class="n">not_before</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;not_before&#39;</span><span class="p">),</span> <span class="n">time_format</span><span class="p">)</span>
+</span><span data-line="52">        <span class="n">not_after</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;not_after&#39;</span><span class="p">),</span> <span class="n">time_format</span><span class="p">)</span>
+</span><span data-line="53">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="54">        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
+</span><span data-line="55">    <span class="c1"># Ensure the token is within the validity window.</span>
+</span><span data-line="56">    <span class="k">if</span> <span class="p">(</span><span class="n">now</span> <span class="o">&lt;</span> <span class="n">not_before</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">now</span> <span class="o">&gt;</span> <span class="n">not_after</span><span class="p">):</span>
+</span><span data-line="57">        <span class="k">raise</span> <span class="n">TokenDecryptError</span><span class="p">(</span><span class="s1">&#39;Authentication error.&#39;</span><span class="p">)</span>
+</span><span data-line="58">    <span class="k">return</span> <span class="n">payload</span>
+</span><span data-line="59">
+</span><span data-line="60">
+</span><span data-line="61"><span class="k">def</span><span class="w"> </span><span class="nf">require_auth</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+</span><span data-line="62">    <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</span><span data-line="63">    <span class="k">def</span><span class="w"> </span><span class="nf">decorated</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span data-line="64">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="65">            <span class="n">payload</span> <span class="o">=</span> <span class="n">keymanager</span><span class="o">.</span><span class="n">decrypt_token</span><span class="p">(</span>
+</span><span data-line="66">                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-Auth-Token&#39;</span><span class="p">],</span>
+</span><span data-line="67">                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;X-Auth-From&#39;</span><span class="p">]</span>
+</span><span data-line="68">            <span class="p">)</span>
+</span><span data-line="69">            <span class="c1"># We could do additional checks here, based on the payload</span>
+</span><span data-line="70">            <span class="c1"># contents, like check for scope passed in.</span>
+</span><span data-line="71">            <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="72">        <span class="k">except</span> <span class="n">TokenDecryptError</span><span class="p">:</span>
+</span><span data-line="73">            <span class="k">return</span> <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
+</span><span data-line="74">        <span class="c1"># Paranoia</span>
+</span><span data-line="75">        <span class="k">return</span> <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
+</span><span data-line="76">    <span class="k">return</span> <span class="n">decorated</span>
+</span></pre></div>
 </div>
 <p>And here’s the client side (using requests):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
-
-<span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
-<span class="n">not_after</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-<span class="n">not_before</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
-<span class="n">not_after</span> <span class="o">=</span> <span class="n">not_after</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
-<span class="n">auth_context</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;servicea-development&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;serviceb-development&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
-<span class="p">}</span>
-<span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;{&quot;not_before&quot;: &quot;</span><span class="si">{0}</span><span class="s1">&quot;, &quot;not_after&quot;: &quot;</span><span class="si">{1}</span><span class="s1">&quot;}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">not_before</span><span class="p">,</span> <span class="n">not_after</span><span class="p">)</span>
-<span class="n">kms</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;kms&#39;</span><span class="p">)</span>
-<span class="n">token</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span>
-    <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/authnz-testing&#39;</span><span class="p">,</span>
-    <span class="n">Plaintext</span><span class="o">=</span><span class="n">plaintext</span><span class="p">,</span>
-    <span class="n">EncryptionContext</span><span class="o">=</span><span class="n">auth_context</span>
-<span class="p">)[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">]</span>
-<span class="n">token</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;X-Auth-Token&#39;</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span>
-    <span class="c1"># version: 2, user_type: service, username (2/service/username)</span>
-    <span class="s1">&#39;X-Auth-From&#39;</span><span class="p">:</span> <span class="s1">&#39;2/service/</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">auth_context</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">])</span>
-<span class="p">}</span>
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/v1/services/servicea-development&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+</span><span data-line="2"><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+</span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span data-line="4"><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+</span><span data-line="7"><span class="n">not_after</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span><span data-line="8"><span class="n">not_before</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
+</span><span data-line="9"><span class="n">not_after</span> <span class="o">=</span> <span class="n">not_after</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H%M%SZ&quot;</span><span class="p">)</span>
+</span><span data-line="10"><span class="n">auth_context</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="11">    <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="s1">&#39;servicea-development&#39;</span><span class="p">,</span>
+</span><span data-line="12">    <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="s1">&#39;serviceb-development&#39;</span><span class="p">,</span>
+</span><span data-line="13">    <span class="s1">&#39;user_type&#39;</span><span class="p">:</span> <span class="s1">&#39;service&#39;</span>
+</span><span data-line="14"><span class="p">}</span>
+</span><span data-line="15"><span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;{&quot;not_before&quot;: &quot;</span><span class="si">{0}</span><span class="s1">&quot;, &quot;not_after&quot;: &quot;</span><span class="si">{1}</span><span class="s1">&quot;}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">not_before</span><span class="p">,</span> <span class="n">not_after</span><span class="p">)</span>
+</span><span data-line="16"><span class="n">kms</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;kms&#39;</span><span class="p">)</span>
+</span><span data-line="17"><span class="n">token</span> <span class="o">=</span> <span class="n">kms</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span>
+</span><span data-line="18">    <span class="n">KeyId</span><span class="o">=</span><span class="s1">&#39;alias/authnz-testing&#39;</span><span class="p">,</span>
+</span><span data-line="19">    <span class="n">Plaintext</span><span class="o">=</span><span class="n">plaintext</span><span class="p">,</span>
+</span><span data-line="20">    <span class="n">EncryptionContext</span><span class="o">=</span><span class="n">auth_context</span>
+</span><span data-line="21"><span class="p">)[</span><span class="s1">&#39;CiphertextBlob&#39;</span><span class="p">]</span>
+</span><span data-line="22"><span class="n">token</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</span><span data-line="23"><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="24">    <span class="s1">&#39;X-Auth-Token&#39;</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span>
+</span><span data-line="25">    <span class="c1"># version: 2, user_type: service, username (2/service/username)</span>
+</span><span data-line="26">    <span class="s1">&#39;X-Auth-From&#39;</span><span class="p">:</span> <span class="s1">&#39;2/service/</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">auth_context</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">])</span>
+</span><span data-line="27"><span class="p">}</span>
+</span><span data-line="28"><span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/v1/services/servicea-development&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This is almost exactly the server and client auth flow used in Confidant. This
 same pattern can be applied for doing your own service-to-service
@@ -499,45 +339,45 @@ scope, additional contraints, etc.. In Confidant, on the server side we also
 limit the maximum lifetime of a token, to ensure clients are occasionally
 rotating their authentication tokens.</p>
 <section id="iam-policy-configuration-for-service-to-service-auth">
-<h3>IAM policy configuration for service-to-service auth<a class="headerlink" href="#iam-policy-configuration-for-service-to-service-auth" title="Link to this heading"></a></h3>
+<h3>IAM policy configuration for service-to-service auth<a class="headerlink" href="#iam-policy-configuration-for-service-to-service-auth" title="Link to this heading">¶</a></h3>
 <p>Service-to-service authentication is managed through IAM policy. An assumption
 of this example is that a confidant service identifier is
 serviceA-production and your confidant service is confidant-production. Let’s
 add a policy to the service, to allow authentication:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;kms:GenerateRandom&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;confidant-production&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;service&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;serviceA-production&quot;</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="p">{</span>
+</span><span data-line="2"><span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+</span><span data-line="3"><span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="4"><span class="w">        </span><span class="p">{</span>
+</span><span data-line="5"><span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="6"><span class="w">                </span><span class="s2">&quot;kms:GenerateRandom&quot;</span>
+</span><span data-line="7"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="8"><span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+</span><span data-line="9"><span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
+</span><span data-line="10"><span class="w">        </span><span class="p">},</span>
+</span><span data-line="11"><span class="w">        </span><span class="p">{</span>
+</span><span data-line="12"><span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="13"><span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
+</span><span data-line="14"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="15"><span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+</span><span data-line="16"><span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="17"><span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
+</span><span data-line="18"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="19"><span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="20"><span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="21"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;confidant-production&quot;</span><span class="p">,</span>
+</span><span data-line="22"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;service&quot;</span><span class="p">,</span>
+</span><span data-line="23"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;serviceA-production&quot;</span>
+</span><span data-line="24"><span class="w">                </span><span class="p">}</span>
+</span><span data-line="25"><span class="w">            </span><span class="p">}</span>
+</span><span data-line="26"><span class="w">        </span><span class="p">}</span>
+</span><span data-line="27"><span class="w">    </span><span class="p">]</span>
+</span><span data-line="28"><span class="p">}</span>
+</span></pre></div>
 </div>
 </section>
 </section>
 <section id="passing-encrypted-data-between-services">
-<h2>Passing encrypted data between services<a class="headerlink" href="#passing-encrypted-data-between-services" title="Link to this heading"></a></h2>
+<h2>Passing encrypted data between services<a class="headerlink" href="#passing-encrypted-data-between-services" title="Link to this heading">¶</a></h2>
 <p>In the service-to-service section we actually passed encrypted
 content between two services; however, we used KMS’s Encrypt action
 directly, which is limited to 4 KB of data. If all you need to do is pass
@@ -560,69 +400,69 @@ the data.</p></li>
 </ol>
 </section>
 <section id="user-to-service-authentication">
-<h2>User-to-service authentication<a class="headerlink" href="#user-to-service-authentication" title="Link to this heading"></a></h2>
+<h2>User-to-service authentication<a class="headerlink" href="#user-to-service-authentication" title="Link to this heading">¶</a></h2>
 <p>Confidant does not setup grants for user authentication. To enable user to service
 KMS authentication, it’s necessary to setup IAM policy for your KMS keys. Thankfully,
 the IAM policy for this is pretty straightforward:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;kms:GenerateRandom&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;confidant-production&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${aws:username}&quot;</span>
-<span class="w">                </span><span class="p">},</span>
-<span class="w">                </span><span class="nt">&quot;Bool&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;aws:MultiFactorAuthPresent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="p">{</span>
+</span><span data-line="2"><span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+</span><span data-line="3"><span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="4"><span class="w">        </span><span class="p">{</span>
+</span><span data-line="5"><span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="6"><span class="w">                </span><span class="s2">&quot;kms:GenerateRandom&quot;</span>
+</span><span data-line="7"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="8"><span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+</span><span data-line="9"><span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
+</span><span data-line="10"><span class="w">        </span><span class="p">},</span>
+</span><span data-line="11"><span class="w">        </span><span class="p">{</span>
+</span><span data-line="12"><span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="13"><span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
+</span><span data-line="14"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="15"><span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+</span><span data-line="16"><span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="17"><span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
+</span><span data-line="18"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="19"><span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="20"><span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="21"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;confidant-production&quot;</span><span class="p">,</span>
+</span><span data-line="22"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+</span><span data-line="23"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${aws:username}&quot;</span>
+</span><span data-line="24"><span class="w">                </span><span class="p">},</span>
+</span><span data-line="25"><span class="w">                </span><span class="nt">&quot;Bool&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="26"><span class="w">                    </span><span class="nt">&quot;aws:MultiFactorAuthPresent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+</span><span data-line="27"><span class="w">                </span><span class="p">}</span>
+</span><span data-line="28"><span class="w">            </span><span class="p">}</span>
+</span><span data-line="29"><span class="w">        </span><span class="p">}</span>
+</span><span data-line="30"><span class="w">    </span><span class="p">]</span>
+</span><span data-line="31"><span class="p">}</span>
+</span></pre></div>
 </div>
 <p>This policy allows a user to generate KMS authentication tokens, as long as the
 ‘from’ context matches their IAM user name, the ‘to’ context is to ‘confidant-production’
 and the ‘user_type’ is ‘user’. Note that if you wanted to allow authentication from users
 to any service, you can change the second statement slightly:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
-<span class="w">            </span><span class="p">],</span>
-<span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;StringLike&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="p">},</span>
-<span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${aws:username}&quot;</span>
-<span class="w">                </span><span class="p">},</span>
-<span class="w">                </span><span class="nt">&quot;Bool&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;aws:MultiFactorAuthPresent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-</pre></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="w">        </span><span class="p">{</span>
+</span><span data-line="2"><span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="3"><span class="w">                </span><span class="s2">&quot;kms:Encrypt&quot;</span>
+</span><span data-line="4"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="5"><span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+</span><span data-line="6"><span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span data-line="7"><span class="w">                </span><span class="s2">&quot;arn:aws:kms:us-east-1:12345:key/your-authnz-key-id&quot;</span>
+</span><span data-line="8"><span class="w">            </span><span class="p">],</span>
+</span><span data-line="9"><span class="w">            </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="10"><span class="w">                </span><span class="nt">&quot;StringLike&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="11"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+</span><span data-line="12"><span class="w">                </span><span class="p">},</span>
+</span><span data-line="13"><span class="w">                </span><span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="14"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:user_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+</span><span data-line="15"><span class="w">                    </span><span class="nt">&quot;kms:EncryptionContext:from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${aws:username}&quot;</span>
+</span><span data-line="16"><span class="w">                </span><span class="p">},</span>
+</span><span data-line="17"><span class="w">                </span><span class="nt">&quot;Bool&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span data-line="18"><span class="w">                    </span><span class="nt">&quot;aws:MultiFactorAuthPresent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+</span><span data-line="19"><span class="w">                </span><span class="p">}</span>
+</span><span data-line="20"><span class="w">            </span><span class="p">}</span>
+</span><span data-line="21"><span class="w">        </span><span class="p">}</span>
+</span></pre></div>
 </div>
 <p>When the user authenticates, they’ll use a header like: <code class="docutils literal notranslate"><span class="pre">'X-Auth-From':</span> <span class="pre">'2/user/rlane'</span></code>.
 From the server side, you’ll be able to verify the token, then you can mark the user
@@ -630,35 +470,48 @@ by user_type, so that you can do access control based on their type (service or 
 </section>
 </section>
 
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="acls.html" class="btn btn-neutral float-left" title="Access Controls (ACLs)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="threat_model.html" class="btn btn-neutral float-right" title="Threat model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2019-2026, Confidant Project Authors.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="acls.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Access Controls (ACLs)</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="threat_model.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Threat model</div>
       </div>
-    </section>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2019-2026, Confidant Project Authors</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials"></div>
+    </div>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+</footer>
+      <script src="_static/documentation_options.js?v=ad67b3d8"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/shibuya.js?v=cac61aee"></script></body>
 </html>

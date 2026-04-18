@@ -1,393 +1,253 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Access Controls (ACLs) &mdash; confidant 7.0.0-1b7bc6 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=98e714dc" />
-
-  
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=871693e9"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="KMS authentication" href="kms_auth.html" />
-    <link rel="prev" title="API" href="api.html" /> 
-</head>
-
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="contents.html" class="icon icon-home">
-            confidant
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Access Controls (ACLs) - confidant 7.0.0-4dbe28 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="KMS authentication" href="kms_auth.html" /><link rel="prev" title="API" href="api.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=44020203" />
+    <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="_static/css/confidant.css?v=fa8b5cfb" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/><meta property="og:title" content="Access Controls (ACLs)"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="index.html">
+      
+      
+      <strong>confidant</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials"></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Archiving Announcement</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#quickstart-for-testing">Quickstart for testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-installation">Docker installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-run-confidant-in-docker">To run confidant in Docker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#to-build-the-image">To build the image</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation-manual">Local installation (Manual)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#clone-confidant">Clone Confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#install-python-dependencies">Install Python dependencies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#build-the-frontend">Build the frontend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#run-confidant">Run confidant</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#docker-vs-bash">Docker vs bash</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#environment-configuration">Environment configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#session-settings">Session settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#statsd-metrics">statsd metrics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#sending-graphite-events">Sending graphite events</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#auth-token-lifetime">Auth token lifetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#frontend-configuration">Frontend configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#development-and-testing-settings">Development and testing settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#bootstrapping-confidant-s-own-secrets">Bootstrapping Confidant’s own secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-client-configuration">Confidant client configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#maintenance-mode-settings">Maintenance mode settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#confidant-performance-settings">Confidant performance settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="configuration.html#settings-for-local-development">Settings for local development</a></li>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="contents.html">Confidant</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="archiving_announcement.html">Archiving Announcement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">Using the Confidant client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Access Controls (ACLs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kms_auth.html">KMS authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threat_model.html">Threat model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maintenance.html">Maintenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="upgrade.html">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="support.html">Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#kms-key-policy-configuration">KMS key policy configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#confidant-dynamodb-table-configuration">Confidant DynamoDB table configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using_confidant.html">Managing secrets and mappings</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-resources-view">Using the resources view</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#creating-secrets">Creating secrets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#mapping-secrets-to-groups">Mapping secrets to groups</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using_confidant.html#finding-secrets-and-groups-in-the-sidebar">Finding secrets and groups in the sidebar</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using_confidant.html#using-the-history-view">Using the history view</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="client.html">Using the Confidant client</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="client.html#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="client.html#reformatting-get-service-output">Reformatting get_service output</a></li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Advanced</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api.html#api-route-documentation">API route documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Access Controls (ACLs)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#design">Design</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#acl-hookpoints">ACL Hookpoints</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#secrets">Secrets</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#list-secrets">List secrets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#get-secret-metadata">Get secret metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#get-secret">Get secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#decrypt-secret">Decrypt secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#create-secret">Create secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#update-secret">Update secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#revert-secret">Revert secret</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#delete-secret">Delete secret</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#groups">Groups</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#list-groups">List groups</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#get-service-metadata">Get service metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#get-service">Get service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#decrypt-secret-via-mapped-service">Decrypt secret via mapped service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#create-service">Create service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#update-service">Update service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#revert-service">Revert service</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#delete-service">Delete service</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="kms_auth.html">KMS authentication</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#service-to-service-authentication">Service-to-service authentication</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="kms_auth.html#iam-policy-configuration-for-service-to-service-auth">IAM policy configuration for service-to-service auth</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#passing-encrypted-data-between-services">Passing encrypted data between services</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kms_auth.html#user-to-service-authentication">User-to-service authentication</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="threat_model.html">Threat model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-client-threat-model">Web client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#assumptions">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-authenticated-user-can-achieve">What an authenticated user can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-compromise-of-an-authenticated-user-s-computer-can-achieve">What compromise of an authenticated user’s computer can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-local-network-attacker-who-can-observe-network-traffic-can-achieve">What an unauthenticated local network attacker who can observe network traffic can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-unauthenticated-attacker-from-the-internet-can-achieve">What an unauthenticated attacker from the Internet can achieve</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#web-server-threat-model">Web server threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id1">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-through-compromise-of-the-confidant-web-server">What an attacker can achieve through compromise of the Confidant web server</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#service-client-threat-model">Service client threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id2">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-the-service-can-achieve">What the service can achieve</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-can-achieve-with-a-filesystem-read-vulnerability">What an attacker can achieve with a filesystem read vulnerability</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="threat_model.html#storage-threat-model">Storage threat model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#id3">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="threat_model.html#what-an-attacker-with-dynamodb-access-can-achieve">What an attacker with DynamoDB access can achieve</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-of-conduct">Code of conduct</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#contributing-code">Contributing code</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#file-issues-in-github">File issues in Github</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#submit-pull-requests">Submit pull requests</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#development-guide">Development guide</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#starting-confidant">Starting confidant</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#running-tests">Running tests</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="data_schema.html">DynamoDB Data Schema</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="data_schema.html#at-rest-encryption-model">At-rest encryption model</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="maintenance.html">Maintenance</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="maintenance.html#archiving-and-restoring-deleted-records">Archiving and restoring deleted records</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="upgrade.html">Upgrading</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-2-0-0-or-3-0-0">Upgrading to 2.0.0 or 3.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#performing-the-data-migration">Performing the data migration</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="upgrade.html#upgrading-to-4-0-0">Upgrading to 4.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="upgrade.html#peforming-the-data-migration-for-4-0-0">Peforming the data migration for 4.0.0</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#fork-rewrite">8.0.0 Fork/Rewrite</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#archiving-announcement">7.0.0 Archiving Announcement</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">6.6.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">6.6.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id3">6.5.8</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id4">6.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id5">6.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id6">6.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id7">6.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id8">5.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id9">5.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id10">5.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id11">5.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id12">4.4.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id13">4.3.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id14">4.3.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id15">4.2.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id16">4.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id17">4.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id18">3.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id19">2.0.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id20">2.0.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id21">1.11.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id22">1.10.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id23">1.10.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id24">1.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id25">1.8.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id26">1.7.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id27">1.6.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id28">1.5.1</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id29">1.5.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id30">1.4.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id31">1.3.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id32">1.2.0</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id33">1.1.21</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id34">1.1.20</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id35">1.1.19</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id36">1.1.16 - 1.1.18</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id37">1.1.15</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id38">1.1.14</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id39">1.1.13</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Communication</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="security_reporting.html">Reporting security vulnerabilities</a></li>
 </ul>
 
         </div>
       </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="contents.html">confidant</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="contents.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Access Controls (ACLs)</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/acls.md.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="access-controls-acls">
-<h1>Access Controls (ACLs)<a class="headerlink" href="#access-controls-acls" title="Link to this heading"></a></h1>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#design">Design</a></li>
+<li><a class="reference internal" href="#acl-hookpoints">ACL Hookpoints</a><ul>
+<li><a class="reference internal" href="#secrets">Secrets</a><ul>
+<li><a class="reference internal" href="#list-secrets">List secrets</a></li>
+<li><a class="reference internal" href="#get-secret-metadata">Get secret metadata</a></li>
+<li><a class="reference internal" href="#get-secret">Get secret</a></li>
+<li><a class="reference internal" href="#decrypt-secret">Decrypt secret</a></li>
+<li><a class="reference internal" href="#create-secret">Create secret</a></li>
+<li><a class="reference internal" href="#update-secret">Update secret</a></li>
+<li><a class="reference internal" href="#revert-secret">Revert secret</a></li>
+<li><a class="reference internal" href="#delete-secret">Delete secret</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#groups">Groups</a><ul>
+<li><a class="reference internal" href="#list-groups">List groups</a></li>
+<li><a class="reference internal" href="#get-service-metadata">Get service metadata</a></li>
+<li><a class="reference internal" href="#get-service">Get service</a></li>
+<li><a class="reference internal" href="#decrypt-secret-via-mapped-service">Decrypt secret via mapped service</a></li>
+<li><a class="reference internal" href="#create-service">Create service</a></li>
+<li><a class="reference internal" href="#update-service">Update service</a></li>
+<li><a class="reference internal" href="#revert-service">Revert service</a></li>
+<li><a class="reference internal" href="#delete-service">Delete service</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="contents.html"><span itemprop="name">Confidant</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Access Controls (ACLs)</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="access-controls-acls">
+<h1>Access Controls (ACLs)<a class="headerlink" href="#access-controls-acls" title="Link to this heading">¶</a></h1>
 <section id="design">
-<h2>Design<a class="headerlink" href="#design" title="Link to this heading"></a></h2>
+<h2>Design<a class="headerlink" href="#design" title="Link to this heading">¶</a></h2>
 <p>The design for managing fine-grained ACLs in confidant is relatively simple. Hookpoints are called whenever a resource type will be accessed by an end-user; these hookpoints look like:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">check</span> <span class="o">=</span> <span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="k">if</span> <span class="ow">not</span> <span class="n">check</span><span class="p">:</span>
-    <span class="o">...</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">check</span> <span class="o">=</span> <span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span><span data-line="6"><span class="k">if</span> <span class="ow">not</span> <span class="n">check</span><span class="p">:</span>
+</span><span data-line="7">    <span class="o">...</span>
+</span></pre></div>
 </div>
 <p>Some hookpoints include extra information, via kwargs:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">check</span> <span class="o">=</span> <span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-    <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
-        <span class="s1">&#39;secret_ids&#39;</span><span class="p">:</span> <span class="n">combined_cred_ids</span><span class="p">,</span>
-    <span class="p">},</span>
-<span class="p">)</span>
-<span class="k">if</span> <span class="ow">not</span> <span class="n">check</span><span class="p">:</span>
-    <span class="o">...</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">check</span> <span class="o">=</span> <span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5">    <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+</span><span data-line="6">        <span class="s1">&#39;secret_ids&#39;</span><span class="p">:</span> <span class="n">combined_cred_ids</span><span class="p">,</span>
+</span><span data-line="7">    <span class="p">},</span>
+</span><span data-line="8"><span class="p">)</span>
+</span><span data-line="9"><span class="k">if</span> <span class="ow">not</span> <span class="n">check</span><span class="p">:</span>
+</span><span data-line="10">    <span class="o">...</span>
+</span></pre></div>
 </div>
 <p>These hookpoints all call back to the same function, which by default is:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">default_acl</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Default ACLs for confidant: always return true for users, but enforce</span>
-<span class="sd">    ACLs for groups, restricting access to:</span>
-<span class="sd">    * resource_type: service</span>
-<span class="sd">      actions: metadata, get</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">resource_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_type&#39;</span><span class="p">)</span>
-    <span class="n">action</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span>
-    <span class="n">resource_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_id&#39;</span><span class="p">)</span>
-    <span class="c1"># Some ACL checks also pass extra args in via kwargs, which we would</span>
-    <span class="c1"># access via:</span>
-    <span class="c1">#    resource_kwargs = kwargs.get(&#39;kwargs&#39;)</span>
-    <span class="k">if</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_user_type</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">elif</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_user_type</span><span class="p">(</span><span class="s1">&#39;service&#39;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;service&#39;</span> <span class="ow">and</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;get&#39;</span><span class="p">]:</span>
-            <span class="c1"># Does the resource ID match the authenticated username?</span>
-            <span class="k">if</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_service</span><span class="p">(</span><span class="n">resource_id</span><span class="p">):</span>
-                <span class="k">return</span> <span class="kc">True</span>
-        <span class="c1"># We currently only allow groups to access service get/metadata</span>
-        <span class="k">return</span> <span class="kc">False</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># This should never happen, but paranoia wins out</span>
-        <span class="k">return</span> <span class="kc">False</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="k">def</span><span class="w"> </span><span class="nf">default_acl</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span data-line="2"><span class="w">    </span><span class="sd">&quot;&quot;&quot; Default ACLs for confidant: always return true for users, but enforce</span>
+</span><span data-line="3"><span class="sd">    ACLs for groups, restricting access to:</span>
+</span><span data-line="4"><span class="sd">    * resource_type: service</span>
+</span><span data-line="5"><span class="sd">      actions: metadata, get</span>
+</span><span data-line="6"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="7">    <span class="n">resource_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_type&#39;</span><span class="p">)</span>
+</span><span data-line="8">    <span class="n">action</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span>
+</span><span data-line="9">    <span class="n">resource_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_id&#39;</span><span class="p">)</span>
+</span><span data-line="10">    <span class="c1"># Some ACL checks also pass extra args in via kwargs, which we would</span>
+</span><span data-line="11">    <span class="c1"># access via:</span>
+</span><span data-line="12">    <span class="c1">#    resource_kwargs = kwargs.get(&#39;kwargs&#39;)</span>
+</span><span data-line="13">    <span class="k">if</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_user_type</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">):</span>
+</span><span data-line="14">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="15">    <span class="k">elif</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_user_type</span><span class="p">(</span><span class="s1">&#39;service&#39;</span><span class="p">):</span>
+</span><span data-line="16">        <span class="k">if</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;service&#39;</span> <span class="ow">and</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;get&#39;</span><span class="p">]:</span>
+</span><span data-line="17">            <span class="c1"># Does the resource ID match the authenticated username?</span>
+</span><span data-line="18">            <span class="k">if</span> <span class="n">authnz</span><span class="o">.</span><span class="n">user_is_service</span><span class="p">(</span><span class="n">resource_id</span><span class="p">):</span>
+</span><span data-line="19">                <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="20">        <span class="c1"># We currently only allow groups to access service get/metadata</span>
+</span><span data-line="21">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="22">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="23">        <span class="c1"># This should never happen, but paranoia wins out</span>
+</span><span data-line="24">        <span class="k">return</span> <span class="kc">False</span>
+</span></pre></div>
 </div>
 <p>This function is defined by the <code class="docutils literal notranslate"><span class="pre">ACL_MODULE</span></code> setting, which by default is <code class="docutils literal notranslate"><span class="pre">confidant.authnz.rbac:default_acl</span></code>. The format is <code class="docutils literal notranslate"><span class="pre">python.path.to.module:function_in_module</span></code>. You can use this to implement an ACL approach that integrates with your own enviroment, or adjusts confidant’s behavior to your needs.</p>
 <p>When implementing a new ACL module, remember that there are two principal types: <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">service</span></code>. Confidant now reads that distinction directly from JWT claims provided by the IdP, so your ACL logic must handle both types explicitly. Additionally, you should likely default your return to <code class="docutils literal notranslate"><span class="pre">False</span></code>, unless you’re intentionally broadening access.</p>
 </section>
 <section id="acl-hookpoints">
-<h2>ACL Hookpoints<a class="headerlink" href="#acl-hookpoints" title="Link to this heading"></a></h2>
+<h2>ACL Hookpoints<a class="headerlink" href="#acl-hookpoints" title="Link to this heading">¶</a></h2>
 <p>The following hookpoints are currently available:</p>
 <section id="secrets">
-<h3>Secrets<a class="headerlink" href="#secrets" title="Link to this heading"></a></h3>
+<h3>Secrets<a class="headerlink" href="#secrets" title="Link to this heading">¶</a></h3>
 <section id="list-secrets">
-<h4>List secrets<a class="headerlink" href="#list-secrets" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span><span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">)</span>
-</pre></div>
+<h4>List secrets<a class="headerlink" href="#list-secrets" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span><span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to lists of secret metadata.</p>
 </section>
 <section id="get-secret-metadata">
-<h4>Get secret metadata<a class="headerlink" href="#get-secret-metadata" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Get secret metadata<a class="headerlink" href="#get-secret-metadata" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to specific secret metadata, which does not include secret pairs. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="get-secret">
-<h4>Get secret<a class="headerlink" href="#get-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Get secret<a class="headerlink" href="#get-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to specific secret metadata. Secret pairs are not
 returned on the metadata GET route. Fine-grained controls can be applied using
 the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="decrypt-secret">
-<h4>Decrypt secret<a class="headerlink" href="#decrypt-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;decrypt&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Decrypt secret<a class="headerlink" href="#decrypt-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;decrypt&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to explicit secret decryption. The decrypt endpoint
 returns secret pairs and may update <code class="docutils literal notranslate"><span class="pre">last_decrypted_date</span></code>, which can affect
@@ -395,46 +255,46 @@ required rotation timing. Fine-grained controls can be applied using the
 provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="create-secret">
-<h4>Create secret<a class="headerlink" href="#create-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;create&#39;</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Create secret<a class="headerlink" href="#create-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;create&#39;</span><span class="p">,</span>
+</span><span data-line="4"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls create access to secrets. This is a global permission, so no fine-grained ID is provided.</p>
 </section>
 <section id="update-secret">
-<h4>Update secret<a class="headerlink" href="#update-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Update secret<a class="headerlink" href="#update-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls update access to specific secrets. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>. Note that if you’re controlling access to this, you probably also want to control access to <a class="reference internal" href="#revert-secret">Revert secret</a>.</p>
 </section>
 <section id="revert-secret">
-<h4>Revert secret<a class="headerlink" href="#revert-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;revert&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Revert secret<a class="headerlink" href="#revert-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;revert&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls revert access to specific secrets. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>. Note that if you’re controlling access to this, you probably also want to control access to <a class="reference internal" href="#update-secret">Update secret</a>.</p>
 <p>This action does not require access to view or edit secret pairs, so it can be used to allow folks to rollback changes to resources without access to view/edit them.</p>
 </section>
 <section id="delete-secret">
-<h4>Delete secret<a class="headerlink" href="#delete-secret" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;delete&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Delete secret<a class="headerlink" href="#delete-secret" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;delete&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls delete access to specific secrets. Deletes archive the
 secret and all of its versions under the same secret ID, then remove the
@@ -443,46 +303,46 @@ applied using the provided <code class="docutils literal notranslate"><span clas
 </section>
 </section>
 <section id="groups">
-<h3>Groups<a class="headerlink" href="#groups" title="Link to this heading"></a></h3>
+<h3>Groups<a class="headerlink" href="#groups" title="Link to this heading">¶</a></h3>
 <section id="list-groups">
-<h4>List groups<a class="headerlink" href="#list-groups" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span><span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">)</span>
-</pre></div>
+<h4>List groups<a class="headerlink" href="#list-groups" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span><span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to lists of service metadata.</p>
 </section>
 <section id="get-service-metadata">
-<h4>Get service metadata<a class="headerlink" href="#get-service-metadata" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Get service metadata<a class="headerlink" href="#get-service-metadata" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to specific service metadata. Service reads no longer expand mapped secrets; secret payloads are fetched from the secret endpoints instead. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="get-service">
-<h4>Get service<a class="headerlink" href="#get-service" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;get&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Get service<a class="headerlink" href="#get-service" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;get&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls access to specific service data. Service reads no longer expand mapped secrets; secret payloads are fetched from the secret endpoints instead. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="decrypt-secret-via-mapped-service">
-<h4>Decrypt secret via mapped service<a class="headerlink" href="#decrypt-secret-via-mapped-service" title="Link to this heading"></a></h4>
+<h4>Decrypt secret via mapped service<a class="headerlink" href="#decrypt-secret-via-mapped-service" title="Link to this heading">¶</a></h4>
 <p>Credential decrypt endpoints also allow access when the authenticated service
 is mapped to the requested secret:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;decrypt&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;decrypt&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>The default ACL module continues to handle human users. Credential routes add
 a service-mapping authorization check before returning secret metadata or
@@ -490,47 +350,47 @@ pairs. Both the metadata route and the explicit decrypt route use the same
 <code class="docutils literal notranslate"><span class="pre">decrypt</span></code> permission vocabulary for secret values.</p>
 </section>
 <section id="create-service">
-<h4>Create service<a class="headerlink" href="#create-service" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;create&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Create service<a class="headerlink" href="#create-service" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;create&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls create access to specific groups. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>.</p>
 </section>
 <section id="update-service">
-<h4>Update service<a class="headerlink" href="#update-service" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Update service<a class="headerlink" href="#update-service" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls update access to specific groups. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>. Note that if you’re controlling access to this, you probably also want to control access to <a class="reference internal" href="#revert-service">Revert service</a>.</p>
 </section>
 <section id="revert-service">
-<h4>Revert service<a class="headerlink" href="#revert-service" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;revert&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Revert service<a class="headerlink" href="#revert-service" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;revert&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls revert access to specific groups. Fine-grained controls can be applied using the provided <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>. Note that if you’re controlling access to this, you probably also want to control access to <a class="reference internal" href="#update-service">Update service</a>.</p>
 <p>This action does not require access to view or update groups, so it can be used to allow folks to rollback changes to resources without access to view/update them.</p>
 </section>
 <section id="delete-service">
-<h4>Delete service<a class="headerlink" href="#delete-service" title="Link to this heading"></a></h4>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acl_module_check</span><span class="p">(</span>
-    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
-    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;delete&#39;</span><span class="p">,</span>
-    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
+<h4>Delete service<a class="headerlink" href="#delete-service" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">acl_module_check</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">action</span><span class="o">=</span><span class="s1">&#39;delete&#39;</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">resource_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+</span><span data-line="5"><span class="p">)</span>
+</span></pre></div>
 </div>
 <p>This check controls delete access to specific groups. Deletes archive the
 group and all of its versions under the same group ID, then remove the active
@@ -541,35 +401,48 @@ using the provided <code class="docutils literal notranslate"><span class="pre">
 </section>
 </section>
 
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="api.html" class="btn btn-neutral float-left" title="API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="kms_auth.html" class="btn btn-neutral float-right" title="KMS authentication" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2019-2026, Confidant Project Authors.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="api.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">API</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="kms_auth.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">KMS authentication</div>
       </div>
-    </section>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2019-2026, Confidant Project Authors</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials"></div>
+    </div>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+</footer>
+      <script src="_static/documentation_options.js?v=ad67b3d8"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/shibuya.js?v=cac61aee"></script></body>
 </html>
