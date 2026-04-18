@@ -16,7 +16,6 @@
 from datetime import datetime
 import os
 from sphinx.directives.code import CodeBlock
-import sphinx_rtd_theme
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
@@ -108,7 +107,7 @@ myst_heading_anchors = 4
 #source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'contents'
+master_doc = 'index'
 
 # General information about the project.
 project = u'confidant'
@@ -174,16 +173,10 @@ todo_include_todos = False
 
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
+html_theme = 'shibuya'
 html_theme_options = {
-    'sticky_navigation': True,
-    'collapse_navigation': False,
+    'page_layout': 'default',
+    'show_ai_links': False,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -208,12 +201,12 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_style = 'css/confidant.css'
+html_css_files = ['css/confidant.css']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-html_extra_path = ['extras/index.html', 'extras/stylesheets', 'extras/images', 'extras/javascripts']
+html_extra_path = []
 
 # If not None, a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
