@@ -75,7 +75,7 @@ def get_client_config():
 
     .. sourcecode:: http
 
-       GET /v1/client_config
+       GET /v1/client_config HTTP/1.1
 
     **Example response**:
 
