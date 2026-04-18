@@ -1,11 +1,58 @@
-@import "theme.css";
-
-/* Splits a long line descriptions in tables in to multiple lines */
-.wy-table-responsive table td, .wy-table-responsive table th {
-  white-space: normal !important;
+/* Keep long table cells readable in generated docs. */
+table.docutils td,
+table.docutils th {
+  white-space: normal;
 }
 
-/* align multi line csv table columns */
 table.docutils div.line-block {
-    margin-left: 0;
+  margin-left: 0;
+}
+
+.hero-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 2.5rem;
+  align-items: center;
+  margin: 2rem 0 3rem;
+  padding: 1rem 0 0;
+}
+
+.hero-shell .hero-copy > p {
+  font-size: 1.08rem;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+  max-width: 36rem;
+}
+
+.hero-shell .buttons {
+  margin: 1.25rem 0 1.5rem;
+}
+
+.hero-shell .hero-copy > ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.hero-shell .hero-copy > ul li {
+  margin: 0.65rem 0;
+}
+
+.hero-shell .hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-shell .hero-shot {
+  display: block;
+  width: min(100%, 1100px);
+  height: auto;
+  border-radius: 1.25rem;
+  box-shadow: 0 24px 50px rgba(18, 24, 40, 0.18);
+}
+
+@media (max-width: 900px) {
+  .hero-shell {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }

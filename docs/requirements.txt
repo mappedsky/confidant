@@ -10,4 +10,4 @@ snowballstemmer
 Sphinx>=8
 myst-parser
 sphinxcontrib-httpdomain
-sphinx_rtd_theme
+shibuya
