@@ -1,4 +1,6 @@
-/* Keep long table cells readable in generated docs. */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+
+/* ---------- General doc table legibility (unchanged) ---------- */
 table.docutils td,
 table.docutils th {
   white-space: normal;
@@ -8,51 +10,506 @@ table.docutils div.line-block {
   margin-left: 0;
 }
 
-.hero-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 2.5rem;
-  align-items: center;
-  margin: 2rem 0 3rem;
-  padding: 1rem 0 0;
+/* =========================================================================
+   Landing / Splash page
+   Implements the "Telegram" hero variant (centered hero, scrolling tape,
+   pigeon flying overhead) plus feature grid and CTA band.
+   Theme tokens track Shibuya's `html.dark` class.
+   ========================================================================= */
+
+:root {
+  --splash-accent: oklch(72% 0.14 163);
+  --splash-accent-soft: oklch(72% 0.14 163 / 0.14);
+  --splash-accent-ink: oklch(38% 0.08 163);
+  --splash-radius: 10px;
+  --splash-shadow-sm: 0 1px 0 rgba(0, 0, 0, .04), 0 1px 2px rgba(0, 0, 0, .04);
+  --splash-shadow-md: 0 6px 24px -12px rgba(10, 14, 22, .18), 0 2px 6px rgba(10, 14, 22, .05);
+  --splash-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --splash-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --splash-bg: oklch(97.5% 0.007 85);
+  --splash-bg-elev: oklch(99% 0.004 85);
+  --splash-bg-grid: oklch(90% 0.008 85);
+  --splash-ink: oklch(18% 0.015 260);
+  --splash-ink-soft: oklch(34% 0.014 260);
+  --splash-ink-faint: oklch(48% 0.012 260);
+  --splash-line: oklch(82% 0.012 85);
+  --splash-line-strong: oklch(72% 0.014 85);
 }
 
-.hero-shell .hero-copy > p {
-  font-size: 1.08rem;
-  line-height: 1.7;
-  margin-bottom: 1rem;
-  max-width: 36rem;
+html.dark {
+  --splash-bg: oklch(15% 0.01 260);
+  --splash-bg-elev: oklch(19% 0.01 260);
+  --splash-bg-grid: oklch(26% 0.012 260);
+  --splash-ink: oklch(97% 0.006 85);
+  --splash-ink-soft: oklch(86% 0.01 85);
+  --splash-ink-faint: oklch(72% 0.012 260);
+  --splash-line: oklch(34% 0.014 260);
+  --splash-line-strong: oklch(44% 0.014 260);
 }
 
-.hero-shell .buttons {
-  margin: 1.25rem 0 1.5rem;
+/* Hide the Sphinx-generated "Confidant" h1 on the landing page only — the
+   hero below carries the visible heading. Kept in the DOM for SEO and
+   screen readers. Scoped via :has() so non-landing pages are untouched. */
+.yue > section:has(> .splash-bleed) > h1:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.hero-shell .hero-copy > ul {
-  margin: 0;
-  padding-left: 1.25rem;
+/* Full-bleed wrapper for the landing page only. Extends the splash area to
+   viewport edges (via negative horizontal margins) so the hero, tape, and
+   CTA band touch the edges, and paints the cream/dark background behind
+   the max-width 1240px .splash-section so no page bg leaks through on
+   wider viewports. */
+.splash-bleed {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  background: var(--splash-bg);
 }
 
-.hero-shell .hero-copy > ul li {
-  margin: 0.65rem 0;
+.splash-hero-wrap,
+.splash-section,
+.splash-cta-band {
+  font-family: var(--splash-sans);
+  color: var(--splash-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.hero-shell .hero-visual {
+/* ---------- Hero: Telegram (centered + running tape) ---------- */
+.splash-hero-wrap {
+  position: relative;
+  border-bottom: 1px solid var(--splash-line);
+  overflow: hidden;
+  background: var(--splash-bg);
+}
+
+.splash-hero {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 100px 28px 90px;
+  position: relative;
+  text-align: center;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.splash-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.splash-bg-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--splash-bg-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--splash-bg-grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 20%, black 30%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 20%, black 30%, transparent 70%);
+  opacity: .7;
+}
+
+.splash-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--splash-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--splash-ink-faint);
+}
+.splash-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--splash-accent);
+  box-shadow: 0 0 0 3px var(--splash-accent-soft);
+}
+
+.splash-h1 {
+  font-family: var(--splash-sans);
+  font-size: clamp(42px, 6vw, 84px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  margin: 18px 0 24px;
+  max-width: 22ch;
+  color: var(--splash-ink);
+  text-wrap: balance;
+}
+.splash-h1 em {
+  font-style: normal;
+  font-family: var(--splash-mono);
+  font-weight: 400;
+  font-size: 0.62em;
+  letter-spacing: -0.02em;
+  color: var(--splash-ink-soft);
+  display: inline-block;
+  transform: translateY(-0.14em);
+  padding: 0 2px;
+}
+
+.splash-lede {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--splash-ink-soft);
+  max-width: 52ch;
+  margin: 0 auto 32px;
+}
+
+.splash-cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
   justify-content: center;
 }
 
-.hero-shell .hero-shot {
-  display: block;
-  width: min(100%, 1100px);
-  height: auto;
-  border-radius: 1.25rem;
-  box-shadow: 0 24px 50px rgba(18, 24, 40, 0.18);
+/* Override Shibuya's `.yue a` which adds a border-bottom to every link. */
+.yue a.splash-btn,
+.yue a.splash-link-row {
+  border-bottom: 0;
+}
+.yue a.splash-btn:hover,
+.yue a.splash-link-row:hover {
+  border-bottom: 0;
 }
 
-@media (max-width: 900px) {
-  .hero-shell {
+.yue a.splash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid var(--splash-line-strong);
+  background: var(--splash-bg-elev);
+  color: var(--splash-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .1s ease, background .15s, border-color .15s, color .15s;
+}
+.yue a.splash-btn:hover {
+  background: var(--splash-bg-grid);
+  color: var(--splash-ink);
+  text-decoration: none;
+}
+.yue a.splash-btn:active {
+  transform: translateY(1px);
+}
+.yue a.splash-btn-primary {
+  background: var(--splash-ink);
+  color: var(--splash-bg);
+  border-color: var(--splash-ink);
+}
+.yue a.splash-btn-primary:hover {
+  background: color-mix(in oklab, var(--splash-ink) 85%, var(--splash-accent));
+  border-color: color-mix(in oklab, var(--splash-ink) 85%, var(--splash-accent));
+  color: var(--splash-bg);
+}
+
+/* Running monospace tape */
+.splash-tape {
+  margin-top: 56px;
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--splash-line);
+  border-bottom: 1px solid var(--splash-line);
+  background: var(--splash-bg-elev);
+  position: relative;
+}
+.splash-tape::before,
+.splash-tape::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+.splash-tape::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--splash-bg-elev), transparent);
+}
+.splash-tape::after {
+  right: 0;
+  background: linear-gradient(-90deg, var(--splash-bg-elev), transparent);
+}
+.splash-tape-track {
+  display: flex;
+  gap: 48px;
+  padding: 14px 0;
+  font-family: var(--splash-mono);
+  font-size: 12px;
+  color: var(--splash-ink-faint);
+  white-space: nowrap;
+  width: max-content;
+  animation: splash-scrollX 42s linear infinite;
+}
+.splash-tape-track span::before {
+  content: "\2726";
+  margin-right: 10px;
+  color: var(--splash-accent);
+}
+@keyframes splash-scrollX {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Pigeon drifting overhead */
+.splash-overhead {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.splash-overhead-pigeon {
+  width: 68px;
+  height: 52px;
+  color: var(--splash-ink);
+  opacity: .65;
+  position: absolute;
+  top: 8px;
+  left: -80px;
+  animation: splash-acrossTop 18s linear infinite;
+}
+.splash-overhead-pigeon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.splash-wing {
+  transform-origin: 45% 35%;
+  animation: splash-flap .42s ease-in-out infinite alternate;
+}
+@keyframes splash-flap {
+  from { transform: rotate(-14deg) scaleY(.8); }
+  to   { transform: rotate(22deg) scaleY(1.05); }
+}
+@keyframes splash-acrossTop {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(60vw) translateY(-10px); }
+  100% { transform: translateX(120vw) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-tape-track,
+  .splash-overhead-pigeon,
+  .splash-wing {
+    animation: none !important;
+  }
+}
+
+/* ---------- Feature grid ---------- */
+.splash-section {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 88px 28px;
+  background: var(--splash-bg);
+}
+
+.splash-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 40px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+.splash-section-head h2 {
+  margin: 8px 0 0;
+  font-family: var(--splash-sans);
+  font-size: clamp(28px, 3.6vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  max-width: 20ch;
+  color: var(--splash-ink);
+  text-wrap: balance;
+}
+.splash-section-head p {
+  margin: 0;
+  color: var(--splash-ink-soft);
+  max-width: 48ch;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.splash-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--splash-line);
+  border-left: 1px solid var(--splash-line);
+}
+.splash-feature {
+  border-right: 1px solid var(--splash-line);
+  border-bottom: 1px solid var(--splash-line);
+  padding: 28px 28px 32px;
+  background: var(--splash-bg);
+  transition: background .2s;
+  position: relative;
+}
+.splash-feature:hover {
+  background: var(--splash-bg-elev);
+}
+.splash-feature-num {
+  font-family: var(--splash-mono);
+  font-size: 11px;
+  color: var(--splash-ink-faint);
+  letter-spacing: 0.08em;
+}
+.splash-feature-accent .splash-feature-num {
+  color: var(--splash-accent);
+}
+.splash-feature h3 {
+  margin: 14px 0 8px;
+  font-family: var(--splash-sans);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--splash-ink);
+}
+.splash-feature p {
+  color: var(--splash-ink-soft);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+.splash-feature-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--splash-ink);
+  margin-top: 4px;
+  display: block;
+}
+
+/* ---------- CTA band ---------- */
+.splash-cta-band {
+  border-top: 1px solid var(--splash-line);
+  border-bottom: 1px solid var(--splash-line);
+  background: var(--splash-bg-elev);
+}
+.splash-cta-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 64px 28px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+.splash-cta-inner h2 {
+  font-family: var(--splash-sans);
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  margin: 8px 0 8px;
+  max-width: 18ch;
+  color: var(--splash-ink);
+}
+.splash-cta-inner > div > p {
+  margin: 0;
+  color: var(--splash-ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.splash-links-card {
+  border: 1px solid var(--splash-line);
+  border-radius: 12px;
+  background: var(--splash-bg);
+  overflow: hidden;
+}
+.yue a.splash-link-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--splash-line);
+  color: var(--splash-ink);
+  text-decoration: none;
+  transition: background .15s;
+}
+.yue a.splash-link-row:last-child {
+  border-bottom: 0;
+}
+.yue a.splash-link-row:hover {
+  background: var(--splash-bg-grid);
+  color: var(--splash-ink);
+  text-decoration: none;
+}
+.splash-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--splash-bg-grid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--splash-ink);
+  flex-shrink: 0;
+}
+.splash-tx {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.splash-tx-t {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--splash-ink);
+}
+.splash-tx-s {
+  font-family: var(--splash-mono);
+  font-size: 12px;
+  color: var(--splash-ink-faint);
+}
+.splash-arr {
+  color: var(--splash-ink-faint);
+  font-size: 18px;
+  transition: transform .15s, color .15s;
+}
+.splash-link-row:hover .splash-arr {
+  transform: translateX(4px);
+  color: var(--splash-ink);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 880px) {
+  .splash-features {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+  }
+  .splash-cta-inner {
+    grid-template-columns: 1fr;
+  }
+  .splash-hero {
+    padding: 72px 20px 64px;
+  }
+  .splash-section {
+    padding: 64px 20px;
   }
 }
