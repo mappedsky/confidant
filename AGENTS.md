@@ -49,7 +49,7 @@ Prefer running Bun and Pipenv commands through `docker compose`; avoid host-inst
 - **Entry**: `confidant/public/src/App.tsx` — sets up MUI theme (system dark/light mode detection), `AppProvider`, and routes.
 - **Theme**: `src/theme.ts` — `createAppTheme(mode)` factory. `primary.main` is intentionally dark (used for AppBar background). Form controls (Checkbox, TextField, Select, etc.) default to `color="secondary"` via theme `defaultProps` so focus/checked indicators use the high-contrast accent colour instead.
 - **API client**: `src/api.ts` — wraps `fetch`; attaches a Bearer token supplied by the OIDC auth provider and redirects back into the OIDC flow on 401s.
-- **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags, xsrf_cookie_name) and `userEmail` once on mount.
+- **Global state** (`src/contexts/AppContext.tsx`): loads `clientConfig` (permissions, defined tags) and `userEmail` once on mount.
 - **Secret detail flow**: on initial load, `getSecret(id)` returns `secret_keys` (names only) but not values. `populateForm` uses `secret_keys` to build rows with empty values for masked display. Clicking "show values" or "edit" triggers an explicit `POST /v1/secrets/{id}/decrypt` call; version pages use `POST /v1/secrets/{id}/versions/{version}/decrypt`. Groups no longer hydrate secrets in group detail responses.
 - **View vs edit rendering**: detail pages use a local `ReadOnlyField` component (label + Typography) for view mode, and `TextField`/`Select` for edit mode. Never use `InputProps={{ readOnly }}` on TextField for display — it looks editable.
 - **Vite proxy**: `/v1/*`, `/healthcheck`, `/loggedout`, `/custom` proxy to `http://confidant:80`. A `proxyRes` hook rewrites bare `http://localhost/` redirects to `localhost:3000` so OIDC/logout redirects return to the Vite dev server cleanly.
@@ -70,6 +70,6 @@ POST /v1/secrets/{id}/versions/{version}/decrypt
 ```
 
 ## Testing notes
-- `pytest.ini` sets env vars (fake KMS key, DynamoDB table names, session secret, `DYNAMODB_CREATE_TABLE=False`) so unit tests don't need running infrastructure.
+- `pytest.ini` sets env vars (fake KMS key, DynamoDB table names, `DYNAMODB_CREATE_TABLE=False`) so unit tests don't need running infrastructure.
 - Integration tests require the groups in `docker-compose.integration.yml`.
 - Backend line length limit is 80 chars (`setup.cfg`).

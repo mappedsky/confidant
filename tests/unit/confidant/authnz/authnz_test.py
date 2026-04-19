@@ -87,14 +87,6 @@ def test_user_is_service(mocker: MockerFixture):
         assert authnz.user_is_service("other-service") is False
 
 
-def test_require_csrf_token_is_noop():
-    def mock_fn():
-        return "ok"
-
-    wrapped = authnz.require_csrf_token(mock_fn)
-    assert wrapped() == "ok"
-
-
 def test_redirect_to_logout_if_no_auth_is_noop():
     def mock_fn():
         return "ok"

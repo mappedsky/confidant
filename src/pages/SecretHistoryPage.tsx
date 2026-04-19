@@ -28,13 +28,15 @@ import {
   secretDetailPath,
   secretVersionPath,
 } from '../utils/resourceIds';
+import { parseSecretRouteRemainder } from '../utils/secretRouteParams';
 
 type RouteParams = {
-  id?: string;
+  '*': string;
 };
 
 export default function SecretHistoryPage() {
-  const { id } = useParams<RouteParams>();
+  const params = useParams<RouteParams>();
+  const { id } = parseSecretRouteRemainder(params['*']);
   const navigate = useNavigate();
   const [versions, setVersions] = useState<SecretSummary[]>([]);
   const [currentSecret, setCurrentSecret] = useState<SecretDetail | null>(null);

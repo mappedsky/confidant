@@ -16,6 +16,8 @@ def validate_secret_id(secret_id: Any) -> str | None:
         return "id is a required field"
     if len(secret_id) > _MAX_ID_LENGTH:
         return "id must be 512 characters or fewer"
+    if secret_id.startswith("/"):
+        return "secret id must not start with /"
     if secret_id.endswith("/"):
         return "secret id must not end with /"
     if not _SECRET_ID_PATTERN.fullmatch(secret_id):

@@ -9,6 +9,9 @@ export function validateSecretId(id: string): string | null {
   if (id.length > 512) {
     return 'ID must be 512 characters or fewer.';
   }
+  if (id.startsWith('/')) {
+    return 'Secret ID cannot start with /.';
+  }
   if (id.endsWith('/')) {
     return 'Secret ID cannot end with /.';
   }

@@ -17,7 +17,6 @@ import {
 } from './types/api';
 import { encodeSecretId } from './utils/resourceIds';
 
-let xsrfCookieName: string | null = null;
 let accessTokenGetter: (() => string | null) | null = null;
 let unauthorizedHandler: (() => Promise<unknown> | unknown) | null = null;
 
@@ -25,10 +24,6 @@ interface CursorPageParams {
   limit?: number;
   page?: string | null;
   prefix?: string | null;
-}
-
-export function setXsrfCookieName(name: string) {
-  xsrfCookieName = name;
 }
 
 export function setAccessTokenGetter(getter: (() => string | null) | null) {
@@ -39,27 +34,12 @@ export function setUnauthorizedHandler(handler: (() => Promise<unknown> | unknow
   unauthorizedHandler = handler;
 }
 
-function getCookie(name: string): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() ?? null;
-  }
-  return null;
-}
-
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
   const accessToken = accessTokenGetter?.();
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
-  }
-  if (xsrfCookieName) {
-    const token = getCookie(xsrfCookieName);
-    if (token) {
-      headers.set('X-XSRF-TOKEN', token);
-    }
   }
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) {

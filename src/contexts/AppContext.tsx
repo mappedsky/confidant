@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import { api, setXsrfCookieName } from '../api';
+import { api } from '../api';
 import { ClientConfigResponse } from '../types/api';
 import { AuthContext } from '../auth.context';
 import { AuthConfigContext } from '../authConfig.context';
@@ -42,9 +42,6 @@ export function AppProvider({ children }: AppProviderProps) {
     setError(null);
     Promise.all([api.getClientConfig(), api.getUserEmail()])
       .then(([config, user]) => {
-        if (config.generated?.xsrf_cookie_name) {
-          setXsrfCookieName(config.generated.xsrf_cookie_name);
-        }
         setClientConfig(config);
         setUserEmail(user.email);
         setLoading(false);

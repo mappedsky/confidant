@@ -172,57 +172,6 @@ OIDC_SCOPE = str_env("OIDC_SCOPE", "openid email")
 # to run confidant with HTTPS or behind an ELB with SSL termination enabled.
 SSLIFY = bool_env("SSLIFY", True)
 
-# Cookie settings
-
-# Cookie name for the session.
-SESSION_COOKIE_NAME = str_env("SESSION_COOKIE_NAME", "confidant_session")
-
-# Cookie name for the XSRF token
-XSRF_COOKIE_NAME = str_env("XSRF_COOKIE_NAME", "XSRF-TOKEN")
-
-# Session cache
-# Mutually exclusive with secure cookie session settings.
-
-# A redis connection url to store flask sessions.
-# Example: redis://localhost:6379
-REDIS_URL_FLASK_SESSIONS = str_env("REDIS_URL_FLASK_SESSIONS")
-# The session type for Flask-Session. Currenty only redis is supported.
-SESSION_TYPE = str_env("SESSION_TYPE", "redis")
-# The key prefix to use in redis. Can be used to run multiple applications on
-# the same redis server.
-SESSION_KEY_PREFIX = str_env("SESSION_KEY_PREFIX", "confidant:")
-# Whether or not to sign the session cookie sid; see the Flask-Session docs
-# for more information:
-#   http://pythonhosted.org/Flask-Session/#configuration
-SESSION_USE_SIGNER = bool_env("SESSION_USE_SIGNER", True)
-# A long randomly generated string.
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-SESSION_SECRET = encrypted_settings.register(
-    "SESSION_SECRET", str_env("SESSION_SECRET")
-)
-
-# Secure cookie sessions
-# Mutually exclusive with session cache settings
-
-# Set a lifetime for a session, making sessions use 'permanent' cookies, rather
-# than cookie being set as 'session' cookie. Cookies will last only as long as
-# the lifetime of the session, rather than being cleared by the browser, which
-# depending on the browser (and its user's configuration) can also be
-# permanent. User actions will extend the permanent session lifetime, so this
-# setting can be relatively small. Default is 43200 seconds (12 hours).
-# To disable permanent cookies, set this to 0.
-PERMANENT_SESSION_LIFETIME = int_env("PERMANENT_SESSION_LIFETIME", 43200)
-# Set a maximum lifetime of a session, when using 'permanent' cookies. User
-# actions extend the lifetime of a session cookie, but they will not be
-# extended past this maximum time. This setting should be equal to or larger
-# than PERMANENT_SESSION_LIFETIME. If unset, MAX_PERMANENT_SESSION_LIFETIME
-# will be equal to PERMANENT_SESSION_LIFETIME. Default is 86400 seconds (24
-# hours).
-MAX_PERMANENT_SESSION_LIFETIME = int_env(
-    "MAX_PERMANENT_SESSION_LIFETIME",
-    86400,
-)
-
 # General storage
 
 # Set the DynamoDB to something non-standard. This can be used for local

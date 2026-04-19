@@ -56,6 +56,7 @@ import {
   secretVersionPath,
   validateSecretId,
 } from '../utils/resourceIds';
+import { parseSecretRouteRemainder } from '../utils/secretRouteParams';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -83,14 +84,15 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-type SecretDetailParams = { id?: string; version?: string };
+type SecretDetailParams = { '*': string };
 
 export default function SecretDetailPage() {
-  const { id, version } = useParams<SecretDetailParams>();
+  const params = useParams<SecretDetailParams>();
+  const { id, version } = parseSecretRouteRemainder(params['*']);
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
-  const versionNumber = version ? Number(version) : null;
+  const versionNumber = version;
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
 
   const permissions = clientConfig?.generated?.permissions;

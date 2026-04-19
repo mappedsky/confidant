@@ -33,7 +33,6 @@ export interface OidcConfig {
 export interface ClientConfigGenerated {
   auth_required: boolean;
   oidc: OidcConfig | null;
-  xsrf_cookie_name: string;
   maintenance_mode: boolean;
   history_page_limit: number;
   defined_tags: string[];
