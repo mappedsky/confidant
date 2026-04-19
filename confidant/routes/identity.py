@@ -92,6 +92,7 @@ def get_client_config():
     return jsonify(
         {
             "generated": {
+                "maintenance_mode": settings.MAINTENANCE_MODE,
                 "defined_tags": list(tags),
                 "permissions": permissions,
             },

@@ -25,6 +25,7 @@ export default function SecretListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const permissions = clientConfig?.generated?.permissions;
+  const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
   const {
     rows: secrets,
     loading,
@@ -124,7 +125,7 @@ export default function SecretListPage() {
         <Typography variant="h5" fontWeight={600}>
           Secrets
         </Typography>
-        {permissions?.secrets?.create && (
+        {permissions?.secrets?.create && !maintenanceMode && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}

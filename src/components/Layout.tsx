@@ -38,7 +38,8 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { auth_required, userManager } = React.useContext(AuthConfigContext);
-  const { userEmail, loading, error } = useAppContext();
+  const { clientConfig, userEmail, loading, error } = useAppContext();
+  const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
 
   const handleLogout = React.useCallback(() => {
     if (!auth_required || !userManager) {
@@ -163,6 +164,11 @@ export default function Layout({ children }: LayoutProps) {
           </Box>
         ) : (
           <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
+            {maintenanceMode && (
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                Maintenance mode is enabled. Write actions are disabled.
+              </Alert>
+            )}
             {children}
           </Box>
         )}

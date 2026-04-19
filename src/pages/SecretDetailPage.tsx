@@ -94,6 +94,7 @@ export default function SecretDetailPage() {
   const versionNumber = version;
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
   const permissions = clientConfig?.generated?.permissions;
+  const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
   const definedTags = clientConfig?.generated?.defined_tags ?? [];
 
   const [secret, setSecret] = useState<SecretDetail | null>(null);
@@ -421,8 +422,10 @@ export default function SecretDetailPage() {
     );
   }
 
-  const canEdit = !isVersionView && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
-  const canDelete = !isVersionView && !isNew && secret?.permissions?.delete;
+  const canEdit = !maintenanceMode
+    && !isVersionView
+    && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
+  const canDelete = !maintenanceMode && !isVersionView && !isNew && secret?.permissions?.delete;
   const canDecrypt = !isNew && !!secret?.permissions?.decrypt;
   const daysTillRotation =
     secret?.next_rotation_date
@@ -437,9 +440,16 @@ export default function SecretDetailPage() {
   const nextVersion = currentVersionIdx !== -1 && currentVersionIdx < versionRevisions.length - 1
     ? versionRevisions[currentVersionIdx + 1]
     : null;
-  const restoreDisabled = versionNumber === latestRevision || !canRestore || restoring;
+  const restoreDisabled = (
+    maintenanceMode
+    || versionNumber === latestRevision
+    || !canRestore
+    || restoring
+  );
   const restoreTooltip = versionNumber === latestRevision
     ? 'This is already the current version.'
+    : maintenanceMode
+      ? 'Maintenance mode is enabled.'
     : !canRestore
       ? 'You do not have permission to restore this secret.'
       : '';

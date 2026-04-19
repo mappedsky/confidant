@@ -36,6 +36,7 @@ export interface AuthConfigResponse {
 }
 
 export interface ClientConfigGenerated {
+  maintenance_mode: boolean;
   defined_tags: string[];
   permissions: ClientConfigPermissions;
 }
