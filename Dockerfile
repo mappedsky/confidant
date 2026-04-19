@@ -33,4 +33,4 @@ ENV STATIC_FOLDER=../dist
 
 EXPOSE 80
 
-CMD ["gunicorn", "confidant.wsgi:app", "--workers=2", "-k", "gevent", "--access-logfile=-", "--error-logfile=-"]
+CMD ["gunicorn", "confidant.wsgi:app", "--workers=2", "-k", "gevent", "--no-control-socket", "--access-logfile=-", "--error-logfile=-"]

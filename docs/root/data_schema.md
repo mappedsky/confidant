@@ -51,10 +51,16 @@ __archive-service__
 All metadata in Confidant is stored in clear text, but secret pairs in
 secrets are stored encrypted at-rest.
 
-Confidant uses a configured KMS master key to generate data keys. The
-encrypted data keys are stored in DynamoDB along with the secret.
+Confidant uses a configured KMS master key to generate 32-byte data keys.
+The encrypted data keys are stored in DynamoDB along with the secret.
 The decrypted data keys are kept in memory in the confidant web service
 for caching purposes.
+
+Secret pairs are encrypted with AES-256-GCM using a fresh 12-byte nonce per
+encryption. The nonce, ciphertext, and 16-byte authentication tag are
+concatenated and stored as a URL-safe base64 string. The `cipher_version`
+field on each DynamoDB item records the format version so future migrations
+can distinguish between cipher schemes.
 
 When secrets are created or updated, their secret pair information is
 encrypted and the data key used to encrypt the pair is recorded with

@@ -268,7 +268,7 @@ messages smaller than 4KB, this will work perfectly for you. If you need to
 pass more than 4KB, you'll need to generate data keys, and do a bit of
 encryption yourself, using the data key.
 
-Confidant does this using the cryptography.io Python library and its Fernet
+Confidant does this using the PyCryptodome Python library and its AES-256-GCM
 implementation. It doesn't matter which language or library you use, the steps
 are basically the same:
 

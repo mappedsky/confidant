@@ -132,7 +132,7 @@ services:
       - .:/srv/confidant
       - ./config/development/logging.conf:/etc/confidant/logging.conf
       - ./config/gunicorn.conf:/etc/confidant/gunicorn.conf
-    command: "gunicorn --config /etc/confidant/gunicorn.conf confidant.wsgi:app --workers=2 -k gevent --reload --access-logfile=- --error-logfile=-"
+    command: "gunicorn --config /etc/confidant/gunicorn.conf confidant.wsgi:app --workers=2 -k gevent --reload --no-control-socket --access-logfile=- --error-logfile=-"
   frontend:
     image: oven/bun:latest
     working_dir: /app

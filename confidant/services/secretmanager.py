@@ -13,6 +13,7 @@ from confidant.schema.secrets import SecretResponse
 from confidant.schema.secrets import SecretsResponse
 from confidant.services import keymanager
 from confidant.services.ciphermanager import CipherManager
+from confidant.services.ciphermanager import CURRENT_CIPHER_VERSION
 from confidant.services.dynamodbstore import store
 from confidant.utils import stats
 
@@ -149,13 +150,16 @@ def _encrypt_secret_pairs(tenant_id, secret_id, secret_pairs):
     data_key = keymanager.create_datakey(
         encryption_context={"id": secret_id, "tenant_id": tenant_id}
     )
-    cipher = CipherManager(data_key["plaintext"], version=2)
+    cipher = CipherManager(
+        data_key["plaintext"],
+        version=CURRENT_CIPHER_VERSION,
+    )
     encrypted_pairs = cipher.encrypt(json.dumps(secret_pairs))
     if isinstance(data_key["ciphertext"], bytes):
         data_key = base64.b64encode(data_key["ciphertext"]).decode("UTF-8")
     else:
         data_key = data_key["ciphertext"]
-    return encrypted_pairs, data_key, 2
+    return encrypted_pairs, data_key, CURRENT_CIPHER_VERSION
 
 
 def get_secrets(

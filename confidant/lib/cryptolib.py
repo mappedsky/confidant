@@ -1,60 +1,52 @@
 import base64
+
+from Crypto.Random import get_random_bytes
 from cryptography import x509
-from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 
 def decrypt_mock_datakey(data_key):
-    '''
+    """
     Mock decryption meant to be used for testing or development. Simply returns
     the provided data_key.
-    '''
+    """
     return data_key
 
 
 def decrypt_datakey(data_key, encryption_context=None, client=None):
-    '''
+    """
     Decrypt a datakey.
-    '''
+    """
     return client.decrypt(
-        CiphertextBlob=data_key,
-        EncryptionContext=encryption_context
-    )['Plaintext']
+        CiphertextBlob=data_key, EncryptionContext=encryption_context
+    )["Plaintext"]
 
 
 def create_mock_datakey():
-    '''
+    """
     Mock encryption meant to be used for testing or development. Returns a
     generated data key, but the encrypted version of the key is simply the
     unencrypted version. If this is called for anything other than testing
     or development purposes, it will cause unencrypted keys to be stored along
     with the encrypted content, rending the encryption worthless.
-    '''
-    key = Fernet.generate_key()
-    return {'ciphertext': key,
-            'plaintext': key}
+    """
+    key = get_random_bytes(32)
+    return {"ciphertext": key, "plaintext": key}
 
 
 def create_datakey(encryption_context, keyid, client=None):
-    '''
-    Create a datakey from KMS.
-    '''
-    # Fernet key; from spec and cryptography implementation, but using
-    # random from KMS, rather than os.urandom:
-    #   https://github.com/fernet/spec/blob/master/Spec.md#key-format
-    #   https://cryptography.io/en/latest/_modules/cryptography/fernet/#Fernet.generate_key
-    key = base64.urlsafe_b64encode(
-        client.generate_random(NumberOfBytes=32)['Plaintext']
-    )
+    """
+    Create a datakey from KMS. Returns 32 raw bytes of plaintext key suitable
+    for AES-256-GCM, and the KMS-encrypted ciphertext of those same 32 bytes.
+    """
+    key = client.generate_random(NumberOfBytes=32)["Plaintext"]
     response = client.encrypt(
-        KeyId='{0}'.format(keyid),
+        KeyId=f"{keyid}",
         Plaintext=key,
-        EncryptionContext=encryption_context
-
+        EncryptionContext=encryption_context,
     )
-    return {'ciphertext': response['CiphertextBlob'],
-            'plaintext': key}
+    return {"ciphertext": response["CiphertextBlob"], "plaintext": key}
 
 
 def load_x509_certificate_pem(path):
@@ -68,7 +60,7 @@ def load_x509_certificate_pem(path):
     :rtype: cryptography.x509.Certificate
     """
 
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         cert = x509.load_pem_x509_certificate(f.read(), default_backend())
         return cert
 
@@ -84,8 +76,7 @@ def load_x509_certificate_pem_as_bare_base64(path):
     :returns: base64-encoded DER X.509 data.
     :rtype: string
     """
-    return _x509_certificate_bare_base64(
-        load_x509_certificate_pem(path))
+    return _x509_certificate_bare_base64(load_x509_certificate_pem(path))
 
 
 def _x509_certificate_bare_base64(certificate):
@@ -100,8 +91,9 @@ def _x509_certificate_bare_base64(certificate):
     :returns: base64-encoded DER X.509 data.
     :rtype: string
     """
-    return base64.b64encode(certificate.public_bytes(
-        serialization.Encoding.DER)).decode()
+    return base64.b64encode(
+        certificate.public_bytes(serialization.Encoding.DER)
+    ).decode()
 
 
 def load_private_key_pem(path, password=None):
@@ -117,9 +109,10 @@ def load_private_key_pem(path, password=None):
     :returns: An RSA private key object.
     :rtype: cryptography.hazmat.primitives.asymmetric.rsa.RSAPrivateKey
     """
-    with open(path, 'rb') as f:
-        return serialization.load_pem_private_key(f.read(), password=password,
-                                                  backend=default_backend())
+    with open(path, "rb") as f:
+        return serialization.load_pem_private_key(
+            f.read(), password=password, backend=default_backend()
+        )
 
 
 def load_private_key_pem_as_bare_base64(path, password=None):
@@ -136,7 +129,8 @@ def load_private_key_pem_as_bare_base64(path, password=None):
     :rtype: string
     """
     return _rsa_private_key_bare_base64(
-        load_private_key_pem(path, password=password)).decode()
+        load_private_key_pem(path, password=password)
+    ).decode()
 
 
 def _rsa_private_key_bare_base64(key):
@@ -152,6 +146,9 @@ def _rsa_private_key_bare_base64(key):
     :rtype: string
     """
     return base64.b64encode(
-        key.private_bytes(serialization.Encoding.DER,
-                          format=serialization.PrivateFormat.TraditionalOpenSSL,
-                          encryption_algorithm=serialization.NoEncryption()))
+        key.private_bytes(
+            serialization.Encoding.DER,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )

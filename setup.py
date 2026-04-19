@@ -28,6 +28,7 @@ setup(
         "botocore",
         "boto3",
         "cryptography",
+        "pycryptodome",
         "cffi",
         "Flask-Session",
         "redis",
