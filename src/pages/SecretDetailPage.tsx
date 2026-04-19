@@ -18,8 +18,12 @@ import {
   Checkbox,
   IconButton,
   Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
   FormControlLabel,
   FormGroup,
+  InputLabel,
   Link,
   Chip,
   Stack,
@@ -38,6 +42,7 @@ import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import KeyValueTable, { KeyValueRow } from '../components/KeyValueTable';
 import CenteredSpinner from '../components/CenteredSpinner';
 import { api } from '../api';
+import { useAppContext } from '../contexts/AppContext';
 import {
   CreateSecretPayload,
   SecretDetail,
@@ -84,9 +89,12 @@ export default function SecretDetailPage() {
   const params = useParams<SecretDetailParams>();
   const { id, version } = parseSecretRouteRemainder(params['*']);
   const navigate = useNavigate();
+  const { clientConfig } = useAppContext();
   const isNew = !id;
   const versionNumber = version;
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
+  const permissions = clientConfig?.generated?.permissions;
+  const definedTags = clientConfig?.generated?.defined_tags ?? [];
 
   const [secret, setSecret] = useState<SecretDetail | null>(null);
   const [secretGroups, setSecretGroups] = useState<
@@ -413,7 +421,7 @@ export default function SecretDetailPage() {
     );
   }
 
-  const canEdit = !isVersionView && (isNew || secret?.permissions?.update);
+  const canEdit = !isVersionView && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
   const canDelete = !isVersionView && !isNew && secret?.permissions?.delete;
   const canDecrypt = !isNew && !!secret?.permissions?.decrypt;
   const daysTillRotation =
@@ -812,24 +820,31 @@ export default function SecretDetailPage() {
               />
             </Box>
 
-            {(editing || formTags.length > 0) && (
+            {(editing || formTags.length > 0 || definedTags.length > 0) && (
               <Box>
                 <SectionLabel>Tags</SectionLabel>
                 {editing ? (
                   <Stack spacing={1}>
                     {formTags.map((tag, idx) => (
                       <Stack key={idx} direction="row" alignItems="center" spacing={1}>
-                        <TextField
-                          label="Tag"
-                          size="small"
-                          sx={{ minWidth: 200 }}
-                          value={tag}
-                          onChange={(event) =>
-                            setFormTags((prev) =>
-                              prev.map((t, i) => (i === idx ? event.target.value : t)),
-                            )
-                          }
-                        />
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                          <InputLabel>Tag</InputLabel>
+                          <Select
+                            label="Tag"
+                            value={tag}
+                            onChange={(event) =>
+                              setFormTags((prev) =>
+                                prev.map((t, i) => (i === idx ? (event.target.value as string) : t)),
+                              )
+                            }
+                          >
+                            {definedTags.map((value) => (
+                              <MenuItem key={value} value={value}>
+                                {value}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
                         <IconButton
                           size="small"
                           color="error"
@@ -841,15 +856,17 @@ export default function SecretDetailPage() {
                         </IconButton>
                       </Stack>
                     ))}
-                    <Box>
-                      <Button
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => setFormTags((prev) => [...prev, ''])}
-                      >
-                        Add Tag
-                      </Button>
-                    </Box>
+                    {definedTags.length > 0 && (
+                      <Box>
+                        <Button
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={() => setFormTags((prev) => [...prev, ''])}
+                        >
+                          Add Tag
+                        </Button>
+                      </Box>
+                    )}
                   </Stack>
                 ) : (
                   <Stack direction="row" flexWrap="wrap" gap={0.5}>

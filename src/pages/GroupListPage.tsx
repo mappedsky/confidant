@@ -11,6 +11,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { useAppContext } from '../contexts/AppContext';
 import { GroupSummary } from '../types/api';
 import ActionsMenu from '../components/ActionsMenu';
 import { baseDataGridSx } from '../components/dataGridStyles';
@@ -18,6 +19,8 @@ import { useAllCursorPages } from '../hooks/useAllCursorPages';
 
 export default function GroupListPage() {
   const navigate = useNavigate();
+  const { clientConfig } = useAppContext();
+  const permissions = clientConfig?.generated?.permissions;
   const {
     rows: groups,
     loading,
@@ -120,14 +123,16 @@ export default function GroupListPage() {
         <Typography variant="h5" fontWeight={600}>
           Groups
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/groups/new')}
-          sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
-        >
-          New Group
-        </Button>
+        {permissions?.groups?.create && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/groups/new')}
+            sx={{ bgcolor: '#6bdfab', color: '#424554', '&:hover': { bgcolor: '#229B65', color: '#F4F5F5' } }}
+          >
+            New Group
+          </Button>
+        )}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

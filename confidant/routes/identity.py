@@ -5,8 +5,11 @@ from flask import jsonify
 
 from confidant import authnz
 from confidant import settings
+from confidant.utils import misc
 
 blueprint = blueprints.Blueprint("identity", __name__)
+
+acl_module_check = misc.load_module(settings.ACL_MODULE)
 
 
 def _build_oidc_config():
@@ -55,6 +58,47 @@ def get_auth_config():
         {
             "auth_required": settings.USE_AUTH,
             "oidc": _build_oidc_config(),
+        }
+    )
+
+
+@blueprint.route("/v1/client_config", methods=["GET"])
+@authnz.require_auth
+def get_client_config():
+    permissions = {
+        "secrets": {
+            "list": acl_module_check(
+                resource_type="secret",
+                action="list",
+                resource_id="*",
+            ),
+            "create": acl_module_check(
+                resource_type="secret",
+                action="create",
+                resource_id="*",
+            ),
+        },
+        "groups": {
+            "list": acl_module_check(resource_type="group", action="list"),
+            "create": acl_module_check(
+                resource_type="group",
+                action="create",
+            ),
+        },
+    }
+    tags = set()
+    tags.update(settings.TAGS_EXCLUDING_ROTATION)
+    tags.update(settings.ROTATION_DAYS_CONFIG.keys())
+    return jsonify(
+        {
+            "generated": {
+                "auth_required": settings.USE_AUTH,
+                "oidc": _build_oidc_config(),
+                "maintenance_mode": settings.MAINTENANCE_MODE,
+                "history_page_limit": settings.HISTORY_PAGE_LIMIT,
+                "defined_tags": list(tags),
+                "permissions": permissions,
+            },
         }
     )
 

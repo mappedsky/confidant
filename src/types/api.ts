@@ -11,6 +11,17 @@ export interface EntityPermissions {
   list?: boolean;
 }
 
+export interface ClientConfigPermissions {
+  secrets: {
+    list: boolean;
+    create: boolean;
+  };
+  groups: {
+    list: boolean;
+    create: boolean;
+  };
+}
+
 export interface OidcConfig {
   authority: string;
   client_id: string;
@@ -22,6 +33,19 @@ export interface OidcConfig {
 export interface AuthConfigResponse {
   auth_required: boolean;
   oidc: OidcConfig | null;
+}
+
+export interface ClientConfigGenerated {
+  auth_required: boolean;
+  oidc: OidcConfig | null;
+  maintenance_mode: boolean;
+  history_page_limit: number;
+  defined_tags: string[];
+  permissions: ClientConfigPermissions;
+}
+
+export interface ClientConfigResponse {
+  generated: ClientConfigGenerated;
 }
 
 export interface UserEmailResponse {

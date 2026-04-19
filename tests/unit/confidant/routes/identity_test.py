@@ -44,3 +44,59 @@ def test_get_user_info_no_user(mocker):
     ret = app.test_client().get("/v1/user/email", follow_redirects=False)
     assert ret.status_code == 200
     assert ret.json == {"email": None}
+
+
+def test_get_client_config(mocker):
+    def acl_module_check(
+        resource_type: str,
+        action: str,
+        resource_id: str | None = None,
+    ) -> bool | None:
+        if resource_type == "secret":
+            if action == "create":
+                return False
+            if action == "list":
+                return True
+        elif resource_type == "group":
+            if action == "create":
+                return True
+            if action == "list":
+                return False
+        return None
+
+    mocker.patch("confidant.routes.identity.acl_module_check", acl_module_check)
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.settings.MAINTENANCE_MODE", True)
+    mocker.patch("confidant.settings.HISTORY_PAGE_LIMIT", 50)
+    mocker.patch("confidant.settings.TAGS_EXCLUDING_ROTATION", [])
+    mocker.patch("confidant.settings.ROTATION_DAYS_CONFIG", {})
+    mocker.patch("confidant.settings.OIDC_AUTHORITY", "")
+    mocker.patch("confidant.settings.OIDC_CLIENT_ID", "")
+    mocker.patch("confidant.settings.OIDC_REDIRECT_URI", "")
+    mocker.patch("confidant.settings.OIDC_SCOPE", "openid email")
+    mocker.patch("confidant.settings.JWKS_URL", "")
+
+    expected: dict[str, object] = {
+        "generated": {
+            "auth_required": False,
+            "oidc": None,
+            "maintenance_mode": True,
+            "history_page_limit": 50,
+            "defined_tags": [],
+            "permissions": {
+                "secrets": {
+                    "list": True,
+                    "create": False,
+                },
+                "groups": {
+                    "list": False,
+                    "create": True,
+                },
+            },
+        },
+    }
+
+    app = create_app()
+    ret = app.test_client().get("/v1/client_config", follow_redirects=False)
+    assert ret.status_code == 200
+    assert ret.json == expected

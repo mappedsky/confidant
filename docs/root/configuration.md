@@ -83,8 +83,8 @@ with PKCE to acquire the token. Any standard OIDC provider can be used; the loca
 development stack ships with Authentik.
 
 The backend owns the OIDC settings and exposes them to the SPA through
-`GET /v1/auth_config`. The frontend should not hardcode provider-specific
-endpoints.
+`GET /v1/auth_config` and `GET /v1/client_config`. The frontend should not
+hardcode provider-specific endpoints.
 
 ```bash
 # JWKS endpoint used by the backend to validate JWTs
