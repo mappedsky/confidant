@@ -86,14 +86,10 @@ def get_client_config():
             ),
         },
     }
-    tags = set()
-    tags.update(settings.TAGS_EXCLUDING_ROTATION)
-    tags.update(settings.ROTATION_DAYS_CONFIG.keys())
     return jsonify(
         {
             "generated": {
                 "maintenance_mode": settings.MAINTENANCE_MODE,
-                "defined_tags": list(tags),
                 "permissions": permissions,
             },
         }

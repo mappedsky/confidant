@@ -1,4 +1,3 @@
-import json
 import logging
 from os import getenv
 
@@ -224,8 +223,7 @@ CUSTOM_FRONTEND_DIRECTORY = str_env("CUSTOM_FRONTEND_DIRECTORY")
 MAINTENANCE_MODE = bool_env("MAINTENANCE_MODE", False)
 MAINTENANCE_MODE_TOUCH_FILE = str_env("MAINTENANCE_MODE_TOUCH_FILE")
 
-# Enforce users to add documentation to their credentials on how to rotate
-# them, for easier rotation in the case a credential is expired or compromised.
+# Enforce users to add documentation to their credentials.
 ENFORCE_DOCUMENTATION = bool_env("ENFORCE_DOCUMENTATION", False)
 
 # Test/Development
@@ -264,21 +262,6 @@ AWS_DEFAULT_REGION = str_env("AWS_DEFAULT_REGION", "us-east-1")
 # See: https://github.com/surfly/gevent/issues/468
 #
 # GEVENT_RESOLVER='ares'
-
-MAXIMUM_ROTATION_DAYS = int_env("MAXIMUM_ROTATION_DAYS")
-# Secrets can be "tagged" (eg: FINANCIALLY_SENSITIVE or ADMIN_PRIV)
-# Certain tags might never need to be rotated
-TAGS_EXCLUDING_ROTATION = json.loads(str_env("TAGS_EXCLUDING_ROTATION", "[]"))
-# Secrets with different tags might have different rotation schedules
-# We use this config to specify how many days each type of credential should
-# be rotated
-ROTATION_DAYS_CONFIG = json.loads(str_env("ROTATION_DAYS_CONFIG", "{}"))
-
-# If this is eanbled, update credential.last_decrypted_date
-# when credential.credential_pairs is sent back to the client
-# in GET /v1/secrets/<ID> to keep track of when a human
-# last saw a credential pair
-ENABLE_SAVE_LAST_DECRYPTION_TIME = bool_env("ENABLE_SAVE_LAST_DECRYPTION_TIME")
 
 
 def get(name, default=None):

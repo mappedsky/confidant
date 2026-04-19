@@ -37,7 +37,6 @@ export interface AuthConfigResponse {
 
 export interface ClientConfigGenerated {
   maintenance_mode: boolean;
-  defined_tags: string[];
   permissions: ClientConfigPermissions;
 }
 
@@ -59,7 +58,6 @@ export interface CreateSecretPayload {
   secret_pairs: Record<string, string>;
   metadata: Record<string, string>;
   documentation: string;
-  tags: string[];
 }
 
 export interface SecretBase {
@@ -69,7 +67,6 @@ export interface SecretBase {
   modified_date?: string;
   modified_by?: string;
   documentation?: string | null;
-  tags?: string[];
   permissions?: EntityPermissions;
 }
 
@@ -81,8 +78,6 @@ export interface SecretDetail extends SecretBase {
   secret_keys: string[];
   secret_pairs: Record<string, string>;
   metadata: Record<string, string>;
-  last_rotation_date?: string | null;
-  next_rotation_date?: string | null;
 }
 
 export interface SecretsListResponse {

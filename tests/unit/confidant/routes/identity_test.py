@@ -67,13 +67,10 @@ def test_get_client_config(mocker):
     mocker.patch("confidant.routes.identity.acl_module_check", acl_module_check)
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch("confidant.settings.MAINTENANCE_MODE", True)
-    mocker.patch("confidant.settings.TAGS_EXCLUDING_ROTATION", [])
-    mocker.patch("confidant.settings.ROTATION_DAYS_CONFIG", {})
 
     expected: dict[str, object] = {
         "generated": {
             "maintenance_mode": True,
-            "defined_tags": [],
             "permissions": {
                 "secrets": {
                     "list": True,

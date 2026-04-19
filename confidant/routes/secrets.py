@@ -320,7 +320,6 @@ def create_secret():
             created_by=authnz.get_logged_in_user(),
             metadata=data.get("metadata"),
             documentation=data.get("documentation"),
-            tags=data.get("tags", []),
         )
         if error:
             return jsonify(error), 400
@@ -362,7 +361,6 @@ def update_secret(id):
             secret_pairs=data.get("secret_pairs"),
             metadata=data.get("metadata"),
             documentation=data.get("documentation"),
-            tags=data.get("tags"),
         )
         if error:
             return jsonify(error), 400

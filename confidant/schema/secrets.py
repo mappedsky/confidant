@@ -19,7 +19,6 @@ class CreateSecretRequest(BaseModel):
     secret_pairs: dict[Any, Any]
     metadata: dict[Any, Any] = Field(default_factory=dict)
     documentation: str | None = None
-    tags: list[str] = Field(default_factory=list)
 
 
 class UpdateSecretRequest(BaseModel):
@@ -27,7 +26,6 @@ class UpdateSecretRequest(BaseModel):
     secret_pairs: dict[Any, Any] | None = None
     metadata: dict[Any, Any] | None = None
     documentation: str | None = None
-    tags: list[str] | None = None
 
 
 class RestoreSecretVersionRequest(BaseModel):
@@ -46,9 +44,6 @@ class SecretResponse(BaseModel):
     secret_keys: list[str] = Field(default_factory=list)
     secret_pairs: dict[Any, Any] = Field(default_factory=dict)
     permissions: dict[str, bool] = Field(default_factory=dict)
-    tags: list[str] = Field(default_factory=list)
-    last_rotation_date: datetime | None = None
-    next_rotation_date: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -72,12 +67,6 @@ class SecretResponse(BaseModel):
             data["metadata"] = _value(secret, "metadata")
         if _value(secret, "documentation") is not None:
             data["documentation"] = _value(secret, "documentation")
-        if _value(secret, "tags") is not None:
-            data["tags"] = _value(secret, "tags")
-        if _value(secret, "last_rotation_date") is not None:
-            data["last_rotation_date"] = _value(secret, "last_rotation_date")
-        if _value(secret, "next_rotation_date") is not None:
-            data["next_rotation_date"] = _value(secret, "next_rotation_date")
         if include_secret_keys:
             data["secret_keys"] = _value(secret, "secret_keys", [])
         if include_secret_pairs:

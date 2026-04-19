@@ -18,14 +18,9 @@ import {
   Checkbox,
   IconButton,
   Tooltip,
-  Select,
-  MenuItem,
-  FormControl,
   FormControlLabel,
   FormGroup,
-  InputLabel,
   Link,
-  Chip,
   Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -95,7 +90,6 @@ export default function SecretDetailPage() {
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
   const permissions = clientConfig?.generated?.permissions;
   const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
-  const definedTags = clientConfig?.generated?.defined_tags ?? [];
 
   const [secret, setSecret] = useState<SecretDetail | null>(null);
   const [secretGroups, setSecretGroups] = useState<
@@ -131,7 +125,6 @@ export default function SecretDetailPage() {
   const [formId, setFormId] = useState('');
   const [formPairs, setFormPairs] = useState<KeyValueRow[]>([{ key: '', value: '' }]);
   const [formMetadata, setFormMetadata] = useState<KeyValueRow[]>([]);
-  const [formTags, setFormTags] = useState<string[]>([]);
   const [formDocumentation, setFormDocumentation] = useState('');
 
   const populateForm = useCallback((cred: SecretDetail) => {
@@ -151,7 +144,6 @@ export default function SecretDetailPage() {
     setFormMetadata(
       Object.entries(cred.metadata ?? {}).map(([key, value]) => ({ key, value })),
     );
-    setFormTags(cred.tags ?? []);
     setFormDocumentation(cred.documentation ?? '');
   }, []);
 
@@ -371,7 +363,6 @@ export default function SecretDetailPage() {
           .filter((m) => m.key)
           .map((m) => [m.key, m.value]),
       ),
-      tags: [...new Set(formTags.filter(Boolean))],
     };
 
     setSaving(true);
@@ -427,12 +418,6 @@ export default function SecretDetailPage() {
     && (isNew ? permissions?.secrets?.create : secret?.permissions?.update);
   const canDelete = !maintenanceMode && !isVersionView && !isNew && secret?.permissions?.delete;
   const canDecrypt = !isNew && !!secret?.permissions?.decrypt;
-  const daysTillRotation =
-    secret?.next_rotation_date
-      ? Math.round(
-          (new Date(secret.next_rotation_date).getTime() - Date.now()) / 86400000,
-        )
-      : null;
   const currentVersionIdx = versionNumber !== null
     ? versionRevisions.indexOf(versionNumber)
     : -1;
@@ -790,7 +775,7 @@ export default function SecretDetailPage() {
                         ? 'Hide values'
                         : isVersionView
                           ? 'Decrypt version values'
-                          : 'Decrypt values (may affect rotation schedule)')
+                          : 'Decrypt values')
                       : 'You do not have permission to decrypt this secret.'}
                   >
                     <span>
@@ -830,90 +815,19 @@ export default function SecretDetailPage() {
               />
             </Box>
 
-            {(editing || formTags.length > 0 || definedTags.length > 0) && (
-              <Box>
-                <SectionLabel>Tags</SectionLabel>
-                {editing ? (
-                  <Stack spacing={1}>
-                    {formTags.map((tag, idx) => (
-                      <Stack key={idx} direction="row" alignItems="center" spacing={1}>
-                        <FormControl size="small" sx={{ minWidth: 200 }}>
-                          <InputLabel>Tag</InputLabel>
-                          <Select
-                            label="Tag"
-                            value={tag}
-                            onChange={(event) =>
-                              setFormTags((prev) =>
-                                prev.map((t, i) => (i === idx ? (event.target.value as string) : t)),
-                              )
-                            }
-                          >
-                            {definedTags.map((value) => (
-                              <MenuItem key={value} value={value}>
-                                {value}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() =>
-                            setFormTags((prev) => prev.filter((_, i) => i !== idx))
-                          }
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    ))}
-                    {definedTags.length > 0 && (
-                      <Box>
-                        <Button
-                          size="small"
-                          startIcon={<AddIcon />}
-                          onClick={() => setFormTags((prev) => [...prev, ''])}
-                        >
-                          Add Tag
-                        </Button>
-                      </Box>
-                    )}
-                  </Stack>
-                ) : (
-                  <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                    {formTags.length ? (
-                      formTags.map((tag) => <Chip key={tag} label={tag} size="small" />)
-                    ) : (
-                      <Typography color="text.secondary" variant="body2">
-                        None
-                      </Typography>
-                    )}
-                  </Stack>
-                )}
-              </Box>
-            )}
-
-            {!isNew && secret?.next_rotation_date && (
-              <ReadOnlyField
-                label="Next Rotation Date"
-                value={`${secret.next_rotation_date}${
-                  daysTillRotation !== null ? ` (${daysTillRotation} days)` : ''
-                }`}
-              />
-            )}
-
             {editing ? (
               <TextField
-                label="Rotation Documentation"
+                label="Documentation"
                 size="small"
                 fullWidth
                 multiline
                 minRows={3}
                 value={formDocumentation}
                 onChange={(e) => setFormDocumentation(e.target.value)}
-                placeholder="Add documentation for how to rotate this secret. Add a link to a runbook if relevant."
+                placeholder="Add documentation for this secret. Add a link to a runbook if relevant."
               />
             ) : formDocumentation ? (
-              <ReadOnlyField label="Rotation Documentation" value={formDocumentation} />
+              <ReadOnlyField label="Documentation" value={formDocumentation} />
             ) : null}
 
             {!isNew && (
