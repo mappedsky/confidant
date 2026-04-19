@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-c1501a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-8a348a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -91,7 +91,6 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#environment-configuration">Environment configuration</a><ul>
 <li><a class="reference internal" href="#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
 <li><a class="reference internal" href="#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
-<li><a class="reference internal" href="#session-settings">Session settings</a></li>
 <li><a class="reference internal" href="#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
 <li><a class="reference internal" href="#statsd-metrics">statsd metrics</a></li>
 <li><a class="reference internal" href="#sending-graphite-events">Sending graphite events</a></li>
@@ -182,14 +181,12 @@ and value like this:</p>
 </span><span data-line="13"><span class="nb">export</span><span class="w"> </span><span class="nv">JWKS_URL</span><span class="o">=</span><span class="s1">&#39;https://idp.example.com/application/o/confidant/jwks/&#39;</span>
 </span><span data-line="14"><span class="nb">export</span><span class="w"> </span><span class="nv">OIDC_AUTHORITY</span><span class="o">=</span><span class="s1">&#39;https://idp.example.com/application/o/confidant&#39;</span>
 </span><span data-line="15"><span class="nb">export</span><span class="w"> </span><span class="nv">OIDC_CLIENT_ID</span><span class="o">=</span><span class="s1">&#39;confidant&#39;</span>
-</span><span data-line="16"><span class="c1"># SESSION_SECRET can be loaded via SECRETS_BOOTSTRAP</span>
-</span><span data-line="17"><span class="nb">export</span><span class="w"> </span><span class="nv">SESSION_SECRET</span><span class="o">=</span><span class="s1">&#39;aBVmJA3zv6zWGjrYto135hkdox6mW2kOu7UaXIHK8ztJvT8w5O&#39;</span>
-</span><span data-line="18"><span class="c1"># The IP address to listen on.</span>
-</span><span data-line="19"><span class="nb">export</span><span class="w"> </span><span class="nv">HOST</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>
-</span><span data-line="20"><span class="c1"># The port to listen on.</span>
-</span><span data-line="21"><span class="nb">export</span><span class="w"> </span><span class="nv">PORT</span><span class="o">=</span><span class="s1">&#39;80&#39;</span>
-</span><span data-line="22"><span class="c1"># Trust X-Forwarded-Proto from any SSL termination server</span>
-</span><span data-line="23"><span class="nb">export</span><span class="w"> </span><span class="nv">FORWARDED_ALLOW_IPS</span><span class="o">=</span><span class="s1">&#39;*&#39;</span>
+</span><span data-line="16"><span class="c1"># The IP address to listen on.</span>
+</span><span data-line="17"><span class="nb">export</span><span class="w"> </span><span class="nv">HOST</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>
+</span><span data-line="18"><span class="c1"># The port to listen on.</span>
+</span><span data-line="19"><span class="nb">export</span><span class="w"> </span><span class="nv">PORT</span><span class="o">=</span><span class="s1">&#39;80&#39;</span>
+</span><span data-line="20"><span class="c1"># Trust X-Forwarded-Proto from any SSL termination server</span>
+</span><span data-line="21"><span class="nb">export</span><span class="w"> </span><span class="nv">FORWARDED_ALLOW_IPS</span><span class="o">=</span><span class="s1">&#39;*&#39;</span>
 </span></pre></div>
 </div>
 <section id="gunicorn-configuration-for-ssl-termination-support">
@@ -245,13 +242,6 @@ hardcode provider-specific endpoints.</p>
 </span><span data-line="25"><span class="nb">export</span><span class="w"> </span><span class="nv">JWT_ALLOWED_PRINCIPAL_TYPES</span><span class="o">=</span><span class="s1">&#39;user,service&#39;</span>
 </span></pre></div>
 </div>
-</section>
-<section id="session-settings">
-<h3>Session settings<a class="headerlink" href="#session-settings" title="Link to this heading">¶</a></h3>
-<p>JWT authentication is stateless and no longer relies on server-managed login
-sessions or CSRF cookies. The remaining Flask session
-settings are only relevant to the application’s general cookie/session
-configuration and are not part of the authentication flow.</p>
 </section>
 <section id="disabling-secret-conflict-checks">
 <h3>Disabling secret conflict checks<a class="headerlink" href="#disabling-secret-conflict-checks" title="Link to this heading">¶</a></h3>
@@ -654,7 +644,7 @@ the indexes. See your usage in cloudwatch and increase throughput as necessary.<
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=98a6ceb7"></script>
+      <script src="_static/documentation_options.js?v=ebb31fc3"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>

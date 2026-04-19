@@ -46,8 +46,6 @@ export KMS_MASTER_KEY='alias/confidant-production'
 export JWKS_URL='https://idp.example.com/application/o/confidant/jwks/'
 export OIDC_AUTHORITY='https://idp.example.com/application/o/confidant'
 export OIDC_CLIENT_ID='confidant'
-# SESSION_SECRET can be loaded via SECRETS_BOOTSTRAP
-export SESSION_SECRET='aBVmJA3zv6zWGjrYto135hkdox6mW2kOu7UaXIHK8ztJvT8w5O'
 # The IP address to listen on.
 export HOST='0.0.0.0'
 # The port to listen on.
@@ -115,13 +113,6 @@ export JWT_USER_TYPE_VALUE='user'
 export JWT_SERVICE_TYPE_VALUE='service'
 export JWT_ALLOWED_PRINCIPAL_TYPES='user,service'
 ```
-
-### Session settings
-
-JWT authentication is stateless and no longer relies on server-managed login
-sessions or CSRF cookies. The remaining Flask session
-settings are only relevant to the application's general cookie/session
-configuration and are not part of the authentication flow.
 
 ### Disabling secret conflict checks
 
