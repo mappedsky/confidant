@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DynamoDB Data Schema - confidant 7.0.0-40b565 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Maintenance" href="maintenance.html" /><link rel="prev" title="Contributing" href="contributing.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DynamoDB Data Schema - confidant 7.0.0-c1501a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Maintenance" href="maintenance.html" /><link rel="prev" title="Contributing" href="contributing.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -172,10 +172,15 @@ the same.</p>
 <h2>At-rest encryption model<a class="headerlink" href="#at-rest-encryption-model" title="Link to this heading">¶</a></h2>
 <p>All metadata in Confidant is stored in clear text, but secret pairs in
 secrets are stored encrypted at-rest.</p>
-<p>Confidant uses a configured KMS master key to generate data keys. The
-encrypted data keys are stored in DynamoDB along with the secret.
+<p>Confidant uses a configured KMS master key to generate 32-byte data keys.
+The encrypted data keys are stored in DynamoDB along with the secret.
 The decrypted data keys are kept in memory in the confidant web service
 for caching purposes.</p>
+<p>Secret pairs are encrypted with AES-256-GCM using a fresh 12-byte nonce per
+encryption. The nonce, ciphertext, and 16-byte authentication tag are
+concatenated and stored as a URL-safe base64 string. The <code class="docutils literal notranslate"><span class="pre">cipher_version</span></code>
+field on each DynamoDB item records the format version so future migrations
+can distinguish between cipher schemes.</p>
 <p>When secrets are created or updated, their secret pair information is
 encrypted and the data key used to encrypt the pair is recorded with
 the secret, in its encrypted form. When secrets are fetched, their
@@ -225,7 +230,7 @@ isn’t available in memory.</p>
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=8ac12c28"></script>
+      <script src="_static/documentation_options.js?v=98a6ceb7"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>

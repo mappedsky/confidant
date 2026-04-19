@@ -81,7 +81,7 @@ could apply.
 
 ### Assumptions
 
-1. cryptography.io's Fernet implementation is secure.
+1. PyCryptodome's AES-256-GCM implementation is secure.
 1. KMS's AES implementation is secure.
 1. Attackers don't have access to the KMS master key.
 

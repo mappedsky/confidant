@@ -2,6 +2,11 @@
 
 ## 8.0.0 Fork/Rewrite
 * Numerous breaking changes (no migration support is included):
+  * At-rest encryption switched from Fernet (AES-128-CBC + HMAC-SHA256) to
+    AES-256-GCM via PyCryptodome, using a fresh 12-byte nonce per secret.
+    ``cipher_version`` is bumped from ``2`` to ``3``; secrets and
+    ``SECRETS_BOOTSTRAP`` blobs written under the old scheme cannot be read
+    by this release and must be regenerated.
   * Services and credentials renamed to groups and secrets, respectively
   * Secrets now require a user-provided ID, which is "path" based and unique.
   * Multi-tenancy added, enforced via dynamodb path, and based on tenant\_id JWT claim; defaults to single tenancy
