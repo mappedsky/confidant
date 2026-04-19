@@ -36,10 +36,6 @@ export interface AuthConfigResponse {
 }
 
 export interface ClientConfigGenerated {
-  auth_required: boolean;
-  oidc: OidcConfig | null;
-  maintenance_mode: boolean;
-  history_page_limit: number;
   defined_tags: string[];
   permissions: ClientConfigPermissions;
 }

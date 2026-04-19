@@ -66,22 +66,11 @@ def test_get_client_config(mocker):
 
     mocker.patch("confidant.routes.identity.acl_module_check", acl_module_check)
     mocker.patch("confidant.settings.USE_AUTH", False)
-    mocker.patch("confidant.settings.MAINTENANCE_MODE", True)
-    mocker.patch("confidant.settings.HISTORY_PAGE_LIMIT", 50)
     mocker.patch("confidant.settings.TAGS_EXCLUDING_ROTATION", [])
     mocker.patch("confidant.settings.ROTATION_DAYS_CONFIG", {})
-    mocker.patch("confidant.settings.OIDC_AUTHORITY", "")
-    mocker.patch("confidant.settings.OIDC_CLIENT_ID", "")
-    mocker.patch("confidant.settings.OIDC_REDIRECT_URI", "")
-    mocker.patch("confidant.settings.OIDC_SCOPE", "openid email")
-    mocker.patch("confidant.settings.JWKS_URL", "")
 
     expected: dict[str, object] = {
         "generated": {
-            "auth_required": False,
-            "oidc": None,
-            "maintenance_mode": True,
-            "history_page_limit": 50,
             "defined_tags": [],
             "permissions": {
                 "secrets": {

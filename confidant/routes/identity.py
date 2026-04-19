@@ -92,10 +92,6 @@ def get_client_config():
     return jsonify(
         {
             "generated": {
-                "auth_required": settings.USE_AUTH,
-                "oidc": _build_oidc_config(),
-                "maintenance_mode": settings.MAINTENANCE_MODE,
-                "history_page_limit": settings.HISTORY_PAGE_LIMIT,
                 "defined_tags": list(tags),
                 "permissions": permissions,
             },
