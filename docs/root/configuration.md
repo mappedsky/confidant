@@ -244,7 +244,7 @@ Confidant exposes some data to its clients via a flask endpoint. It's possible
 to expose additional custom data to clients through the server's configuration:
 
 ```bash
-export CLIENT_CONFIG='{"cipher_type":"fernet","cipher_version":"2","store_secret_keys":true}'
+export CLIENT_CONFIG='{"cipher_type":"aes-gcm","cipher_version":"3","store_secret_keys":true}'
 ```
 
 The native client, or custom clients can use this data to help configure

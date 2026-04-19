@@ -138,7 +138,7 @@ def test_build_secret_items_uses_raw_secret_id_for_list_item():
             secret_keys=["api_key"],
             secret_pairs="encrypted",
             data_key="key",
-            cipher_version=2,
+            cipher_version=3,
             metadata={},
             modified_by="user@example.com",
             documentation=None,

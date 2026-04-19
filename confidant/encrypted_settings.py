@@ -1,17 +1,18 @@
-import yaml
 import base64
-import logging
 import json
+import logging
 
-from cryptography.fernet import Fernet
+import yaml
 
 import confidant.clients
 from confidant.lib import cryptolib
+from confidant.services.ciphermanager import aes_gcm_decrypt
+from confidant.services.ciphermanager import CURRENT_CIPHER_VERSION
 
 logger = logging.getLogger(__name__)
 
 
-class EncryptedSettings(object):
+class EncryptedSettings:
 
     def __init__(self, secret_string, kms_url):
         self.secret_names = []
@@ -48,31 +49,40 @@ class EncryptedSettings(object):
         Decrypt secrets and return a dict of secrets. Uses KMS to decrypt.
         """
         if not secrets:
-            logger.info('SECRETS_BOOTSTRAP not set, skipping bootstrapping.')
+            logger.info("SECRETS_BOOTSTRAP not set, skipping bootstrapping.")
             return {}
-        if secrets.startswith('file://'):
+        if secrets.startswith("file://"):
             try:
-                with open(secrets[7:], 'r') as f:
+                with open(secrets[7:]) as f:
                     _secrets = json.load(f)
-            except IOError:
+            except OSError:
                 logger.error(
-                    'Failed to load file specified in SECRETS_BOOTSTRAP.'
+                    "Failed to load file specified in SECRETS_BOOTSTRAP.",
                 )
                 return {}
         else:
             _secrets = json.loads(secrets)
+        cipher_version = _secrets.get("cipher_version")
+        if cipher_version != CURRENT_CIPHER_VERSION:
+            raise ValueError(
+                "SECRETS_BOOTSTRAP cipher_version {} is not supported; "
+                "expected {}. Regenerate the bootstrap blob with the "
+                "current version of confidant-admin.".format(
+                    cipher_version,
+                    CURRENT_CIPHER_VERSION,
+                )
+            )
         client = confidant.clients.get_boto_client(
-            'kms',
+            "kms",
             endpoint_url=self.kms_url,
         )
         key = cryptolib.decrypt_datakey(
-            base64.b64decode(_secrets['data_key']),
-            {'type': 'bootstrap'},
+            base64.b64decode(_secrets["data_key"]),
+            {"type": "bootstrap"},
             client=client,
         )
-        f = Fernet(key)
         decrypted_secrets = yaml.safe_load(
-            f.decrypt(_secrets['secrets'].encode('utf-8'))
+            aes_gcm_decrypt(key, _secrets["secrets"]),
         )
-        logger.info('Loaded SECRETS_BOOTSTRAP.')
+        logger.info("Loaded SECRETS_BOOTSTRAP.")
         return decrypted_secrets
