@@ -21,7 +21,7 @@ def test_serialize_item_strips_none_and_empty_strings():
     item = {
         "documentation": "",
         "metadata": {"empty": "", "keep": "value"},
-        "tags": ["", "tag"],
+        "items": ["", "tag"],
         "nested": (None, "", "x"),
     }
 
@@ -29,14 +29,14 @@ def test_serialize_item_strips_none_and_empty_strings():
 
     assert "documentation" not in serialized
     assert serialized["metadata"]["M"] == {"keep": {"S": "value"}}
-    assert serialized["tags"]["L"] == [{"S": "tag"}]
+    assert serialized["items"]["L"] == [{"S": "tag"}]
     assert serialized["nested"]["L"] == [{"S": "x"}]
 
 
 def test_serialize_item_strips_empty_containers():
     item = {
         "metadata": {},
-        "tags": [],
+        "items": [],
         "nested": {"empty": []},
     }
 
@@ -47,7 +47,7 @@ def test_serialize_item_strips_empty_containers():
 
 def test_serialize_item_strips_empty_sets_and_bytes():
     item = {
-        "tags": set(),
+        "items": set(),
         "nested": {"empty": frozenset()},
         "blob": b"",
     }

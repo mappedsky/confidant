@@ -69,7 +69,6 @@ def create_app():
 
     app = Flask(__name__, static_folder=static_folder)
     app.config.from_object(settings)
-    app.config.update(settings.encrypted_settings.get_all_secrets())
     app.debug = settings.DEBUG
 
     if settings.SSLIFY and not settings.DEBUG:

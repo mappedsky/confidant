@@ -113,9 +113,8 @@ acl_module_check(
 ```
 
 This check controls access to explicit secret decryption. The decrypt endpoint
-returns secret pairs and may update `last_decrypted_date`, which can affect
-required rotation timing. Fine-grained controls can be applied using the
-provided `resource_id`.
+returns secret pairs. Fine-grained controls can be applied using the provided
+`resource_id`.
 
 #### Create secret
 

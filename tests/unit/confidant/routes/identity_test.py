@@ -1,10 +1,8 @@
-from pytest_mock.plugin import MockerFixture
-
 from confidant.app import create_app
 from confidant.authnz import UserUnknownError
 
 
-def test_get_auth_config(mocker: MockerFixture):
+def test_get_auth_config(mocker):
     mocker.patch("confidant.settings.USE_AUTH", True)
     mocker.patch(
         "confidant.settings.OIDC_AUTHORITY",
@@ -24,7 +22,7 @@ def test_get_auth_config(mocker: MockerFixture):
     assert ret.json["oidc"]["client_id"] == "confidant"
 
 
-def test_get_user_info(mocker: MockerFixture):
+def test_get_user_info(mocker):
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch(
         "confidant.routes.identity.authnz.get_logged_in_email",
@@ -36,7 +34,7 @@ def test_get_user_info(mocker: MockerFixture):
     assert ret.json == {"email": "test@example.com"}
 
 
-def test_get_user_info_no_user(mocker: MockerFixture):
+def test_get_user_info_no_user(mocker):
     mocker.patch("confidant.settings.USE_AUTH", False)
     mocker.patch(
         "confidant.routes.identity.authnz.get_logged_in_user",
@@ -48,7 +46,7 @@ def test_get_user_info_no_user(mocker: MockerFixture):
     assert ret.json == {"email": None}
 
 
-def test_get_client_config(mocker: MockerFixture):
+def test_get_client_config(mocker):
     def acl_module_check(
         resource_type: str,
         action: str,
@@ -68,25 +66,11 @@ def test_get_client_config(mocker: MockerFixture):
 
     mocker.patch("confidant.routes.identity.acl_module_check", acl_module_check)
     mocker.patch("confidant.settings.USE_AUTH", False)
-    mocker.patch("confidant.settings.CLIENT_CONFIG", {"test": "client_config"})
     mocker.patch("confidant.settings.MAINTENANCE_MODE", True)
-    mocker.patch("confidant.settings.HISTORY_PAGE_LIMIT", 50)
-    mocker.patch("confidant.settings.TAGS_EXCLUDING_ROTATION", [])
-    mocker.patch("confidant.settings.ROTATION_DAYS_CONFIG", {})
-    mocker.patch("confidant.settings.OIDC_AUTHORITY", "")
-    mocker.patch("confidant.settings.OIDC_CLIENT_ID", "")
-    mocker.patch("confidant.settings.OIDC_REDIRECT_URI", "")
-    mocker.patch("confidant.settings.OIDC_SCOPE", "openid email")
-    mocker.patch("confidant.settings.JWKS_URL", "")
 
-    expected = {
-        "defined": {"test": "client_config"},
+    expected: dict[str, object] = {
         "generated": {
-            "auth_required": False,
-            "oidc": None,
             "maintenance_mode": True,
-            "history_page_limit": 50,
-            "defined_tags": [],
             "permissions": {
                 "secrets": {
                     "list": True,

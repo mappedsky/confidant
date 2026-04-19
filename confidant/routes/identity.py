@@ -65,40 +65,6 @@ def get_auth_config():
 @blueprint.route("/v1/client_config", methods=["GET"])
 @authnz.require_auth
 def get_client_config():
-    """
-    Get configuration to help clients bootstrap themselves.
-
-    .. :quickref: Client Configuration; Get configuration to help clients
-                  bootstrap themselves.
-
-    **Example request**:
-
-    .. sourcecode:: http
-
-       GET /v1/client_config HTTP/1.1
-
-    **Example response**:
-
-    .. sourcecode:: http
-
-       HTTP/1.1 200 OK
-       Content-Type: application/json
-
-       {
-         "defined": {},
-         "generated": {
-            "maintenance_mode": false,
-            "history_page_limit": 500,
-           "permissions": {
-             "list": true,
-             "create": true
-           }
-         }
-       }
-
-    :resheader Content-Type: application/json
-    :statuscode 200: Success
-    """
     permissions = {
         "secrets": {
             "list": acl_module_check(
@@ -120,23 +86,14 @@ def get_client_config():
             ),
         },
     }
-    tags = set()
-    tags.update(settings.TAGS_EXCLUDING_ROTATION)
-    tags.update(settings.ROTATION_DAYS_CONFIG.keys())
-    response = jsonify(
+    return jsonify(
         {
-            "defined": settings.CLIENT_CONFIG,
             "generated": {
-                "auth_required": settings.USE_AUTH,
-                "oidc": _build_oidc_config(),
                 "maintenance_mode": settings.MAINTENANCE_MODE,
-                "history_page_limit": settings.HISTORY_PAGE_LIMIT,
-                "defined_tags": list(tags),
                 "permissions": permissions,
             },
         }
     )
-    return response
 
 
 @blueprint.route("/v1/user/email", methods=["GET", "POST"])

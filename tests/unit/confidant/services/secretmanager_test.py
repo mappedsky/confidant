@@ -59,46 +59,6 @@ def test_encrypt_secret_pairs_encodes_data_key(mocker: MockerFixture):
     assert data_key == base64.b64encode(b"ciphertext").decode("UTF-8")
 
 
-def test_save_last_decryption_time_updates_store_and_item(
-    mocker: MockerFixture,
-):
-    update_target_prefix = "confidant.services.secretmanager.store."
-    update_target = update_target_prefix + "update_secret_last_decrypted_date"
-    update_mock = mocker.patch(
-        update_target,
-    )
-    mocker.patch("confidant.settings.ENABLE_SAVE_LAST_DECRYPTION_TIME", True)
-
-    item = {"id": "cred-1", "tenant_id": "tenant-a"}
-    updated = secretmanager._save_last_decryption_time(
-        "tenant-a",
-        "cred-1",
-        item,
-    )
-
-    update_mock.assert_called_once()
-    assert updated["last_decrypted_date"]
-    assert "last_decrypted_date" not in item
-
-
-def test_save_last_decryption_time_noops_when_disabled(mocker: MockerFixture):
-    update_target_prefix = "confidant.services.secretmanager.store."
-    update_target = update_target_prefix + "update_secret_last_decrypted_date"
-    update_mock = mocker.patch(
-        update_target,
-    )
-    mocker.patch("confidant.settings.ENABLE_SAVE_LAST_DECRYPTION_TIME", False)
-
-    item = {"id": "cred-1"}
-    result = secretmanager._save_last_decryption_time(
-        "tenant-a",
-        "cred-1",
-        item,
-    )
-    assert result == item
-    update_mock.assert_not_called()
-
-
 def test_sanitize_write_items_strips_empty_values():
     items = [
         {
@@ -107,7 +67,6 @@ def test_sanitize_write_items_strips_empty_values():
                 "SK": "y",
                 "documentation": "",
                 "metadata": {},
-                "tags": [],
                 "value": "ok",
             },
             "ConditionExpression": "attribute_not_exists(PK)",
@@ -142,9 +101,6 @@ def test_build_secret_items_uses_raw_secret_id_for_list_item():
             metadata={},
             modified_by="user@example.com",
             documentation=None,
-            tags=[],
-            last_rotation_date=None,
-            last_decrypted_date=None,
             created_at="2026-04-08T00:00:00+00:00",
         )
     )

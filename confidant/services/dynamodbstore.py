@@ -452,35 +452,6 @@ class DynamoDBConfidantStore:
     def batch_put_items(self, items: Sequence[dict[str, Any]]) -> None:
         _batch_put_items(items)
 
-    def update_secret_last_decrypted_date(
-        self,
-        tenant_id: str,
-        secret_id: str,
-        last_decrypted_date: str,
-    ) -> None:
-        update_expression = "SET #last_decrypted_date = :last_decrypted_date"
-        expression_attribute_names = {
-            "#last_decrypted_date": "last_decrypted_date",
-        }
-        expression_attribute_values = {
-            ":last_decrypted_date": last_decrypted_date,
-        }
-        keys = [
-            {"PK": _secret_pk(tenant_id, secret_id), "SK": _SK_METADATA},
-            {"PK": _secret_pk(tenant_id, secret_id), "SK": _SK_LATEST},
-            {
-                "PK": _secret_list_pk(tenant_id),
-                "SK": secret_id,
-            },
-        ]
-        for key in keys:
-            _update_item(
-                key,
-                update_expression=update_expression,
-                expression_attribute_values=expression_attribute_values,
-                expression_attribute_names=expression_attribute_names,
-            )
-
     def delete_secret(self, tenant_id: str, secret_id: str) -> None:
         table = _get_table()
         resp = _query_items(
@@ -517,9 +488,6 @@ class DynamoDBConfidantStore:
                     "modified_by": items[0]["modified_by"],
                     "documentation": items[0].get("documentation"),
                     "metadata": items[0].get("metadata"),
-                    "tags": items[0].get("tags"),
-                    "last_decrypted_date": items[0].get("last_decrypted_date"),
-                    "last_rotation_date": items[0].get("last_rotation_date"),
                     "secret_keys": items[0].get("secret_keys"),
                     "created_at": items[0].get("created_at"),
                     "updated_at": _now(),

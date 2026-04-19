@@ -20,8 +20,8 @@ import { useAllCursorPages } from '../hooks/useAllCursorPages';
 export default function GroupListPage() {
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
-
   const permissions = clientConfig?.generated?.permissions;
+  const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
   const {
     rows: groups,
     loading,
@@ -124,7 +124,7 @@ export default function GroupListPage() {
         <Typography variant="h5" fontWeight={600}>
           Groups
         </Typography>
-        {permissions?.groups?.create && (
+        {permissions?.groups?.create && !maintenanceMode && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}

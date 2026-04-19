@@ -27,7 +27,6 @@ setup(
         "blinker",
         "botocore",
         "boto3",
-        "cryptography",
         "pycryptodome",
         "cffi",
         "Flask-SSLify",

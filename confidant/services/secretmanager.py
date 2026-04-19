@@ -4,10 +4,8 @@ import json
 import logging
 import re
 from datetime import datetime
-from datetime import timedelta
 from datetime import timezone
 
-from confidant import settings
 from confidant.schema.secrets import RevisionsResponse
 from confidant.schema.secrets import SecretResponse
 from confidant.schema.secrets import SecretsResponse
@@ -59,29 +57,6 @@ def _as_datetime(value):
     return datetime.fromisoformat(value)
 
 
-def _next_rotation_date(item):
-    tags = item.get("tags", [])
-    if len(set(tags) & set(settings.TAGS_EXCLUDING_ROTATION)) > 0:
-        return None
-
-    last_rotation_date = _as_datetime(item.get("last_rotation_date"))
-    last_decrypted_date = _as_datetime(item.get("last_decrypted_date"))
-
-    if last_rotation_date is None:
-        return datetime.now(timezone.utc)
-    if last_decrypted_date and last_decrypted_date > last_rotation_date:
-        return last_decrypted_date
-
-    days = settings.MAXIMUM_ROTATION_DAYS
-    for tag in tags:
-        rotation_days = settings.ROTATION_DAYS_CONFIG.get(tag)
-        if rotation_days is None:
-            continue
-        if days is None or rotation_days < days:
-            days = rotation_days
-    return last_rotation_date + timedelta(days=days)
-
-
 def _secret_response_from_item(
     item,
     include_secret_keys=False,
@@ -99,32 +74,12 @@ def _secret_response_from_item(
         data["metadata"] = item["metadata"]
     if item.get("documentation") is not None:
         data["documentation"] = item["documentation"]
-    if item.get("tags") is not None:
-        data["tags"] = item["tags"]
-    if item.get("last_rotation_date") is not None:
-        data["last_rotation_date"] = _as_datetime(item["last_rotation_date"])
-    data["next_rotation_date"] = _next_rotation_date(item)
 
     if include_secret_keys:
         data["secret_keys"] = item.get("secret_keys", [])
     if include_secret_pairs:
         data["secret_pairs"] = _decrypt_secret_pairs(item)
     return SecretResponse(**data)
-
-
-def _save_last_decryption_time(tenant_id, secret_id, item=None):
-    if not settings.ENABLE_SAVE_LAST_DECRYPTION_TIME:
-        return item
-    last_decrypted_date = datetime.now(timezone.utc).isoformat()
-    store.update_secret_last_decrypted_date(
-        tenant_id,
-        secret_id,
-        last_decrypted_date,
-    )
-    if item is not None:
-        item = copy.deepcopy(item)
-        item["last_decrypted_date"] = last_decrypted_date
-    return item
 
 
 def _decrypt_secret_pairs(item):
@@ -212,8 +167,6 @@ def get_secret_latest(
     )
     if not item:
         return None
-    if not metadata_only and alert_on_access:
-        item = _save_last_decryption_time(tenant_id, secret_id, item)
     return _secret_response_from_item(
         item,
         include_secret_keys=True,
@@ -244,8 +197,6 @@ def get_secret_version(
     item = store.get_secret_version(tenant_id, secret_id, version)
     if not item:
         return None
-    if alert_on_access and not metadata_only:
-        item = _save_last_decryption_time(tenant_id, secret_id, item)
     return _secret_response_from_item(
         item,
         include_secret_keys=True,
@@ -292,9 +243,6 @@ def _build_secret_items(
     metadata,
     modified_by,
     documentation,
-    tags,
-    last_rotation_date,
-    last_decrypted_date,
     created_at,
     previous_created_at=None,
 ):
@@ -307,9 +255,6 @@ def _build_secret_items(
         "modified_date": created_at,
         "modified_by": modified_by,
         "documentation": documentation,
-        "tags": tags,
-        "last_decrypted_date": last_decrypted_date,
-        "last_rotation_date": last_rotation_date,
         "secret_keys": list(secret_keys),
         "secret_pairs": secret_pairs,
         "data_key": data_key,
@@ -341,9 +286,6 @@ def _build_secret_items(
         "modified_date": created_at,
         "modified_by": modified_by,
         "documentation": documentation,
-        "tags": tags,
-        "last_decrypted_date": last_decrypted_date,
-        "last_rotation_date": last_rotation_date,
         "secret_keys": list(secret_keys),
     }
     if previous_created_at is not None:
@@ -374,7 +316,6 @@ def create_secret(
     created_by,
     metadata=None,
     documentation=None,
-    tags=None,
 ):
     if store.get_secret_latest(tenant_id, secret_id):
         return None, {"error": "Secret already exists."}
@@ -390,9 +331,6 @@ def create_secret(
     )
     now = datetime.now(timezone.utc).isoformat()
     metadata = metadata or {}
-    tags = tags or []
-    last_decrypted_date = None
-    last_rotation_date = now
     secret_keys = list(secret_pairs)
     metadata_item, latest_item, version_item, list_item = _build_secret_items(
         tenant_id,
@@ -406,9 +344,6 @@ def create_secret(
         metadata,
         created_by,
         documentation,
-        tags,
-        last_rotation_date,
-        last_decrypted_date,
         now,
     )
     for item in (metadata_item, latest_item, version_item, list_item):
@@ -454,7 +389,6 @@ def update_secret(
     secret_pairs=None,
     metadata=None,
     documentation=None,
-    tags=None,
 ):
     current = store.get_secret_latest(tenant_id, secret_id)
     if not current:
@@ -463,22 +397,16 @@ def update_secret(
     metadata = current.get("metadata", {}) if metadata is None else metadata
     if documentation is None:
         documentation = current.get("documentation")
-    if tags is None:
-        tags = current.get("tags", [])
 
     current_secret_pairs = current.get("secret_pairs")
     data_key = current.get("data_key")
     cipher_version = current.get("cipher_version")
-    last_decrypted_date = current.get("last_decrypted_date")
-    last_rotation_date = current.get("last_rotation_date")
 
     if secret_pairs is not None:
         secret_pairs = lowercase_secret_pairs(secret_pairs)
         ok, ret = check_secret_pair_values(secret_pairs)
         if not ok:
             return None, ret
-        if secret_pairs != _decrypt_secret_pairs(current):
-            last_rotation_date = datetime.now(timezone.utc).isoformat()
         encrypted_pairs, data_key, cipher_version = _encrypt_secret_pairs(
             tenant_id,
             secret_id,
@@ -506,9 +434,6 @@ def update_secret(
         metadata,
         created_by,
         documentation,
-        tags,
-        last_rotation_date,
-        last_decrypted_date,
         now,
         previous_created_at=current.get("created_at", current["modified_date"]),
     )
@@ -566,7 +491,6 @@ def restore_secret_version(
         secret_pairs=_decrypt_secret_pairs(source),
         metadata=source.get("metadata", {}),
         documentation=source.get("documentation"),
-        tags=source.get("tags", []),
     )[0]
 
 

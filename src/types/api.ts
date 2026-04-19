@@ -30,23 +30,18 @@ export interface OidcConfig {
   metadata?: Partial<OidcMetadata>;
 }
 
-export interface ClientConfigGenerated {
+export interface AuthConfigResponse {
   auth_required: boolean;
   oidc: OidcConfig | null;
+}
+
+export interface ClientConfigGenerated {
   maintenance_mode: boolean;
-  history_page_limit: number;
-  defined_tags: string[];
   permissions: ClientConfigPermissions;
 }
 
 export interface ClientConfigResponse {
-  defined: Record<string, unknown>;
   generated: ClientConfigGenerated;
-}
-
-export interface AuthConfigResponse {
-  auth_required: boolean;
-  oidc: OidcConfig | null;
 }
 
 export interface UserEmailResponse {
@@ -63,7 +58,6 @@ export interface CreateSecretPayload {
   secret_pairs: Record<string, string>;
   metadata: Record<string, string>;
   documentation: string;
-  tags: string[];
 }
 
 export interface SecretBase {
@@ -73,7 +67,6 @@ export interface SecretBase {
   modified_date?: string;
   modified_by?: string;
   documentation?: string | null;
-  tags?: string[];
   permissions?: EntityPermissions;
 }
 
@@ -85,8 +78,6 @@ export interface SecretDetail extends SecretBase {
   secret_keys: string[];
   secret_pairs: Record<string, string>;
   metadata: Record<string, string>;
-  last_rotation_date?: string | null;
-  next_rotation_date?: string | null;
 }
 
 export interface SecretsListResponse {

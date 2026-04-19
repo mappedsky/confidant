@@ -107,8 +107,8 @@ export default function GroupDetailPage() {
   const isNew = !id;
   const versionNumber = version ? Number(version) : null;
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
-
   const permissions = clientConfig?.generated?.permissions;
+  const maintenanceMode = clientConfig?.generated?.maintenance_mode ?? false;
 
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [allSecrets, setAllSecrets] = useState<SecretSummary[]>([]);
@@ -373,10 +373,10 @@ export default function GroupDetailPage() {
     );
   }
 
-  const canEdit = !isVersionView && (isNew
+  const canEdit = !maintenanceMode && !isVersionView && (isNew
     ? permissions?.groups?.create
     : group?.permissions?.update);
-  const canDelete = !isVersionView && !isNew && group?.permissions?.delete;
+  const canDelete = !maintenanceMode && !isVersionView && !isNew && group?.permissions?.delete;
   const currentVersionIdx = versionNumber !== null
     ? versionRevisions.indexOf(versionNumber)
     : -1;
@@ -384,9 +384,16 @@ export default function GroupDetailPage() {
   const nextVersion = currentVersionIdx !== -1 && currentVersionIdx < versionRevisions.length - 1
     ? versionRevisions[currentVersionIdx + 1]
     : null;
-  const restoreDisabled = versionNumber === latestRevision || !canRestore || restoring;
+  const restoreDisabled = (
+    maintenanceMode
+    || versionNumber === latestRevision
+    || !canRestore
+    || restoring
+  );
   const restoreTooltip = versionNumber === latestRevision
     ? 'This is already the current version.'
+    : maintenanceMode
+      ? 'Maintenance mode is enabled.'
     : !canRestore
       ? 'You do not have permission to restore this group.'
       : '';
