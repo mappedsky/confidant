@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DynamoDB Data Schema - confidant 7.0.0-8a348a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Maintenance" href="maintenance.html" /><link rel="prev" title="Contributing" href="contributing.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DynamoDB Data Schema - confidant 7.0.0-94531b documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Maintenance" href="maintenance.html" /><link rel="prev" title="Contributing" href="contributing.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -124,50 +124,28 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="dynamodb-data-schema">
 <h1>DynamoDB Data Schema<a class="headerlink" href="#dynamodb-data-schema" title="Link to this heading">¶</a></h1>
-<p>We define <strong>secret</strong>, <strong>archive-secret</strong>, <strong>service</strong>, and
-<strong>archive_service</strong>. <strong>secret</strong> and <strong>service</strong> are the current revision of
-a secret, or a service. <strong>archive-secret</strong> and <strong>archive_service</strong> are
-archived revisions of passwords and groups and are append-only.</p>
-<p>When a secret or a service is updated, it is added to the archive and the
-current revision is modified to reflect the newest revision. If the item isn’t
-saved to the archive, the request will fail and the state of the system stays
-the same.</p>
-<p><strong>secret</strong></p>
+<p>Confidant stores secrets, groups, and archived deletions in a single DynamoDB
+table. Each resource uses a stable partition key with separate items for
+metadata, the latest revision, and historical revisions.</p>
+<p>Secret items include:</p>
 <ul class="simple">
-<li><p>id: uuid4 (string)</p></li>
-<li><p>data-type: ‘secret’ (string)</p></li>
-<li><p>revision: incrementing integer (integer)</p></li>
-<li><p>name: user-defined friendly name (string)</p></li>
-<li><p>secret_pairs: dict with key/val pairs (string)</p></li>
-<li><p>data_key: encrypted data key used to encrypt the secret_pairs (binary)</p></li>
-<li><p>modified_date: auto-generated date (datetime)</p></li>
+<li><p>id: secret identifier (string)</p></li>
+<li><p>revision: incrementing integer</p></li>
+<li><p>name: user-defined friendly name</p></li>
+<li><p>secret_pairs: encrypted key/value data</p></li>
+<li><p>data_key: encrypted data key used for secret_pairs</p></li>
+<li><p>metadata: clear-text metadata map</p></li>
+<li><p>modified_date: auto-generated timestamp</p></li>
 </ul>
-<p><strong>archive-secret</strong></p>
+<p>Group items include:</p>
 <ul class="simple">
-<li><p>id: uuid4-revision (string)</p></li>
-<li><p>data-type: ‘archive-secret’ (string)</p></li>
-<li><p>revision: incrementing integer (current revision + 1) (integer)</p></li>
-<li><p>name: user-defined friendly name (string)</p></li>
-<li><p>secret_pairs: dict with key/val pairs (string)</p></li>
-<li><p>data_key: encrypted data key used to encrypt the secret_pairs (binary)</p></li>
-<li><p>modified_date: auto-generated date (datetime)</p></li>
+<li><p>id: group identifier (string)</p></li>
+<li><p>revision: incrementing integer</p></li>
+<li><p>policies: map of secret ids or globs to allowed actions</p></li>
+<li><p>modified_date: auto-generated timestamp</p></li>
 </ul>
-<p><strong>service</strong></p>
-<ul class="simple">
-<li><p>id: user-defined group identifier (string)</p></li>
-<li><p>data-type: ‘service’ (string)</p></li>
-<li><p>revision: incrementing integer (integer)</p></li>
-<li><p>secrets: list of secret ids (string set)</p></li>
-<li><p>modified_date: auto-generated date (datetime)</p></li>
-</ul>
-<p><strong>archive-service</strong></p>
-<ul class="simple">
-<li><p>id: user-defined group identifier (string)</p></li>
-<li><p>data-type: ‘service’ (string)</p></li>
-<li><p>revision: incrementing integer (current revision + 1) (integer)</p></li>
-<li><p>secrets: list of secret ids (string set)</p></li>
-<li><p>modified_date: auto-generated date (datetime)</p></li>
-</ul>
+<p>Deleted secrets and groups are copied into archive partitions in the same table
+before the active records are removed.</p>
 <section id="at-rest-encryption-model">
 <h2>At-rest encryption model<a class="headerlink" href="#at-rest-encryption-model" title="Link to this heading">¶</a></h2>
 <p>All metadata in Confidant is stored in clear text, but secret pairs in
@@ -230,7 +208,7 @@ isn’t available in memory.</p>
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=ebb31fc3"></script>
+      <script src="_static/documentation_options.js?v=d7342494"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>

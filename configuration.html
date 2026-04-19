@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-8a348a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-94531b documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -93,13 +93,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
 <li><a class="reference internal" href="#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
 <li><a class="reference internal" href="#statsd-metrics">statsd metrics</a></li>
-<li><a class="reference internal" href="#sending-graphite-events">Sending graphite events</a></li>
 <li><a class="reference internal" href="#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
 <li><a class="reference internal" href="#auth-token-lifetime">Auth token lifetime</a></li>
 <li><a class="reference internal" href="#frontend-configuration">Frontend configuration</a></li>
 <li><a class="reference internal" href="#development-and-testing-settings">Development and testing settings</a></li>
-<li><a class="reference internal" href="#bootstrapping-confidant-s-own-secrets">Bootstrapping Confidant&#8217;s own secrets</a></li>
-<li><a class="reference internal" href="#confidant-client-configuration">Confidant client configuration</a></li>
 <li><a class="reference internal" href="#maintenance-mode-settings">Maintenance mode settings</a></li>
 <li><a class="reference internal" href="#confidant-performance-settings">Confidant performance settings</a></li>
 <li><a class="reference internal" href="#settings-for-local-development">Settings for local development</a></li>
@@ -262,17 +259,6 @@ statsd on localhost on port 8125.</p>
 </span></pre></div>
 </div>
 </section>
-<section id="sending-graphite-events">
-<h3>Sending graphite events<a class="headerlink" href="#sending-graphite-events" title="Link to this heading">¶</a></h3>
-<p>Confidant can also send graphite events on secret updates or changes in service
-mappings:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="nb">export</span><span class="w"> </span><span class="nv">GRAPHITE_EVENT_URL</span><span class="o">=</span><span class="s1">&#39;https://graphite.example.com/events/&#39;</span>
-</span><span data-line="2"><span class="nb">export</span><span class="w"> </span><span class="nv">GRAPHITE_USERNAME</span><span class="o">=</span><span class="s1">&#39;mygraphiteuser&#39;</span>
-</span><span data-line="3"><span class="c1"># GRAPHITE_PASSWORD can be loaded via SECRETS_BOOTSTRAP</span>
-</span><span data-line="4"><span class="nb">export</span><span class="w"> </span><span class="nv">GRAPHITE_PASSWORD</span><span class="o">=</span><span class="s1">&#39;mylongandsupersecuregraphitepassword&#39;</span>
-</span></pre></div>
-</div>
-</section>
 <section id="google-authentication-user-restrictions">
 <h3>Google authentication user restrictions<a class="headerlink" href="#google-authentication-user-restrictions" title="Link to this heading">¶</a></h3>
 <p>It’s possible to restrict access to a subset of users that authenticate
@@ -329,33 +315,6 @@ and should never be used in production:</p>
 </span><span data-line="12"><span class="nb">export</span><span class="w"> </span><span class="nv">DEBUG</span><span class="o">=</span><span class="nb">true</span>
 </span></pre></div>
 </div>
-</section>
-<section id="bootstrapping-confidant-s-own-secrets">
-<h3>Bootstrapping Confidant’s own secrets<a class="headerlink" href="#bootstrapping-confidant-s-own-secrets" title="Link to this heading">¶</a></h3>
-<p>It’s possible for confidant to load its own secrets from a KMS encrypted base64
-encoded YAML dict. This dict can be generated (and decrypted) through a
-confidant script:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="nb">cd</span><span class="w"> </span>/srv/confidant
-</span><span data-line="2"><span class="nb">source</span><span class="w"> </span>venv/bin/activate
-</span><span data-line="3">
-</span><span data-line="4"><span class="c1"># Encrypt the data</span>
-</span><span data-line="5">python<span class="w"> </span>manage.py<span class="w"> </span>generate_secrets_bootstrap<span class="w"> </span>--in<span class="w"> </span>unencrypted_dict.yaml<span class="w"> </span>--out<span class="w"> </span>encrypted_dict.yaml.enc
-</span><span data-line="6"><span class="nb">export</span><span class="w"> </span><span class="nv">SECRETS_BOOTSTRAP</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>encrypted_dict.yaml.enc<span class="sb">`</span>
-</span><span data-line="7">
-</span><span data-line="8"><span class="c1"># Get a decrypted output of the yaml data</span>
-</span><span data-line="9">python<span class="w"> </span>manage.py<span class="w"> </span>decrypt_secrets_bootstrap
-</span></pre></div>
-</div>
-</section>
-<section id="confidant-client-configuration">
-<h3>Confidant client configuration<a class="headerlink" href="#confidant-client-configuration" title="Link to this heading">¶</a></h3>
-<p>Confidant exposes some data to its clients via a flask endpoint. It’s possible
-to expose additional custom data to clients through the server’s configuration:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="nb">export</span><span class="w"> </span><span class="nv">CLIENT_CONFIG</span><span class="o">=</span><span class="s1">&#39;{&quot;cipher_type&quot;:&quot;aes-gcm&quot;,&quot;cipher_version&quot;:&quot;3&quot;,&quot;store_secret_keys&quot;:true}&#39;</span>
-</span></pre></div>
-</div>
-<p>The native client, or custom clients can use this data to help configure
-themselves.</p>
 </section>
 <section id="maintenance-mode-settings">
 <h3>Maintenance mode settings<a class="headerlink" href="#maintenance-mode-settings" title="Link to this heading">¶</a></h3>
@@ -644,7 +603,7 @@ the indexes. See your usage in cloudwatch and increase throughput as necessary.<
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=ebb31fc3"></script>
+      <script src="_static/documentation_options.js?v=d7342494"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>
