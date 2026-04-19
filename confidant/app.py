@@ -86,18 +86,6 @@ def create_app():
         )
         return response
 
-    if settings.REDIS_URL_FLASK_SESSIONS:
-        import redis
-        from flask_session import Session
-
-        app.config["SESSION_REDIS"] = redis.Redis.from_url(
-            settings.REDIS_URL_FLASK_SESSIONS,
-            socket_timeout=settings.REDIS_SOCKET_TIMEOUT,
-        )
-        Session(app)
-
-    app.secret_key = settings.SESSION_SECRET
-
     if settings.DYNAMODB_CREATE_TABLE:
         create_dynamodb_tables()
 

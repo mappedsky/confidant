@@ -11,10 +11,10 @@ import { AuthConfigResponse, OidcConfig } from './types/api';
 import { createUserManager } from './userManager';
 import SecretListPage from './pages/SecretListPage';
 import SecretDetailPage from './pages/SecretDetailPage';
-import SecretHistoryPage from './pages/SecretHistoryPage';
 import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupHistoryPage from './pages/GroupHistoryPage';
+import SecretRouteResolver from './components/SecretRouteResolver';
 
 type ColorScheme = 'light' | 'dark';
 
@@ -84,9 +84,7 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/secrets" replace />} />
                         <Route path="/secrets" element={<SecretListPage />} />
                         <Route path="/secrets/new" element={<SecretDetailPage />} />
-                        <Route path="/secrets/:id/history" element={<SecretHistoryPage />} />
-                        <Route path="/secrets/:id/versions/:version" element={<SecretDetailPage />} />
-                        <Route path="/secrets/:id" element={<SecretDetailPage />} />
+                        <Route path="/secrets/*" element={<SecretRouteResolver />} />
                         <Route path="/groups" element={<GroupListPage />} />
                         <Route path="/groups/new" element={<GroupDetailPage />} />
                         <Route path="/groups/:id/history" element={<GroupHistoryPage />} />

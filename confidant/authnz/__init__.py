@@ -252,14 +252,6 @@ def user_is_service(service):
     )
 
 
-def require_csrf_token(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        return f(*args, **kwargs)
-
-    return decorated
-
-
 def log_in():
     return redirect(url_for("static_files.index"))
 

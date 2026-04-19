@@ -207,7 +207,6 @@ def get_group_version(id, version):
 @blueprint.route("/v1/groups/<id>/versions", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def update_group(id):
     data = request.get_json() or {}
@@ -304,7 +303,6 @@ def update_group(id):
 )
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def restore_group_version(id, version):
     tenant_id = authnz.get_tenant_id()
@@ -352,7 +350,6 @@ def restore_group_version(id, version):
 @blueprint.route("/v1/groups/<id>", methods=["DELETE"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def delete_group(id):
     tenant_id = authnz.get_tenant_id()

@@ -194,7 +194,6 @@ def get_secret(id):
 @blueprint.route("/v1/secrets/<path:id>/decrypt", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 def decrypt_secret(id):
     tenant_id = authnz.get_tenant_id()
     if not _can_decrypt_secret(tenant_id, id):
@@ -264,7 +263,6 @@ def get_secret_version(id, version):
 )
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 def decrypt_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not _can_decrypt_secret(tenant_id, id):
@@ -289,7 +287,6 @@ def decrypt_secret_version(id, version):
 @blueprint.route("/v1/secrets", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def create_secret():
     with stats.timer("create_secret"):
@@ -341,7 +338,6 @@ def create_secret():
 @blueprint.route("/v1/secrets/<path:id>/versions", methods=["POST"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def update_secret(id):
     with stats.timer("update_secret"):
@@ -383,7 +379,6 @@ def update_secret(id):
 @blueprint.route("/v1/secrets/<path:id>", methods=["DELETE"])
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def delete_secret(id):
     tenant_id = authnz.get_tenant_id()
@@ -409,7 +404,6 @@ def delete_secret(id):
 )
 @misc.prevent_xss_decorator
 @authnz.require_auth
-@authnz.require_csrf_token
 @maintenance.check_maintenance_mode
 def restore_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
