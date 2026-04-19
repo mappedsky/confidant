@@ -5,7 +5,6 @@ from datetime import timezone
 from confidant.schema.groups import GroupResponse
 from confidant.schema.groups import GroupsResponse
 from confidant.schema.groups import RevisionsResponse
-from confidant.services import graphite
 from confidant.services.dynamodbstore import store
 from confidant.utils import resource_ids
 
@@ -141,19 +140,6 @@ def get_group_map(groups):
                     "group_ids": [_value(group, "id")],
                 }
     return group_map
-
-
-def send_group_mapping_graphite_event(new_group, old_group):
-    if old_group:
-        old_secret_ids = list(_value(old_group, "policies", {}).keys())
-    else:
-        old_secret_ids = []
-    new_secret_ids = list(_value(new_group, "policies", {}).keys())
-    added = list(set(new_secret_ids) - set(old_secret_ids))
-    removed = list(set(old_secret_ids) - set(new_secret_ids))
-    msg = "Added secrets: {0}; Removed secrets {1}; Revision {2}"
-    msg = msg.format(added, removed, _value(new_group, "revision"))
-    graphite.send_event([_value(new_group, "id")], msg)
 
 
 def get_latest_group_revision(_id, revision):
@@ -331,10 +317,8 @@ def delete_group(tenant_id, group_id):
     current = store.get_group_latest(tenant_id, group_id)
     if not current:
         return None, {"error": "Group not found."}
-
     if store.get_archive_group_latest(tenant_id, group_id):
         store.delete_archive_group(tenant_id, group_id)
-
     versions = store.list_group_versions(tenant_id, group_id)
     archived_items = [_archive_group_item(current, tenant_id)]
     archived_items.extend(

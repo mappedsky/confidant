@@ -83,8 +83,8 @@ with PKCE to acquire the token. Any standard OIDC provider can be used; the loca
 development stack ships with Authentik.
 
 The backend owns the OIDC settings and exposes them to the SPA through
-`GET /v1/auth_config` and `GET /v1/client_config`. The frontend should not
-hardcode provider-specific endpoints.
+`GET /v1/auth_config`. The frontend should not hardcode provider-specific
+endpoints.
 
 ```bash
 # JWKS endpoint used by the backend to validate JWTs
@@ -133,18 +133,6 @@ statsd on localhost on port 8125.
 ```bash
 export STATSD_HOST='mystatshost.example.com'
 export STATSD_PORT='8125'
-```
-
-### Sending graphite events
-
-Confidant can also send graphite events on secret updates or changes in service
-mappings:
-
-```bash
-export GRAPHITE_EVENT_URL='https://graphite.example.com/events/'
-export GRAPHITE_USERNAME='mygraphiteuser'
-# GRAPHITE_PASSWORD can be loaded via SECRETS_BOOTSTRAP
-export GRAPHITE_PASSWORD='mylongandsupersecuregraphitepassword'
 ```
 
 ### Google authentication user restrictions
@@ -210,36 +198,6 @@ export SSLIFY=false
 # NEVER USE THIS IN PRODUCTION!
 export DEBUG=true
 ```
-
-### Bootstrapping Confidant's own secrets
-
-It's possible for confidant to load its own secrets from a KMS encrypted base64
-encoded YAML dict. This dict can be generated (and decrypted) through a
-confidant script:
-
-```bash
-cd /srv/confidant
-source venv/bin/activate
-
-# Encrypt the data
-python manage.py generate_secrets_bootstrap --in unencrypted_dict.yaml --out encrypted_dict.yaml.enc
-export SECRETS_BOOTSTRAP=`cat encrypted_dict.yaml.enc`
-
-# Get a decrypted output of the yaml data
-python manage.py decrypt_secrets_bootstrap
-```
-
-### Confidant client configuration
-
-Confidant exposes some data to its clients via a flask endpoint. It's possible
-to expose additional custom data to clients through the server's configuration:
-
-```bash
-export CLIENT_CONFIG='{"cipher_type":"aes-gcm","cipher_version":"3","store_secret_keys":true}'
-```
-
-The native client, or custom clients can use this data to help configure
-themselves.
 
 ### Maintenance mode settings
 

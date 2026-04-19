@@ -1,7 +1,6 @@
 import {
   ApiError,
   ApiErrorData,
-  ClientConfigResponse,
   CreateSecretPayload,
   SecretDetail,
   SecretVersionsResponse,
@@ -86,7 +85,6 @@ function withCursorParams(url: string, params?: CursorPageParams): string {
 }
 
 export const api = {
-  getClientConfig: () => request<ClientConfigResponse>('/v1/client_config'),
   getUserEmail: () => request<UserEmailResponse>('/v1/user/email'),
 
   getSecrets: (params?: CursorPageParams) =>

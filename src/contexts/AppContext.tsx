@@ -6,12 +6,10 @@ import React, {
   ReactNode,
 } from 'react';
 import { api } from '../api';
-import { ClientConfigResponse } from '../types/api';
 import { AuthContext } from '../auth.context';
 import { AuthConfigContext } from '../authConfig.context';
 
 interface AppContextValue {
-  clientConfig: ClientConfigResponse | null;
   userEmail: string | null;
   loading: boolean;
   error: string | null;
@@ -26,9 +24,6 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const { accessToken, isLoading: authLoading } = useContext(AuthContext);
   const { auth_required } = useContext(AuthConfigContext);
-  const [clientConfig, setClientConfig] = useState<ClientConfigResponse | null>(
-    null,
-  );
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +35,8 @@ export function AppProvider({ children }: AppProviderProps) {
     }
 
     setError(null);
-    Promise.all([api.getClientConfig(), api.getUserEmail()])
-      .then(([config, user]) => {
-        setClientConfig(config);
+    api.getUserEmail()
+      .then((user) => {
         setUserEmail(user.email);
         setLoading(false);
       })
@@ -53,7 +47,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [accessToken, authLoading, auth_required]);
 
   return (
-    <AppContext.Provider value={{ clientConfig, userEmail, loading, error }}>
+    <AppContext.Provider value={{ userEmail, loading, error }}>
       {children}
     </AppContext.Provider>
   );

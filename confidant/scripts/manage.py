@@ -2,8 +2,6 @@ import click
 from flask.cli import FlaskGroup
 
 from confidant.app import create_app
-from confidant.scripts.bootstrap import decrypt_secrets_bootstrap
-from confidant.scripts.bootstrap import generate_secrets_bootstrap
 from confidant.scripts.utils import create_dynamodb_tables
 
 
@@ -17,8 +15,6 @@ def manager():
     pass
 
 
-manager.command("generate_secrets_bootstrap")(generate_secrets_bootstrap)
-manager.command("decrypt_secrets_bootstrap")(decrypt_secrets_bootstrap)
 manager.command("create_dynamodb_tables")(create_dynamodb_tables)
 
 

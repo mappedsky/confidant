@@ -2,8 +2,6 @@ import json
 import logging
 from os import getenv
 
-from confidant.encrypted_settings import EncryptedSettings
-
 logger = logging.getLogger(__name__)
 
 
@@ -100,17 +98,6 @@ KMS_URL = str_env("KMS_URL", None)
 # the application behaves as a single-tenant system and uses a fixed tenant id.
 MULTI_TENANT = bool_env("MULTI_TENANT", False)
 
-# Bootstrapping
-
-# A base64 encoded and KMS encrypted YAML string that contains secrets that
-# confidant should use for its own secrets. The blob should be generated using
-# confidant's generate_secrets_bootstrap script via manage.py. It uses the
-# KMS_MASTER_KEY for decryption.
-# If SECRETS_BOOTSTRAP starts with file://, then it will load the blob from a
-# file, rather than reading the blob from the environment.
-SECRETS_BOOTSTRAP = str_env("SECRETS_BOOTSTRAP")
-encrypted_settings = EncryptedSettings(SECRETS_BOOTSTRAP, KMS_URL)
-
 # JWT authentication
 
 # Standard JWKS endpoint used to validate JWTs. Must be a JSON endpoint
@@ -181,9 +168,6 @@ DYNAMODB_URL = str_env("DYNAMODB_URL")
 # The DynamoDB table to use for storage.
 # Example: mydynamodbtable
 DYNAMODB_TABLE = str_env("DYNAMODB_TABLE")
-# Legacy setting for the old separate-table archive layout. Archives now live
-# in the primary single-table design, so this is ignored.
-DYNAMODB_TABLE_ARCHIVE = str_env("DYNAMODB_TABLE_ARCHIVE")
 # Have Confidant automatically generate the DynamoDB table if it doesn't exist.
 # Note that you need to give Confidant's IAM user or role enough privileges for
 # this to occur.
@@ -212,47 +196,12 @@ if HISTORY_PAGE_LIMIT == 0:
 # If a key alias is used, rather than an ARN, it must be prefixed with: alias/
 KMS_MASTER_KEY = str_env("KMS_MASTER_KEY")
 
-# Graphite events
-
-# A graphite events URL.
-# Example: https://graphite.example.com/events/
-GRAPHITE_EVENT_URL = str_env("GRAPHITE_EVENT_URL")
-# A basic auth username.
-# Example: mygraphiteuser
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-GRAPHITE_USERNAME = encrypted_settings.register(
-    "GRAPHITE_USERNAME", str_env("GRAPHITE_USERNAME")
-)
-# A basic auth password:
-# Example: mylongandsupersecuregraphitepassword
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-GRAPHITE_PASSWORD = encrypted_settings.register(
-    "GRAPHITE_PASSWORD", str_env("GRAPHITE_PASSWORD")
-)
-
 # Statsd metrics
 
 # A statsd host
 STATSD_HOST = str_env("STATSD_HOST", "localhost")
 # A statsd port
 STATSD_PORT = int_env("STATSD_PORT", 8125)
-
-# Webhook configuration
-
-# Endpoint URL to send webhook events to.
-WEBHOOK_URL = str_env("WEBHOOK_URL")
-# A basic auth username.
-# Example: myhookuser
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-WEBHOOK_USERNAME = encrypted_settings.register(
-    "WEBHOOK_USERNAME", str_env("WEBHOOK_USERNAME")
-)
-# A basic auth password:
-# Example: mylongandsupersecurehookpassword
-# This setting can be loaded from the SECRETS_BOOTSTRAP.
-WEBHOOK_PASSWORD = encrypted_settings.register(
-    "WEBHOOK_PASSWORD", str_env("WEBHOOK_PASSWORD")
-)
 
 # Ignore conflicts of credential names in a service
 # This is used if you don't mind having more than one of the same key name
@@ -263,11 +212,6 @@ IGNORE_CONFLICTS = bool_env("IGNORE_CONFLICTS", False)
 
 # Directory for customization of AngularJS frontend.
 CUSTOM_FRONTEND_DIRECTORY = str_env("CUSTOM_FRONTEND_DIRECTORY")
-
-# Custom configuration to bootstrap confidant clients. This
-# configuration is in JSON format and can contain anything you'd like to pass
-# to the clients.
-CLIENT_CONFIG = json.loads(str_env("CLIENT_CONFIG", "{}"))
 
 # Maintenance mode
 
@@ -341,8 +285,6 @@ def get(name, default=None):
     """
     Get the value of a variable in the settings module scope.
     """
-    if encrypted_settings.registered(name):
-        return encrypted_settings.get_secret(name)
     return globals().get(name, default)
 
 

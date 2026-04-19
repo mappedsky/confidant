@@ -69,8 +69,8 @@
     <path d="M865 305L871 299L877 305L871 311L865 305Z" fill="#4A4D65"/>
 
     <rect x="418" y="334" width="486" height="46" rx="8" fill="#FFFFFF"/>
-    <text x="424" y="362" fill="#4A4D65" font-family="Helvetica Neue, Arial, sans-serif" font-size="13">webhook-token</text>
-    <text x="570" y="362" fill="#4A4D65" font-family="monospace" font-size="12">service/webhook</text>
+    <text x="424" y="362" fill="#4A4D65" font-family="Helvetica Neue, Arial, sans-serif" font-size="13">db-password</text>
+    <text x="570" y="362" fill="#4A4D65" font-family="monospace" font-size="12">apps/api</text>
     <text x="738" y="362" fill="#4A4D65" font-family="Helvetica Neue, Arial, sans-serif" font-size="13">19</text>
     <text x="812" y="362" fill="#4A4D65" font-family="Helvetica Neue, Arial, sans-serif" font-size="12">Apr 17, 2026</text>
     <rect x="856" y="343" width="28" height="28" rx="14" fill="#EDEFF7"/>

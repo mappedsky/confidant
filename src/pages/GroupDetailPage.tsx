@@ -42,7 +42,6 @@ import HistoryIcon from '@mui/icons-material/History';
 import RestoreIcon from '@mui/icons-material/Restore';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { api } from '../api';
-import { useAppContext } from '../contexts/AppContext';
 import CenteredSpinner from '../components/CenteredSpinner';
 import {
   ConflictMap,
@@ -103,12 +102,9 @@ type GroupDetailParams = { id?: string; version?: string };
 export default function GroupDetailPage() {
   const { id, version } = useParams<GroupDetailParams>();
   const navigate = useNavigate();
-  const { clientConfig } = useAppContext();
   const isNew = !id;
   const versionNumber = version ? Number(version) : null;
   const isVersionView = versionNumber !== null && !Number.isNaN(versionNumber);
-
-  const permissions = clientConfig?.generated?.permissions;
 
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [allSecrets, setAllSecrets] = useState<SecretSummary[]>([]);
@@ -373,9 +369,7 @@ export default function GroupDetailPage() {
     );
   }
 
-  const canEdit = !isVersionView && (isNew
-    ? permissions?.groups?.create
-    : group?.permissions?.update);
+  const canEdit = !isVersionView && (isNew || group?.permissions?.update);
   const canDelete = !isVersionView && !isNew && group?.permissions?.delete;
   const currentVersionIdx = versionNumber !== null
     ? versionRevisions.indexOf(versionNumber)
