@@ -34,14 +34,6 @@ def test_check_secret_pair_values(mocker: MockerFixture):
     assert result[0] is True
 
 
-def test_lowercase_secret_pairs():
-    test = {"A": "123", "B": "345", "C": "678"}
-
-    expected = {"a": "123", "b": "345", "c": "678"}
-    res = secretmanager.lowercase_secret_pairs(test)
-    assert res == expected
-
-
 def test_encrypt_secret_pairs_encodes_data_key(mocker: MockerFixture):
     mocker.patch(
         "confidant.services.keymanager.create_datakey",
@@ -125,3 +117,82 @@ def test_list_secrets_passes_prefix_to_store(mocker: MockerFixture):
     )
 
     assert store_mock.call_args.kwargs["prefix"] == "apps/"
+
+
+def test_create_secret_preserves_secret_key_case(mocker: MockerFixture):
+    mocker.patch(
+        "confidant.services.secretmanager.store.get_secret_latest",
+        return_value=None,
+    )
+    mocker.patch(
+        "confidant.services.secretmanager._secret_response_from_item",
+        side_effect=lambda item, **kwargs: type(
+            "SecretStub",
+            (),
+            {"secret_keys": item["secret_keys"]},
+        )(),
+    )
+    encrypt_mock = mocker.patch(
+        "confidant.services.secretmanager._encrypt_secret_pairs",
+        return_value=("encrypted", "data-key", 2),
+    )
+    put_mock = mocker.patch("confidant.services.secretmanager.store.put_version_bundle")
+
+    secret, error = secretmanager.create_secret(
+        tenant_id="tenant-a",
+        secret_id="apps/test",
+        name="Test secret",
+        secret_pairs={"API_KEY": "value"},
+        created_by="user@example.com",
+    )
+
+    assert error is None
+    assert secret.secret_keys == ["API_KEY"]
+    assert encrypt_mock.call_args.args[2] == {"API_KEY": "value"}
+    write_items = put_mock.call_args.args[0]
+    assert write_items[0]["Item"]["secret_keys"] == ["API_KEY"]
+
+
+def test_update_secret_preserves_secret_key_case(mocker: MockerFixture):
+    mocker.patch(
+        "confidant.services.secretmanager.store.get_secret_latest",
+        return_value={
+            "tenant_id": "tenant-a",
+            "id": "apps/test",
+            "name": "Old name",
+            "revision": 1,
+            "modified_date": "2026-04-08T00:00:00+00:00",
+            "modified_by": "user@example.com",
+            "secret_keys": ["OLD_KEY"],
+            "secret_pairs": "old-encrypted",
+            "data_key": "old-data-key",
+            "cipher_version": 2,
+        },
+    )
+    mocker.patch(
+        "confidant.services.secretmanager._secret_response_from_item",
+        side_effect=lambda item, **kwargs: type(
+            "SecretStub",
+            (),
+            {"secret_keys": item["secret_keys"]},
+        )(),
+    )
+    encrypt_mock = mocker.patch(
+        "confidant.services.secretmanager._encrypt_secret_pairs",
+        return_value=("encrypted", "data-key", 2),
+    )
+    put_mock = mocker.patch("confidant.services.secretmanager.store.put_version_bundle")
+
+    secret, error = secretmanager.update_secret(
+        tenant_id="tenant-a",
+        secret_id="apps/test",
+        name="New name",
+        created_by="user@example.com",
+        secret_pairs={"API_KEY": "value"},
+    )
+
+    assert error is None
+    assert secret.secret_keys == ["API_KEY"]
+    assert encrypt_mock.call_args.args[2] == {"API_KEY": "value"}
+    write_items = put_mock.call_args.args[0]
+    assert write_items[0]["Item"]["secret_keys"] == ["API_KEY"]

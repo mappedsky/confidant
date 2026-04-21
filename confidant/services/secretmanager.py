@@ -211,10 +211,6 @@ def check_secret_pair_values(secret_pairs):
     return (True, {})
 
 
-def lowercase_secret_pairs(secret_pairs):
-    return {i.lower(): j for i, j in secret_pairs.items()}
-
-
 def get_revision_ids_for_secret(secret):
     _range = range(1, secret.revision + 1)
     ids = []
@@ -316,7 +312,6 @@ def create_secret(
     if store.get_secret_latest(tenant_id, secret_id):
         return None, {"error": "Secret already exists."}
     revision = 1
-    secret_pairs = lowercase_secret_pairs(secret_pairs)
     ok, ret = check_secret_pair_values(secret_pairs)
     if not ok:
         return None, ret
@@ -399,7 +394,6 @@ def update_secret(
     cipher_version = current.get("cipher_version")
 
     if secret_pairs is not None:
-        secret_pairs = lowercase_secret_pairs(secret_pairs)
         ok, ret = check_secret_pair_values(secret_pairs)
         if not ok:
             return None, ret

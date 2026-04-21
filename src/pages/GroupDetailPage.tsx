@@ -45,7 +45,6 @@ import { api } from '../api';
 import { useAppContext } from '../contexts/AppContext';
 import CenteredSpinner from '../components/CenteredSpinner';
 import {
-  ConflictMap,
   GroupWritePayload,
   SecretSummary,
   GroupDetail,
@@ -117,7 +116,6 @@ export default function GroupDetailPage() {
   const [editing, setEditing] = useState(isNew);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
   const [latestRevision, setLatestRevision] = useState<number | null>(null);
   const [canRestore, setCanRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -225,7 +223,6 @@ export default function GroupDetailPage() {
 
   const handleSave = async () => {
     setSaveError(null);
-    setConflicts(null);
 
     const idError = validateGroupId(formId);
     if (idError) {
@@ -297,11 +294,7 @@ export default function GroupDetailPage() {
         throw new Error('Missing group ID');
       }
     } catch (err: unknown) {
-      const error = err as { message: string; data?: { conflicts?: ConflictMap } };
-      setSaveError(error.message);
-      if (error.data?.conflicts) {
-        setConflicts(error.data.conflicts);
-      }
+      setSaveError((err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -316,7 +309,6 @@ export default function GroupDetailPage() {
       populateForm(group);
     }
     setSaveError(null);
-    setConflicts(null);
     setEditing(false);
   };
 
@@ -542,27 +534,6 @@ export default function GroupDetailPage() {
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
-          {conflicts && (
-            <Box mt={1}>
-              <Typography variant="body2">Conflicting secret pair keys:</Typography>
-              {Object.entries(conflicts).map(([key, info]) => (
-                <Box key={key} ml={2}>
-                  <Typography variant="body2"><strong>{key}</strong></Typography>
-                  {info.secrets?.map((cid) => (
-                    <Typography key={cid} variant="body2" ml={2}>
-                      Secret:
-                      <Link component={RouterLink} to={secretDetailPath(cid)}>
-                        {cid}
-                      </Link>
-                    </Typography>
-                  ))}
-                </Box>
-              ))}
-              <Typography variant="body2" mt={1}>
-                Please ensure secret pair keys are unique, then try again.
-              </Typography>
-            </Box>
-          )}
         </Alert>
       )}
 
@@ -752,7 +723,6 @@ export default function GroupDetailPage() {
                   variant="contained"
                   onClick={() => {
                     setSaveError(null);
-                    setConflicts(null);
                     setEditing(true);
                   }}
                   sx={{

@@ -136,17 +136,9 @@ export interface GenerateValueRequest {
   complexity?: string[];
 }
 
-export type ConflictInfo = {
-  secrets?: string[];
-  groups?: string[];
-};
-
-export type ConflictMap = Record<string, ConflictInfo>;
-
 export interface ApiErrorData {
   error?: string;
   reference?: string;
-  conflicts?: ConflictMap;
 }
 
 export interface ApiError extends Error {

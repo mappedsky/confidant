@@ -202,11 +202,6 @@ STATSD_HOST = str_env("STATSD_HOST", "localhost")
 # A statsd port
 STATSD_PORT = int_env("STATSD_PORT", 8125)
 
-# Ignore conflicts of credential names in a service
-# This is used if you don't mind having more than one of the same key name
-# in different credentials associated with a service.
-IGNORE_CONFLICTS = bool_env("IGNORE_CONFLICTS", False)
-
 # Customization
 
 # Directory for customization of AngularJS frontend.
