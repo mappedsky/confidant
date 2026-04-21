@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import os.path
 from functools import wraps
 
@@ -26,13 +26,13 @@ def check_maintenance_mode(f):
         # Return an error if this function is called when the app is in
         # maintenance mode.
         if in_maintenance_mode():
-            logger.warning('Rejecting request due to maintenance mode.')
+            logger.warning("Rejecting request due to maintenance mode.")
             resp = make_response(
-                json.dumps({'error': 'Server in maintenance mode.'}),
-                403
+                json.dumps({"error": "Server in maintenance mode."}), 403
             )
-            resp.mimetype = 'application/json'
+            resp.mimetype = "application/json"
             return resp
         else:
             return f(*args, **kwargs)
+
     return decorated

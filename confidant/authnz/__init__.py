@@ -4,17 +4,11 @@ from functools import wraps
 from typing import Any
 
 import jwt
-from flask import abort
-from flask import g
-from flask import redirect
-from flask import request
-from flask import url_for
+from flask import abort, g, redirect, request, url_for
 from jwt import PyJWKClient
 
 from confidant import settings
-from confidant.authnz.errors import AuthenticationError
-from confidant.authnz.errors import NotAuthorized
-from confidant.authnz.errors import UserUnknownError
+from confidant.authnz.errors import AuthenticationError, NotAuthorized, UserUnknownError
 
 logger = logging.getLogger(__name__)
 

@@ -90,8 +90,9 @@ def test_decrypt_secret_pairs_rejects_old_cipher_version(
         "cipher_version": 2,
     }
 
-    from confidant.services.ciphermanager import CipherManagerError
     import pytest
+
+    from confidant.services.ciphermanager import CipherManagerError
 
     with pytest.raises(CipherManagerError):
         secretmanager._decrypt_secret_pairs(item)

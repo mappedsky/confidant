@@ -1,7 +1,8 @@
-from functools import wraps
 import importlib
-import pytz
 from datetime import datetime
+from functools import wraps
+
+import pytz
 from flask import make_response
 
 
@@ -25,13 +26,13 @@ def dict_deep_update(a, b):
 
 
 def load_module(module_path):
-    """ Load's a python module.
+    """Load's a python module.
 
     ex: module_path = "confidant.authnz.rbac:no_acl"
 
     Will load the module confidant.authnz.rbac and return the function no_acl
     """
-    module_name, function_name = module_path.split(':')
+    module_name, function_name = module_path.split(":")
     module = importlib.import_module(module_name)
     function = getattr(module, function_name)
 
@@ -46,7 +47,7 @@ def get_boolean(val, default=False):
     """
     if val is None:
         return default
-    return val in ['True', 'true', '1']
+    return val in ["True", "true", "1"]
 
 
 def utcnow():
@@ -65,6 +66,7 @@ def prevent_xss_decorator(func):
      4. Prevent MIME Type Sniffing
      5. Limit Referrer Information
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Call the original function to get the response
@@ -72,10 +74,11 @@ def prevent_xss_decorator(func):
 
         # Apply XSS prevention
         response = make_response(pre_xss_response)
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['X-XSS-Protection'] = '1; mode=block'
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        response.headers["Content-Type"] = "application/json"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
 
         return response
+
     return wrapper

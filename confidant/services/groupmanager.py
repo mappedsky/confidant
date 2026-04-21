@@ -1,10 +1,7 @@
 import logging
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 
-from confidant.schema.groups import GroupResponse
-from confidant.schema.groups import GroupsResponse
-from confidant.schema.groups import RevisionsResponse
+from confidant.schema.groups import GroupResponse, GroupsResponse, RevisionsResponse
 from confidant.services.dynamodbstore import store
 from confidant.utils import resource_ids
 

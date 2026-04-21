@@ -2,12 +2,7 @@ import logging
 import os
 from urllib.parse import urlparse
 
-from flask import blueprints
-from flask import current_app
-from flask import g
-from flask import redirect
-from flask import request
-from flask import send_from_directory
+from flask import blueprints, current_app, g, redirect, request, send_from_directory
 from werkzeug.exceptions import NotFound
 
 from confidant import settings

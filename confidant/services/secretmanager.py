@@ -3,15 +3,11 @@ import copy
 import json
 import logging
 import re
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 
-from confidant.schema.secrets import RevisionsResponse
-from confidant.schema.secrets import SecretResponse
-from confidant.schema.secrets import SecretsResponse
+from confidant.schema.secrets import RevisionsResponse, SecretResponse, SecretsResponse
 from confidant.services import keymanager
-from confidant.services.ciphermanager import CipherManager
-from confidant.services.ciphermanager import CURRENT_CIPHER_VERSION
+from confidant.services.ciphermanager import CURRENT_CIPHER_VERSION, CipherManager
 from confidant.services.dynamodbstore import store
 from confidant.utils import stats
 

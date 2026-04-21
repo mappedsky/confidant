@@ -1,8 +1,6 @@
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 
-from confidant.services.dynamodbstore import _serialize_item
-from confidant.services.dynamodbstore import DynamoDBConfidantStore
+from confidant.services.dynamodbstore import DynamoDBConfidantStore, _serialize_item
 
 
 def test_serialize_item_converts_datetime_to_string():

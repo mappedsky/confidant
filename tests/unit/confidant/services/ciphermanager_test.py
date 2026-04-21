@@ -3,8 +3,7 @@ import base64
 import pytest
 from Crypto.Random import get_random_bytes
 
-from confidant.services.ciphermanager import CipherManager
-from confidant.services.ciphermanager import CipherManagerError
+from confidant.services.ciphermanager import CipherManager, CipherManagerError
 
 
 def test_cipher_version_3():

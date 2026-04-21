@@ -1,15 +1,12 @@
 import base64
 import logging
-from collections.abc import Iterable
-from collections.abc import Sequence
-from datetime import datetime
-from datetime import timezone
+from collections.abc import Iterable, Sequence
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
 import boto3
-from boto3.dynamodb.conditions import Attr
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import TypeSerializer
 from botocore.config import Config
 
@@ -26,9 +23,9 @@ def _is_empty_value(value: Any) -> bool:
         return True
     if value == "":
         return True
-    if isinstance(value, (list, tuple, set, frozenset, dict)):
+    if isinstance(value, list | tuple | set | frozenset | dict):
         return len(value) == 0
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         return len(value) == 0
     return False
 
@@ -40,7 +37,7 @@ def _normalize_item_value(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, float):
         return Decimal(str(value))
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         return base64.b64encode(bytes(value)).decode("UTF-8")
     if isinstance(value, dict):
         normalized = {}
@@ -65,14 +62,14 @@ def _normalize_item_value(value: Any) -> Any:
             if (normalized_value := _normalize_item_value(child)) is not None
         ]
         return normalized or None
-    if isinstance(value, (set, frozenset)):
+    if isinstance(value, set | frozenset):
         normalized = {
             normalized_value
             for child in value
             if (normalized_value := _normalize_item_value(child)) is not None
         }
         return normalized or None
-    if isinstance(value, (str, bool, int, Decimal)):
+    if isinstance(value, str | bool | int | Decimal):
         return value
     return str(value)
 

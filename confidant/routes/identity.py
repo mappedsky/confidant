@@ -1,10 +1,8 @@
 from urllib.parse import urlparse
 
-from flask import blueprints
-from flask import jsonify
+from flask import blueprints, jsonify
 
-from confidant import authnz
-from confidant import settings
+from confidant import authnz, settings
 from confidant.utils import misc
 
 blueprint = blueprints.Blueprint("identity", __name__)

@@ -1,10 +1,7 @@
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 
 from confidant.app import create_app
-from confidant.schema.groups import GroupResponse
-from confidant.schema.groups import GroupsResponse
-from confidant.schema.groups import RevisionsResponse
+from confidant.schema.groups import GroupResponse, GroupsResponse, RevisionsResponse
 
 
 def _group(group_id="s1", revision=1, policies=None):
