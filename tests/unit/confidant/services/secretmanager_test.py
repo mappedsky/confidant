@@ -24,11 +24,14 @@ def test_check_secret_pair_values(mocker: MockerFixture):
     cred_pairs_fail = {"A": ["1", "2", "3"]}
     cred_pair_fail_2 = {"A": {"1": "2"}}
     cred_pair_fail_3 = {"A A": {"1": "2"}}
+    cred_pair_fail_4 = {"A": "1", "a": "2"}
     result = secretmanager.check_secret_pair_values(cred_pairs_fail)
     assert result[0] is False
     result = secretmanager.check_secret_pair_values(cred_pair_fail_2)
     assert result[0] is False
     result = secretmanager.check_secret_pair_values(cred_pair_fail_3)
+    assert result[0] is False
+    result = secretmanager.check_secret_pair_values(cred_pair_fail_4)
     assert result[0] is False
     result = secretmanager.check_secret_pair_values(cred_pairs_success)
     assert result[0] is True

@@ -201,6 +201,7 @@ def get_secret_version(
 
 
 def check_secret_pair_values(secret_pairs):
+    seen_keys = set()
     for key, val in secret_pairs.items():
         if isinstance(val, dict) or isinstance(val, list):
             ret = {"error": "secret pairs must be key: value"}
@@ -208,6 +209,11 @@ def check_secret_pair_values(secret_pairs):
         if re.search(r"\s", key):
             ret = {"error": "secret key must not contain whitespace"}
             return (False, ret)
+        normalized_key = key.casefold()
+        if normalized_key in seen_keys:
+            ret = {"error": "secret pair keys must be unique ignoring case"}
+            return (False, ret)
+        seen_keys.add(normalized_key)
     return (True, {})
 
 

@@ -326,9 +326,10 @@ export default function SecretDetailPage() {
   const handleSave = async () => {
     setSaveError(null);
 
-    const pairKeys = formPairs.map((p) => p.key);
-    if (new Set(pairKeys).size !== pairKeys.length) {
-      setSaveError('Secret pair keys must be unique.');
+    const pairKeys = formPairs.filter((p) => p.key).map((p) => p.key);
+    const normalizedPairKeys = pairKeys.map((key) => key.toLocaleLowerCase());
+    if (new Set(normalizedPairKeys).size !== normalizedPairKeys.length) {
+      setSaveError('Secret pair keys must be unique ignoring case.');
       return;
     }
     const metaKeys = formMetadata.map((m) => m.key);
