@@ -1,7 +1,6 @@
 import pytest
 from pytest_mock.plugin import MockerFixture
-from werkzeug.exceptions import InternalServerError
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import InternalServerError, Unauthorized
 
 from confidant import authnz
 from confidant.app import create_app

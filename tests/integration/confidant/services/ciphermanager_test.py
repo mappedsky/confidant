@@ -4,13 +4,15 @@ import pytest
 from Crypto.Random import get_random_bytes
 
 from confidant.services import ciphermanager
-from confidant.services.ciphermanager import aes_gcm_decrypt
-from confidant.services.ciphermanager import aes_gcm_encrypt
-from confidant.services.ciphermanager import CipherManager
-from confidant.services.ciphermanager import CipherManagerError
-from confidant.services.ciphermanager import CURRENT_CIPHER_VERSION
-from confidant.services.ciphermanager import NONCE_BYTES
-from confidant.services.ciphermanager import TAG_BYTES
+from confidant.services.ciphermanager import (
+    CURRENT_CIPHER_VERSION,
+    NONCE_BYTES,
+    TAG_BYTES,
+    CipherManager,
+    CipherManagerError,
+    aes_gcm_decrypt,
+    aes_gcm_encrypt,
+)
 
 
 def test_current_cipher_version_is_three():

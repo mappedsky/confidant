@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from confidant.utils.dynamodb import encode_last_evaluated_key
 

@@ -1,21 +1,16 @@
 import logging
 
-from flask import blueprints
-from flask import jsonify
-from flask import request
+from flask import blueprints, jsonify, request
 
-from confidant import authnz
-from confidant import settings
-from confidant.schema.groups import group_response_schema
-from confidant.schema.groups import GroupResponse
-from confidant.schema.groups import groups_response_schema
-from confidant.schema.groups import revisions_response_schema
-from confidant.services import groupmanager
-from confidant.services import secretmanager
-from confidant.utils import maintenance
-from confidant.utils import misc
-from confidant.utils import resource_ids
-from confidant.utils import stats
+from confidant import authnz, settings
+from confidant.schema.groups import (
+    GroupResponse,
+    group_response_schema,
+    groups_response_schema,
+    revisions_response_schema,
+)
+from confidant.services import groupmanager, secretmanager
+from confidant.utils import maintenance, misc, resource_ids, stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
 logger = logging.getLogger(__name__)
@@ -77,9 +72,7 @@ def _normalize_group_policies(data):
 def get_group_list():
     with stats.timer("list_groups"):
         if not acl_module_check(resource_type="group", action="list"):
-            msg = "{} does not have access to list groups".format(
-                authnz.get_logged_in_user()
-            )
+            msg = f"{authnz.get_logged_in_user()} does not have access to list groups"
             return jsonify({"error": msg}), 403
         tenant_id = authnz.get_tenant_id()
         limit = request.args.get("limit", default=None, type=int)
@@ -112,9 +105,8 @@ def get_group(id):
             )
         }
         if not permissions["get"]:
-            msg = "{} does not have access to get group {}".format(
-                authnz.get_logged_in_user(),
-                id,
+            msg = (
+                f"{authnz.get_logged_in_user()} does not have access to get group {id}"
             )
             return jsonify({"error": msg, "reference": id}), 403
 
@@ -152,9 +144,8 @@ def list_group_versions(id):
         action="metadata",
         resource_id=id,
     ):
-        msg = "{} does not have access to group {} versions".format(
-            authnz.get_logged_in_user(),
-            id,
+        msg = (
+            f"{authnz.get_logged_in_user()} does not have access to group {id} versions"
         )
         return jsonify({"error": msg}), 403
     response = groupmanager.list_group_versions(tenant_id, id)
@@ -173,10 +164,7 @@ def get_group_version(id, version):
         action="get",
         resource_id=id,
     ):
-        msg = "{} does not have access to group {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+        msg = f"{authnz.get_logged_in_user()} does not have access to group {id}"
         return jsonify({"error": msg, "reference": id}), 403
     response = groupmanager.get_group_version(tenant_id, id, version)
     if not response:
@@ -243,10 +231,7 @@ def update_group(id):
             resource_id=id,
         )
         if not create_allowed:
-            msg = "{} does not have access to create group {}".format(
-                authnz.get_logged_in_user(),
-                id,
-            )
+            msg = f"{authnz.get_logged_in_user()} does not have access to create group {id}"
             return jsonify({"error": msg, "reference": id}), 403
         response, error = groupmanager.create_group(
             tenant_id=tenant_id,
@@ -260,10 +245,7 @@ def update_group(id):
             action="update",
             resource_id=id,
         ):
-            msg = "{} does not have access to update group {}".format(
-                authnz.get_logged_in_user(),
-                id,
-            )
+            msg = f"{authnz.get_logged_in_user()} does not have access to update group {id}"
             return jsonify({"error": msg, "reference": id}), 403
         response, error = groupmanager.update_group(
             tenant_id=tenant_id,
@@ -311,10 +293,7 @@ def restore_group_version(id, version):
         action="revert",
         resource_id=id,
     ):
-        msg = "{} does not have access to revert group {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+        msg = f"{authnz.get_logged_in_user()} does not have access to revert group {id}"
         return jsonify({"error": msg, "reference": id}), 403
     response = groupmanager.restore_group_version(
         tenant_id=tenant_id,
@@ -358,10 +337,7 @@ def delete_group(id):
         action="delete",
         resource_id=id,
     ):
-        msg = "{} does not have access to delete group {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+        msg = f"{authnz.get_logged_in_user()} does not have access to delete group {id}"
         return jsonify({"error": msg, "reference": id}), 403
     response, error = groupmanager.delete_group(
         tenant_id=tenant_id,

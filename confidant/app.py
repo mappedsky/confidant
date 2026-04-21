@@ -4,15 +4,11 @@ import secrets as stdlib_secrets
 from urllib.parse import urlparse
 
 import boto3
-from flask import Flask
-from flask import g
+from flask import Flask, g
 from flask_sslify import SSLify
 
 from confidant import settings
-from confidant.routes import groups
-from confidant.routes import identity
-from confidant.routes import secrets
-from confidant.routes import static_files
+from confidant.routes import groups, identity, secrets, static_files
 from confidant.utils.dynamodb import create_dynamodb_tables
 
 if not settings.get("DEBUG"):

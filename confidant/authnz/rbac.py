@@ -1,5 +1,4 @@
-from confidant import authnz
-from confidant import settings
+from confidant import authnz, settings
 from confidant.services import groupmanager
 
 BUILTIN_ADMIN_GROUP = "confidant-administrator"

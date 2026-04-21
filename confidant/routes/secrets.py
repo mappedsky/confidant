@@ -2,20 +2,16 @@ import logging
 import secrets as stdlib_secrets
 import string
 
-from flask import blueprints
-from flask import jsonify
-from flask import request
+from flask import blueprints, jsonify, request
 
-from confidant import authnz
-from confidant import settings
-from confidant.schema.secrets import revisions_response_schema
-from confidant.schema.secrets import secret_response_schema
-from confidant.schema.secrets import secrets_response_schema
+from confidant import authnz, settings
+from confidant.schema.secrets import (
+    revisions_response_schema,
+    secret_response_schema,
+    secrets_response_schema,
+)
 from confidant.services import secretmanager
-from confidant.utils import maintenance
-from confidant.utils import misc
-from confidant.utils import resource_ids
-from confidant.utils import stats
+from confidant.utils import maintenance, misc, resource_ids, stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
 
 logger = logging.getLogger(__name__)
@@ -173,10 +169,7 @@ def get_secret(id):
     with stats.timer("get_secret_by_id"):
         tenant_id = authnz.get_tenant_id()
         if not _can_view_secret_metadata(tenant_id, id):
-            msg = "{} does not have access to secret {}".format(
-                authnz.get_logged_in_user(),
-                id,
-            )
+            msg = f"{authnz.get_logged_in_user()} does not have access to secret {id}"
             return jsonify({"error": msg, "reference": id}), 403
         response = secretmanager.get_secret_latest(
             tenant_id,
@@ -198,8 +191,7 @@ def decrypt_secret(id):
     tenant_id = authnz.get_tenant_id()
     if not _can_decrypt_secret(tenant_id, id):
         msg = (
-            f"{authnz.get_logged_in_user()} does not have access "
-            f"to decrypt secret {id}"
+            f"{authnz.get_logged_in_user()} does not have access to decrypt secret {id}"
         )
         return jsonify({"error": msg, "reference": id}), 403
     response = secretmanager.get_secret_latest(
@@ -220,10 +212,7 @@ def decrypt_secret(id):
 def list_secret_versions(id):
     tenant_id = authnz.get_tenant_id()
     if not _can_view_secret_metadata(tenant_id, id):
-        msg = "{} does not have access to secret {} versions".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+        msg = f"{authnz.get_logged_in_user()} does not have access to secret {id} versions"
         return jsonify({"error": msg}), 403
     response = secretmanager.list_secret_versions(tenant_id, id)
     if not response.versions:
@@ -240,10 +229,7 @@ def list_secret_versions(id):
 def get_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not _can_view_secret_metadata(tenant_id, id):
-        msg = "{} does not have access to secret {}".format(
-            authnz.get_logged_in_user(),
-            id,
-        )
+        msg = f"{authnz.get_logged_in_user()} does not have access to secret {id}"
         return jsonify({"error": msg}), 403
     response = secretmanager.get_secret_version(
         tenant_id,
@@ -382,8 +368,7 @@ def delete_secret(id):
     tenant_id = authnz.get_tenant_id()
     if not _can_delete_secret(tenant_id, id):
         msg = (
-            f"{authnz.get_logged_in_user()} does not have access "
-            f"to delete secret {id}"
+            f"{authnz.get_logged_in_user()} does not have access to delete secret {id}"
         )
         return jsonify({"error": msg, "reference": id}), 403
     response, error = secretmanager.delete_secret(
@@ -407,8 +392,7 @@ def restore_secret_version(id, version):
     tenant_id = authnz.get_tenant_id()
     if not _can_revert_secret(tenant_id, id):
         msg = (
-            f"{authnz.get_logged_in_user()} does not have access "
-            f"to restore secret {id}"
+            f"{authnz.get_logged_in_user()} does not have access to restore secret {id}"
         )
         return jsonify({"error": msg, "reference": id}), 403
     response = secretmanager.restore_secret_version(

@@ -1,11 +1,8 @@
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 
 from confidant.app import create_app
 from confidant.routes import secrets as secret_routes
-from confidant.schema.secrets import RevisionsResponse
-from confidant.schema.secrets import SecretResponse
-from confidant.schema.secrets import SecretsResponse
+from confidant.schema.secrets import RevisionsResponse, SecretResponse, SecretsResponse
 
 
 def _secret(secret_id="c1", revision=1, name="Test secret", secret_pairs=None):
