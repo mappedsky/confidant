@@ -17,25 +17,12 @@ repos:
     -   id: debug-statements
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
--   repo: https://github.com/psf/black
-    rev: 24.10.0
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.8
     hooks:
-    -   id: black
-        language_version: python3
--   repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
-    hooks:
-    -   id: flake8
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.0
-    hooks:
-    -   id: pyupgrade
-        args: [--py310-plus]
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.14.0
-    hooks:
-    -   id: reorder-python-imports
-        args: [--py310-plus]
+    -   id: ruff
+        args: [--fix]
+    -   id: ruff-format
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
     hooks:
