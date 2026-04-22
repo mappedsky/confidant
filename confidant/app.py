@@ -10,6 +10,7 @@ from flask_sslify import SSLify
 from confidant import settings
 from confidant.routes import groups, identity, secrets, static_files
 from confidant.utils.dynamodb import create_dynamodb_tables
+from confidant.utils.logging import configure_logging, log_request, start_request_timer
 
 if not settings.get("DEBUG"):
     boto3.set_stream_logger(level=logging.CRITICAL)
@@ -62,6 +63,7 @@ def _resolve_static_folder(static_folder):
 
 def create_app():
     static_folder = _resolve_static_folder(settings.STATIC_FOLDER)
+    configure_logging(settings.LOG_LEVEL, settings.AUDIT_LOG_LEVEL)
 
     app = Flask(__name__, static_folder=static_folder)
     app.config.from_object(settings)
@@ -71,15 +73,16 @@ def create_app():
         SSLify(app, skips=["healthcheck"])
 
     @app.before_request
-    def _set_csp_nonce():
+    def _before_request():
         g.csp_nonce = stdlib_secrets.token_urlsafe(16)
+        start_request_timer()
 
     @app.after_request
     def _add_csp_header(response):
         response.headers["Content-Security-Policy"] = _format_csp_policy(
             _build_csp_policy(g.csp_nonce),
         )
-        return response
+        return log_request(response)
 
     if settings.DYNAMODB_CREATE_TABLE:
         create_dynamodb_tables()

@@ -12,6 +12,7 @@ from confidant.schema.groups import (
 from confidant.services import groupmanager, secretmanager
 from confidant.utils import maintenance, misc, resource_ids, stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
+from confidant.utils.logging import audit_response
 
 logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("groups", __name__)
@@ -201,14 +202,35 @@ def update_group(id):
     tenant_id = authnz.get_tenant_id()
     id_error = resource_ids.validate_group_id(id)
     if id_error:
-        return jsonify({"error": id_error}), 400
+        return audit_response(
+            (jsonify({"error": id_error}), 400),
+            "create_or_update",
+            "group",
+            resource_id=id,
+            outcome="invalid",
+            reason="invalid_id",
+        )
     body_id = data.get("id")
     if body_id is not None and body_id != id:
-        return jsonify({"error": "body id must match the request path"}), 400
+        return audit_response(
+            (jsonify({"error": "body id must match the request path"}), 400),
+            "create_or_update",
+            "group",
+            resource_id=id,
+            outcome="invalid",
+            reason="body_id_mismatch",
+        )
     existing = groupmanager.get_group_latest(tenant_id, id)
     policies, error = _normalize_group_policies(data)
     if error:
-        return jsonify(error), 400
+        return audit_response(
+            (jsonify(error), 400),
+            "create_or_update",
+            "group",
+            resource_id=id,
+            outcome="invalid",
+            reason=error.get("error"),
+        )
     exact_secret_ids = [
         policy_path
         for policy_path in policies
@@ -222,7 +244,14 @@ def update_group(id):
         include_secret_pairs=True,
     )
     if len(found_secrets) != len(exact_secret_ids):
-        return jsonify({"error": "Secret not found."}), 404
+        return audit_response(
+            (jsonify({"error": "Secret not found."}), 404),
+            "create_or_update",
+            "group",
+            resource_id=id,
+            outcome="not_found",
+            reason="secret_not_found",
+        )
 
     if existing is None:
         create_allowed = acl_module_check(
@@ -232,7 +261,13 @@ def update_group(id):
         )
         if not create_allowed:
             msg = f"{authnz.get_logged_in_user()} does not have access to create group {id}"
-            return jsonify({"error": msg, "reference": id}), 403
+            return audit_response(
+                (jsonify({"error": msg, "reference": id}), 403),
+                "create",
+                "group",
+                resource_id=id,
+                outcome="denied",
+            )
         response, error = groupmanager.create_group(
             tenant_id=tenant_id,
             group_id=id,
@@ -246,7 +281,13 @@ def update_group(id):
             resource_id=id,
         ):
             msg = f"{authnz.get_logged_in_user()} does not have access to update group {id}"
-            return jsonify({"error": msg, "reference": id}), 403
+            return audit_response(
+                (jsonify({"error": msg, "reference": id}), 403),
+                "update",
+                "group",
+                resource_id=id,
+                outcome="denied",
+            )
         response, error = groupmanager.update_group(
             tenant_id=tenant_id,
             group_id=id,
@@ -254,7 +295,14 @@ def update_group(id):
             created_by=authnz.get_logged_in_user(),
         )
     if error:
-        return jsonify(error), 400
+        return audit_response(
+            (jsonify(error), 400),
+            "create" if existing is None else "update",
+            "group",
+            resource_id=id,
+            outcome="invalid",
+            reason=error.get("error"),
+        )
     expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "create": existing is None,
@@ -276,7 +324,15 @@ def update_group(id):
             resource_id=response.id,
         ),
     }
-    return group_response_schema.dumps(expanded)
+    return audit_response(
+        group_response_schema.dumps(expanded),
+        "create" if existing is None else "update",
+        "group",
+        resource_id=response.id,
+        outcome="success",
+        revision=response.revision,
+        policy_count=len(response.policies),
+    )
 
 
 @blueprint.route(
@@ -294,7 +350,14 @@ def restore_group_version(id, version):
         resource_id=id,
     ):
         msg = f"{authnz.get_logged_in_user()} does not have access to revert group {id}"
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "restore",
+            "group",
+            resource_id=id,
+            outcome="denied",
+            version=version,
+        )
     response = groupmanager.restore_group_version(
         tenant_id=tenant_id,
         group_id=id,
@@ -302,7 +365,14 @@ def restore_group_version(id, version):
         created_by=authnz.get_logged_in_user(),
     )
     if not response:
-        return jsonify({}), 404
+        return audit_response(
+            (jsonify({}), 404),
+            "restore",
+            "group",
+            resource_id=id,
+            outcome="not_found",
+            version=version,
+        )
     expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "metadata": True,
@@ -323,7 +393,16 @@ def restore_group_version(id, version):
             resource_id=id,
         ),
     }
-    return group_response_schema.dumps(expanded)
+    return audit_response(
+        group_response_schema.dumps(expanded),
+        "restore",
+        "group",
+        resource_id=id,
+        outcome="success",
+        version=version,
+        revision=response.revision,
+        policy_count=len(response.policies),
+    )
 
 
 @blueprint.route("/v1/groups/<id>", methods=["DELETE"])
@@ -338,13 +417,26 @@ def delete_group(id):
         resource_id=id,
     ):
         msg = f"{authnz.get_logged_in_user()} does not have access to delete group {id}"
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "delete",
+            "group",
+            resource_id=id,
+            outcome="denied",
+        )
     response, error = groupmanager.delete_group(
         tenant_id=tenant_id,
         group_id=id,
     )
     if error:
-        return jsonify(error), 404
+        return audit_response(
+            (jsonify(error), 404),
+            "delete",
+            "group",
+            resource_id=id,
+            outcome="not_found",
+            reason=error.get("error"),
+        )
     expanded = GroupResponse.from_group(response)
     expanded.permissions = {
         "metadata": True,
@@ -357,4 +449,11 @@ def delete_group(id):
             resource_id=id,
         ),
     }
-    return group_response_schema.dumps(expanded)
+    return audit_response(
+        group_response_schema.dumps(expanded),
+        "delete",
+        "group",
+        resource_id=id,
+        outcome="success",
+        revision=response.revision,
+    )

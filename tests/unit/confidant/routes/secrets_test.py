@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from confidant.app import create_app
@@ -187,6 +188,33 @@ def test_get_secret_detail_and_explicit_decrypt(mocker):
         metadata_only=False,
         alert_on_access=True,
     )
+
+
+def test_decrypt_secret_emits_audit_log(caplog, mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        return_value=True,
+    )
+    mocker.patch(
+        "confidant.routes.secrets.secretmanager.get_secret_latest",
+        return_value=_secret(),
+    )
+
+    with caplog.at_level(logging.INFO, logger="confidant.audit"):
+        ret = app.test_client().post("/v1/secrets/c1/decrypt")
+
+    assert ret.status_code == 200
+    record = next(
+        record for record in caplog.records if record.name == "confidant.audit"
+    )
+    assert record.event == "audit"
+    assert record.action == "decrypt"
+    assert record.resource_type == "secret"
+    assert record.resource_id == "c1"
+    assert record.outcome == "success"
+    assert record.secret_key_count == 1
 
 
 def test_get_secret_dependencies_allows_decrypt_permissions(mocker):
@@ -445,3 +473,35 @@ def test_delete_secret_conflict(mocker):
 
     assert ret.status_code == 409
     assert ret.get_json()["groups"] == ["service-a"]
+
+
+def test_delete_secret_conflict_emits_audit_log(caplog, mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch(
+        "confidant.routes.secrets.acl_module_check",
+        return_value=True,
+    )
+    mocker.patch(
+        "confidant.routes.secrets.secretmanager.delete_secret",
+        return_value=(
+            None,
+            {
+                "error": "Secret is still mapped to groups.",
+                "groups": ["service-a"],
+            },
+        ),
+    )
+
+    with caplog.at_level(logging.INFO, logger="confidant.audit"):
+        ret = app.test_client().delete("/v1/secrets/c1")
+
+    assert ret.status_code == 409
+    record = next(
+        record for record in caplog.records if record.name == "confidant.audit"
+    )
+    assert record.action == "delete"
+    assert record.resource_type == "secret"
+    assert record.resource_id == "c1"
+    assert record.outcome == "conflict"
+    assert record.groups == ["service-a"]

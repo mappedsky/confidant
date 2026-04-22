@@ -13,6 +13,7 @@ from confidant.schema.secrets import (
 from confidant.services import secretmanager
 from confidant.utils import maintenance, misc, resource_ids, stats
 from confidant.utils.dynamodb import decode_last_evaluated_key
+from confidant.utils.logging import audit_response
 
 logger = logging.getLogger(__name__)
 blueprint = blueprints.Blueprint("secrets", __name__)
@@ -193,7 +194,13 @@ def decrypt_secret(id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access to decrypt secret {id}"
         )
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "decrypt",
+            "secret",
+            resource_id=id,
+            outcome="denied",
+        )
     response = secretmanager.get_secret_latest(
         tenant_id,
         id,
@@ -201,9 +208,23 @@ def decrypt_secret(id):
         alert_on_access=True,
     )
     if not response:
-        return jsonify({}), 404
+        return audit_response(
+            (jsonify({}), 404),
+            "decrypt",
+            "secret",
+            resource_id=id,
+            outcome="not_found",
+        )
     response.permissions = _secret_permissions(tenant_id, id)
-    return secret_response_schema.dumps(response)
+    return audit_response(
+        secret_response_schema.dumps(response),
+        "decrypt",
+        "secret",
+        resource_id=id,
+        outcome="success",
+        revision=response.revision,
+        secret_key_count=len(response.secret_keys),
+    )
 
 
 @blueprint.route("/v1/secrets/<path:id>/versions", methods=["GET"])
@@ -256,7 +277,14 @@ def decrypt_secret_version(id, version):
             f"{authnz.get_logged_in_user()} does not have access "
             f"to decrypt secret {id} version {version}"
         )
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "decrypt_version",
+            "secret",
+            resource_id=id,
+            outcome="denied",
+            version=version,
+        )
     response = secretmanager.get_secret_version(
         tenant_id,
         id,
@@ -265,9 +293,25 @@ def decrypt_secret_version(id, version):
         alert_on_access=True,
     )
     if not response:
-        return jsonify({}), 404
+        return audit_response(
+            (jsonify({}), 404),
+            "decrypt_version",
+            "secret",
+            resource_id=id,
+            outcome="not_found",
+            version=version,
+        )
     response.permissions = _secret_permissions(tenant_id, id)
-    return secret_response_schema.dumps(response)
+    return audit_response(
+        secret_response_schema.dumps(response),
+        "decrypt_version",
+        "secret",
+        resource_id=id,
+        outcome="success",
+        version=version,
+        revision=response.revision,
+        secret_key_count=len(response.secret_keys),
+    )
 
 
 @blueprint.route("/v1/secrets", methods=["POST"])
@@ -280,24 +324,71 @@ def create_secret():
         tenant_id = authnz.get_tenant_id()
         enforce_documentation = settings.get("ENFORCE_DOCUMENTATION")
         if not data.get("documentation") and enforce_documentation:
-            return jsonify({"error": "documentation is a required field"}), 400
+            return audit_response(
+                (jsonify({"error": "documentation is a required field"}), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason="missing_documentation",
+            )
         if not data.get("id"):
-            return jsonify({"error": "id is a required field"}), 400
+            return audit_response(
+                (jsonify({"error": "id is a required field"}), 400),
+                "create",
+                "secret",
+                outcome="invalid",
+                reason="missing_id",
+            )
         id_error = resource_ids.validate_secret_id(data.get("id"))
         if id_error:
-            return jsonify({"error": id_error}), 400
+            return audit_response(
+                (jsonify({"error": id_error}), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason="invalid_id",
+            )
         if not _can_create_secret(tenant_id, data.get("id")):
             msg = (
                 f"{authnz.get_logged_in_user()} does not have access "
                 f"to create secret {data.get('id')}"
             )
-            return jsonify({"error": msg, "reference": data.get("id")}), 403
+            return audit_response(
+                (jsonify({"error": msg, "reference": data.get("id")}), 403),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="denied",
+            )
         if not data.get("name"):
-            return jsonify({"error": "name is a required field"}), 400
+            return audit_response(
+                (jsonify({"error": "name is a required field"}), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason="missing_name",
+            )
         if not data.get("secret_pairs"):
-            return jsonify({"error": "secret_pairs is a required field"}), 400
+            return audit_response(
+                (jsonify({"error": "secret_pairs is a required field"}), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason="missing_secret_pairs",
+            )
         if not isinstance(data.get("metadata", {}), dict):
-            return jsonify({"error": "metadata must be a dict"}), 400
+            return audit_response(
+                (jsonify({"error": "metadata must be a dict"}), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason="invalid_metadata",
+            )
         response, error = secretmanager.create_secret(
             tenant_id=tenant_id,
             secret_id=data.get("id"),
@@ -308,7 +399,14 @@ def create_secret():
             documentation=data.get("documentation"),
         )
         if error:
-            return jsonify(error), 400
+            return audit_response(
+                (jsonify(error), 400),
+                "create",
+                "secret",
+                resource_id=data.get("id"),
+                outcome="invalid",
+                reason=error.get("error"),
+            )
         response.permissions = {
             "metadata": True,
             "decrypt": _can_decrypt_secret(tenant_id, response.id),
@@ -316,7 +414,15 @@ def create_secret():
             "update": _can_update_secret(tenant_id, response.id),
             "delete": _can_delete_secret(tenant_id, response.id),
         }
-        return secret_response_schema.dumps(response)
+        return audit_response(
+            secret_response_schema.dumps(response),
+            "create",
+            "secret",
+            resource_id=response.id,
+            outcome="success",
+            revision=response.revision,
+            secret_key_count=len(response.secret_keys),
+        )
 
 
 @blueprint.route("/v1/secrets/<path:id>", methods=["PUT"])
@@ -332,13 +438,26 @@ def update_secret(id):
                 f"{authnz.get_logged_in_user()} does not have access "
                 f"to update secret {id}"
             )
-            return jsonify({"error": msg, "reference": id}), 403
+            return audit_response(
+                (jsonify({"error": msg, "reference": id}), 403),
+                "update",
+                "secret",
+                resource_id=id,
+                outcome="denied",
+            )
         data = request.get_json() or {}
         if (
             not isinstance(data.get("metadata", {}), dict)
             and data.get("metadata") is not None
         ):
-            return jsonify({"error": "metadata must be a dict"}), 400
+            return audit_response(
+                (jsonify({"error": "metadata must be a dict"}), 400),
+                "update",
+                "secret",
+                resource_id=id,
+                outcome="invalid",
+                reason="invalid_metadata",
+            )
         response, error = secretmanager.update_secret(
             tenant_id=tenant_id,
             secret_id=id,
@@ -349,7 +468,14 @@ def update_secret(id):
             documentation=data.get("documentation"),
         )
         if error:
-            return jsonify(error), 400
+            return audit_response(
+                (jsonify(error), 400),
+                "update",
+                "secret",
+                resource_id=id,
+                outcome="invalid",
+                reason=error.get("error"),
+            )
         response.permissions = {
             "metadata": True,
             "decrypt": _can_decrypt_secret(tenant_id, id),
@@ -357,7 +483,15 @@ def update_secret(id):
             "update": _can_update_secret(tenant_id, id),
             "delete": _can_delete_secret(tenant_id, id),
         }
-        return secret_response_schema.dumps(response)
+        return audit_response(
+            secret_response_schema.dumps(response),
+            "update",
+            "secret",
+            resource_id=id,
+            outcome="success",
+            revision=response.revision,
+            secret_key_count=len(response.secret_keys),
+        )
 
 
 @blueprint.route("/v1/secrets/<path:id>", methods=["DELETE"])
@@ -370,15 +504,36 @@ def delete_secret(id):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access to delete secret {id}"
         )
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "delete",
+            "secret",
+            resource_id=id,
+            outcome="denied",
+        )
     response, error = secretmanager.delete_secret(
         tenant_id=tenant_id,
         secret_id=id,
     )
     if error:
         status = 409 if error.get("groups") else 404
-        return jsonify(error), status
-    return secret_response_schema.dumps(response)
+        return audit_response(
+            (jsonify(error), status),
+            "delete",
+            "secret",
+            resource_id=id,
+            outcome="conflict" if status == 409 else "not_found",
+            groups=error.get("groups"),
+            reason=error.get("error"),
+        )
+    return audit_response(
+        secret_response_schema.dumps(response),
+        "delete",
+        "secret",
+        resource_id=id,
+        outcome="success",
+        revision=response.revision,
+    )
 
 
 @blueprint.route(
@@ -394,7 +549,14 @@ def restore_secret_version(id, version):
         msg = (
             f"{authnz.get_logged_in_user()} does not have access to restore secret {id}"
         )
-        return jsonify({"error": msg, "reference": id}), 403
+        return audit_response(
+            (jsonify({"error": msg, "reference": id}), 403),
+            "restore",
+            "secret",
+            resource_id=id,
+            outcome="denied",
+            version=version,
+        )
     response = secretmanager.restore_secret_version(
         tenant_id=tenant_id,
         secret_id=id,
@@ -402,7 +564,14 @@ def restore_secret_version(id, version):
         created_by=authnz.get_logged_in_user(),
     )
     if not response:
-        return jsonify({}), 404
+        return audit_response(
+            (jsonify({}), 404),
+            "restore",
+            "secret",
+            resource_id=id,
+            outcome="not_found",
+            version=version,
+        )
     response.permissions = {
         "metadata": True,
         "decrypt": _can_decrypt_secret(tenant_id, id),
@@ -410,7 +579,15 @@ def restore_secret_version(id, version):
         "update": _can_update_secret(tenant_id, id),
         "delete": _can_delete_secret(tenant_id, id),
     }
-    return secret_response_schema.dumps(response)
+    return audit_response(
+        secret_response_schema.dumps(response),
+        "restore",
+        "secret",
+        resource_id=id,
+        outcome="success",
+        version=version,
+        revision=response.revision,
+    )
 
 
 @blueprint.route("/v1/secrets/<path:id>/groups", methods=["GET"])
