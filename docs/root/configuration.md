@@ -114,17 +114,6 @@ export JWT_SERVICE_TYPE_VALUE='service'
 export JWT_ALLOWED_PRINCIPAL_TYPES='user,service'
 ```
 
-### Disabling secret conflict checks
-
-By default confidant will ensure that secrets mapped to a service don't
-have any conflicting secret pair keys. These checks occur when mapping
-secrets to a service, or when modifying secrets that are mapped to a
-service. To disable this check:
-
-```bash
-export IGNORE_CONFLICTS='True'
-```
-
 ### statsd metrics
 
 Confidant can track some stats via statsd. By default it's set to send stats to

@@ -21,7 +21,7 @@ Confidant is a secret management service built by Mapped Sky that provides secur
 
 - **At-rest encryption** — Every secret revision gets a unique KMS data key, using AES-256-GCM authenticated encryption
 - **Versioned secret history** — Append-only storage with full audit trail, revision browsing, and rollback support
-- **Service and group mappings** — Map secrets to services using user-defined group identifiers with conflict prevention
+- **Service and group mappings** — Map secrets to services using user-defined group identifiers
 - **Modern web interface** — React + TypeScript UI built with Material UI for managing secrets, mappings, and history
 - **RESTful API** — Full programmatic access to all secret management operations
 - **Flexible authentication** — JWT/OIDC, SAML, and KMS authentication support

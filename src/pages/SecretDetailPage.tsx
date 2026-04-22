@@ -42,7 +42,6 @@ import {
   CreateSecretPayload,
   SecretDetail,
   SecretGroupsResponse,
-  ConflictMap,
 } from '../types/api';
 import {
   secretDetailPath,
@@ -100,7 +99,6 @@ export default function SecretDetailPage() {
   const [editing, setEditing] = useState(isNew);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [conflicts, setConflicts] = useState<ConflictMap | null>(null);
   const [showValues, setShowValues] = useState(false);
   const [decrypted, setDecrypted] = useState(false);
   const [latestRevision, setLatestRevision] = useState<number | null>(null);
@@ -234,7 +232,6 @@ export default function SecretDetailPage() {
       }
     }
     setSaveError(null);
-    setConflicts(null);
     setEditing(true);
   };
 
@@ -264,7 +261,6 @@ export default function SecretDetailPage() {
       populateForm(secret);
     }
     setSaveError(null);
-    setConflicts(null);
     setEditing(false);
   };
 
@@ -329,11 +325,11 @@ export default function SecretDetailPage() {
 
   const handleSave = async () => {
     setSaveError(null);
-    setConflicts(null);
 
-    const pairKeys = formPairs.map((p) => p.key);
-    if (new Set(pairKeys).size !== pairKeys.length) {
-      setSaveError('Secret pair keys must be unique.');
+    const pairKeys = formPairs.filter((p) => p.key).map((p) => p.key);
+    const normalizedPairKeys = pairKeys.map((key) => key.toLocaleLowerCase());
+    if (new Set(normalizedPairKeys).size !== normalizedPairKeys.length) {
+      setSaveError('Secret pair keys must be unique ignoring case.');
       return;
     }
     const metaKeys = formMetadata.map((m) => m.key);
@@ -384,11 +380,7 @@ export default function SecretDetailPage() {
         throw new Error('Missing secret ID');
       }
     } catch (err: unknown) {
-      const error = err as { message: string; data?: { conflicts?: ConflictMap } };
-      setSaveError(error.message);
-      if (error.data?.conflicts) {
-        setConflicts(error.data.conflicts);
-      }
+      setSaveError((err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -702,35 +694,6 @@ export default function SecretDetailPage() {
       {saveError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {saveError}
-          {conflicts && (
-            <Box mt={1}>
-              <Typography variant="body2">Conflicting secret pair keys:</Typography>
-              {Object.entries(conflicts).map(([key, info]) => (
-                <Box key={key} ml={2}>
-                  <Typography variant="body2"><strong>{key}</strong></Typography>
-                  {info.secrets?.map((cid) => (
-                    <Typography key={cid} variant="body2" ml={2}>
-                      Secret:{' '}
-                      <Link component={RouterLink} to={secretDetailPath(cid)}>
-                        {cid}
-                      </Link>
-                    </Typography>
-                  ))}
-                  {info.groups?.map((sid) => (
-                    <Typography key={sid} variant="body2" ml={2}>
-                      Group:{' '}
-                      <Link component={RouterLink} to={`/groups/${sid}`}>
-                        {sid}
-                      </Link>
-                    </Typography>
-                  ))}
-                </Box>
-              ))}
-              <Typography variant="body2" mt={1}>
-                Please ensure secret pair keys are unique for mapped groups, then try again.
-              </Typography>
-            </Box>
-          )}
         </Alert>
       )}
 

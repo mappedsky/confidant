@@ -201,6 +201,7 @@ def get_secret_version(
 
 
 def check_secret_pair_values(secret_pairs):
+    seen_keys = set()
     for key, val in secret_pairs.items():
         if isinstance(val, dict) or isinstance(val, list):
             ret = {"error": "secret pairs must be key: value"}
@@ -208,11 +209,12 @@ def check_secret_pair_values(secret_pairs):
         if re.search(r"\s", key):
             ret = {"error": "secret key must not contain whitespace"}
             return (False, ret)
+        normalized_key = key.casefold()
+        if normalized_key in seen_keys:
+            ret = {"error": "secret pair keys must be unique ignoring case"}
+            return (False, ret)
+        seen_keys.add(normalized_key)
     return (True, {})
-
-
-def lowercase_secret_pairs(secret_pairs):
-    return {i.lower(): j for i, j in secret_pairs.items()}
 
 
 def get_revision_ids_for_secret(secret):
@@ -316,7 +318,6 @@ def create_secret(
     if store.get_secret_latest(tenant_id, secret_id):
         return None, {"error": "Secret already exists."}
     revision = 1
-    secret_pairs = lowercase_secret_pairs(secret_pairs)
     ok, ret = check_secret_pair_values(secret_pairs)
     if not ok:
         return None, ret
@@ -399,7 +400,6 @@ def update_secret(
     cipher_version = current.get("cipher_version")
 
     if secret_pairs is not None:
-        secret_pairs = lowercase_secret_pairs(secret_pairs)
         ok, ret = check_secret_pair_values(secret_pairs)
         if not ok:
             return None, ret

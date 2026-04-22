@@ -27,10 +27,7 @@ and is un-encrypted, so the friendly name should not contain anything sensitive.
 ![interface new secret](images/interface-new-credential.png)
 
 Secrets can have more than a single secret pair; however, it's
-important to note that keys must be unique in a secret, and when mapping
-secrets to a service, the keys must be unique across all secrets in
-the mapped service. This is to avoid confusion on the service's end, where two
-conflicting keys would force the service to choose which key is valid.
+important to note that keys must be unique within a single secret.
 
 ### Mapping secrets to groups
 
