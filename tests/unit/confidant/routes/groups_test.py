@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from confidant.app import create_app
@@ -243,3 +244,39 @@ def test_delete_group(mocker):
         group_id="s1",
     )
     assert acl_mock.call_args.kwargs["action"] == "delete"
+
+
+def test_create_group_emits_audit_log(caplog, mocker):
+    app = create_app()
+    mocker.patch("confidant.settings.USE_AUTH", False)
+    mocker.patch("confidant.routes.groups.acl_module_check", return_value=True)
+    mocker.patch(
+        "confidant.routes.groups.groupmanager.get_group_latest",
+        return_value=None,
+    )
+    mocker.patch(
+        "confidant.routes.groups.groupmanager.create_group",
+        return_value=(_group(), None),
+    )
+    mocker.patch(
+        "confidant.routes.groups.secretmanager.get_secrets",
+        return_value=[type("Cred", (), {"id": "c1"})()],
+    )
+
+    with caplog.at_level(logging.INFO, logger="confidant.audit"):
+        ret = app.test_client().put(
+            "/v1/groups/s1",
+            json={
+                "policies": {"c1": ["decrypt"]},
+            },
+        )
+
+    assert ret.status_code == 200
+    record = next(
+        record for record in caplog.records if record.name == "confidant.audit"
+    )
+    assert record.action == "create"
+    assert record.resource_type == "group"
+    assert record.resource_id == "s1"
+    assert record.outcome == "success"
+    assert record.policy_count == 1

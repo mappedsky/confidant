@@ -80,6 +80,8 @@ def list_env(var_name, default=None):
 # Whether or not Confidant is run in debug mode. Never run confidant in debug
 # mode outside of development!
 DEBUG = bool_env("DEBUG", False)
+LOG_LEVEL = str_env("LOG_LEVEL", "INFO")
+AUDIT_LOG_LEVEL = str_env("AUDIT_LOG_LEVEL", "INFO")
 # The host the WSGI app should use.
 HOST = str_env("HOST", "127.0.0.1")
 # The port the WSGI app should use.
