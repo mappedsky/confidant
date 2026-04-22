@@ -124,6 +124,36 @@ export STATSD_HOST='mystatshost.example.com'
 export STATSD_PORT='8125'
 ```
 
+### Logging
+
+Confidant emits two categories of application logs:
+
+- request logs for every Flask response
+- audit logs for security-relevant secret and group actions such as decrypt,
+  create, update, delete, and restore
+
+When running under the provided Gunicorn logging configuration, these are
+emitted as structured JSON logs. Audit events include fields such as `event`,
+`action`, `resource_type`, `resource_id`, `outcome`, the authenticated
+principal, and request metadata. Secret values are never written to the audit
+log.
+
+You can control the verbosity of normal application logging and audit logging
+independently:
+
+```bash
+# Base application log level.
+export LOG_LEVEL='INFO'
+
+# Audit log level. Set this higher than LOG_LEVEL if your environment drops
+# INFO logs but must retain audit records.
+export AUDIT_LOG_LEVEL='WARNING'
+```
+
+The development environment in `config/development/confidant.env` defaults
+`AUDIT_LOG_LEVEL` to `WARNING` so audit events remain visible even when routine
+`INFO` logs are filtered downstream.
+
 ### Google authentication user restrictions
 
 It's possible to restrict access to a subset of users that authenticate
