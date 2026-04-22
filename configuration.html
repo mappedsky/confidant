@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-4913d9 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-a38159 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -92,6 +92,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
 <li><a class="reference internal" href="#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
 <li><a class="reference internal" href="#statsd-metrics">statsd metrics</a></li>
+<li><a class="reference internal" href="#logging">Logging</a></li>
 <li><a class="reference internal" href="#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
 <li><a class="reference internal" href="#auth-token-lifetime">Auth token lifetime</a></li>
 <li><a class="reference internal" href="#frontend-configuration">Frontend configuration</a></li>
@@ -247,6 +248,33 @@ statsd on localhost on port 8125.</p>
 </span><span data-line="2"><span class="nb">export</span><span class="w"> </span><span class="nv">STATSD_PORT</span><span class="o">=</span><span class="s1">&#39;8125&#39;</span>
 </span></pre></div>
 </div>
+</section>
+<section id="logging">
+<h3>Logging<a class="headerlink" href="#logging" title="Link to this heading">¶</a></h3>
+<p>Confidant emits two categories of application logs:</p>
+<ul class="simple">
+<li><p>request logs for every Flask response</p></li>
+<li><p>audit logs for security-relevant secret and group actions such as decrypt,
+create, update, delete, and restore</p></li>
+</ul>
+<p>When running under the provided Gunicorn logging configuration, these are
+emitted as structured JSON logs. Audit events include fields such as <code class="docutils literal notranslate"><span class="pre">event</span></code>,
+<code class="docutils literal notranslate"><span class="pre">action</span></code>, <code class="docutils literal notranslate"><span class="pre">resource_type</span></code>, <code class="docutils literal notranslate"><span class="pre">resource_id</span></code>, <code class="docutils literal notranslate"><span class="pre">outcome</span></code>, the authenticated
+principal, and request metadata. Secret values are never written to the audit
+log.</p>
+<p>You can control the verbosity of normal application logging and audit logging
+independently:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="c1"># Base application log level.</span>
+</span><span data-line="2"><span class="nb">export</span><span class="w"> </span><span class="nv">LOG_LEVEL</span><span class="o">=</span><span class="s1">&#39;INFO&#39;</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="c1"># Audit log level. Set this higher than LOG_LEVEL if your environment drops</span>
+</span><span data-line="5"><span class="c1"># INFO logs but must retain audit records.</span>
+</span><span data-line="6"><span class="nb">export</span><span class="w"> </span><span class="nv">AUDIT_LOG_LEVEL</span><span class="o">=</span><span class="s1">&#39;WARNING&#39;</span>
+</span></pre></div>
+</div>
+<p>The development environment in <code class="docutils literal notranslate"><span class="pre">config/development/confidant.env</span></code> defaults
+<code class="docutils literal notranslate"><span class="pre">AUDIT_LOG_LEVEL</span></code> to <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> so audit events remain visible even when routine
+<code class="docutils literal notranslate"><span class="pre">INFO</span></code> logs are filtered downstream.</p>
 </section>
 <section id="google-authentication-user-restrictions">
 <h3>Google authentication user restrictions<a class="headerlink" href="#google-authentication-user-restrictions" title="Link to this heading">¶</a></h3>
@@ -592,7 +620,7 @@ the indexes. See your usage in cloudwatch and increase throughput as necessary.<
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=177c29b7"></script>
+      <script src="_static/documentation_options.js?v=09ea738d"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>

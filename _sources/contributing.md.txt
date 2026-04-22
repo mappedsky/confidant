@@ -46,6 +46,10 @@ All configuration settings for this environment are in the `config/development`
 directory. If you wish to change any settings, kill the docker compose, make the
 change, and start the docker compose environment back up.
 
+The development environment defaults `AUDIT_LOG_LEVEL=WARNING` in
+`config/development/confidant.env` so audit events stand out from routine
+request logging.
+
 ### Running tests
 
 The easiest way to run the tests is through docker compose as well, as both unit
