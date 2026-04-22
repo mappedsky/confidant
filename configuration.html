@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-de6192 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - confidant 7.0.0-4913d9 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Managing secrets and mappings" href="using_confidant.html" /><link rel="prev" title="Installation" href="install.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -91,7 +91,6 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#environment-configuration">Environment configuration</a><ul>
 <li><a class="reference internal" href="#gunicorn-configuration-for-ssl-termination-support">gunicorn configuration for SSL termination support</a></li>
 <li><a class="reference internal" href="#jwt-oidc-authentication-configuration">JWT / OIDC authentication configuration</a></li>
-<li><a class="reference internal" href="#disabling-secret-conflict-checks">Disabling secret conflict checks</a></li>
 <li><a class="reference internal" href="#statsd-metrics">statsd metrics</a></li>
 <li><a class="reference internal" href="#google-authentication-user-restrictions">Google authentication user restrictions</a></li>
 <li><a class="reference internal" href="#auth-token-lifetime">Auth token lifetime</a></li>
@@ -237,16 +236,6 @@ hardcode provider-specific endpoints.</p>
 </span><span data-line="23"><span class="nb">export</span><span class="w"> </span><span class="nv">JWT_USER_TYPE_VALUE</span><span class="o">=</span><span class="s1">&#39;user&#39;</span>
 </span><span data-line="24"><span class="nb">export</span><span class="w"> </span><span class="nv">JWT_SERVICE_TYPE_VALUE</span><span class="o">=</span><span class="s1">&#39;service&#39;</span>
 </span><span data-line="25"><span class="nb">export</span><span class="w"> </span><span class="nv">JWT_ALLOWED_PRINCIPAL_TYPES</span><span class="o">=</span><span class="s1">&#39;user,service&#39;</span>
-</span></pre></div>
-</div>
-</section>
-<section id="disabling-secret-conflict-checks">
-<h3>Disabling secret conflict checks<a class="headerlink" href="#disabling-secret-conflict-checks" title="Link to this heading">¶</a></h3>
-<p>By default confidant will ensure that secrets mapped to a service don’t
-have any conflicting secret pair keys. These checks occur when mapping
-secrets to a service, or when modifying secrets that are mapped to a
-service. To disable this check:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="nb">export</span><span class="w"> </span><span class="nv">IGNORE_CONFLICTS</span><span class="o">=</span><span class="s1">&#39;True&#39;</span>
 </span></pre></div>
 </div>
 </section>
@@ -603,7 +592,7 @@ the indexes. See your usage in cloudwatch and increase throughput as necessary.<
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=ee6de2fe"></script>
+      <script src="_static/documentation_options.js?v=177c29b7"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>
