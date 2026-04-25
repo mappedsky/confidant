@@ -29,6 +29,7 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+coverage.xml
 nosetests.xml
 karma-test-results.xml
 
@@ -69,3 +70,6 @@ salt/pillar/local.sls
 # sphinx
 generated/
 build_docs/
+
+# claude working directory
+.claude/
