@@ -10,18 +10,18 @@ COPY styles ./styles
 RUN bun run build
 
 # Backend and Final Stage
-FROM ubuntu:jammy
+FROM python:3.10-slim-bookworm
 LABEL maintainer="rlane@ryandlane.com"
 
 WORKDIR /srv/confidant
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        curl ca-certificates python3.10 python3-pip python3.10-dev gcc pkg-config \
-        libffi-dev git-core make \
+        ca-certificates \
+        make \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir pipenv
+RUN pip install --no-cache-dir pipenv
 
 COPY Pipfile Pipfile.lock /srv/confidant/
 RUN pipenv install --system --deploy

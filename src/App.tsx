@@ -11,6 +11,7 @@ import { AuthConfigResponse, OidcConfig } from './types/api';
 import { createUserManager } from './userManager';
 import SecretListPage from './pages/SecretListPage';
 import SecretDetailPage from './pages/SecretDetailPage';
+import SecretHistoryPage from './pages/SecretHistoryPage';
 import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupHistoryPage from './pages/GroupHistoryPage';
@@ -81,16 +82,19 @@ export default function App() {
                   <AppProvider>
                     <Layout>
                       <Routes>
-                        <Route path="/" element={<Navigate to="/secrets" replace />} />
-                        <Route path="/secrets" element={<SecretListPage />} />
-                        <Route path="/secrets/new" element={<SecretDetailPage />} />
-                        <Route path="/secrets/*" element={<SecretRouteResolver />} />
-                        <Route path="/groups" element={<GroupListPage />} />
-                        <Route path="/groups/new" element={<GroupDetailPage />} />
-                        <Route path="/groups/:id/history" element={<GroupHistoryPage />} />
-                        <Route path="/groups/:id/versions/:version" element={<GroupDetailPage />} />
-                        <Route path="/groups/:id" element={<GroupDetailPage />} />
-                        <Route path="*" element={<Navigate to="/secrets" replace />} />
+                        <Route path="/" element={<Navigate to="secrets" replace />} />
+                        <Route path="secrets" element={<SecretListPage />} />
+                        <Route path="secrets/new" element={<SecretDetailPage />} />
+                        <Route path="secrets/view" element={<SecretDetailPage />} />
+                        <Route path="secrets/history" element={<SecretHistoryPage />} />
+                        <Route path="secrets/version" element={<SecretDetailPage />} />
+                        <Route path="secrets/*" element={<SecretRouteResolver />} />
+                        <Route path="groups" element={<GroupListPage />} />
+                        <Route path="groups/new" element={<GroupDetailPage />} />
+                        <Route path="groups/:id/history" element={<GroupHistoryPage />} />
+                        <Route path="groups/:id/versions/:version" element={<GroupDetailPage />} />
+                        <Route path="groups/:id" element={<GroupDetailPage />} />
+                        <Route path="*" element={<Navigate to="secrets" replace />} />
                       </Routes>
                     </Layout>
                   </AppProvider>

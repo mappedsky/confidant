@@ -3,7 +3,8 @@ SHELL := /bin/bash
 BUILD_CONTEXT := /tmp/confidant-compose-context
 
 clean:
-	find . -name "*.pyc" -delete
+	rm -rf build
+	rm -rf $(BUILD_CONTEXT)
 
 frontend_build:
 	bash scripts/build-frontend-dist.sh
@@ -11,7 +12,10 @@ frontend_build:
 build_context:
 	bash scripts/prepare-build-context.sh . $(BUILD_CONTEXT)
 
-up: frontend_build docker_build
+up:
+	docker compose up
+
+up_build: frontend_build docker_build
 	docker compose up --no-build
 
 down:
@@ -22,7 +26,7 @@ drop_db:
 	docker compose run --rm --no-deps --entrypoint sh dynamodb -c \
 		'rm -rf /home/dynamodblocal/data/*'
 
-docker_build: clean build_context
+docker_build: build_context
 	DOCKER_BUILDKIT=0 docker build -t mappedsky/confidant $(BUILD_CONTEXT)
 
 docker_test: docker_build docker_test_unit docker_test_integration down
@@ -38,11 +42,11 @@ actions_test_integration: docker_build
 
 test: test_unit test_integration
 
-test_integration: clean
+test_integration:
 	mkdir -p build
 	pipenv run pytest --strict tests/integration
 
-test_unit: clean
+test_unit:
 	mkdir -p build
 	pipenv run pytest --strict --junitxml=build/unit.xml --cov=confidant --cov-report=html --cov-report=xml --cov-report=term --no-cov-on-fail tests/unit
 

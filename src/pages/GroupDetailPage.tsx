@@ -283,7 +283,7 @@ export default function GroupDetailPage() {
         if (!saved.id) {
           throw new Error('Group was created, but no group ID was returned.');
         }
-        window.location.replace(`/groups/${saved.id}`);
+        navigate(`/groups/${saved.id}`, { replace: true });
         return;
       } else if (id) {
         saved = await api.updateGroup(id, payload);
