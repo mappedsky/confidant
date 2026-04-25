@@ -35,9 +35,17 @@ To start: `make up`
 
 To test code changes:
 
-1. Kill docker compose (ctrl-c)
-1. `make docker_build`
-1. `make up`
+1. Make your change.
+1. If you only changed Python or frontend source, keep `make up` running. The
+   backend uses gunicorn `--reload` and the frontend runs the Vite dev server,
+   so no image rebuild is needed.
+1. If you changed container dependencies or image build inputs (for example
+   `Dockerfile`, `Pipfile.lock`, frontend package metadata, or other files
+   copied into the image), run `make docker_build` and then restart with
+   `make up`.
+
+If you want to force a rebuild before starting the stack, use
+`make up_build`.
 
 Confidant will be accessible at `http://localhost`. The username is `confidant`
 and the password is `confidant`.

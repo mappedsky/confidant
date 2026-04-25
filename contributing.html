@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="violet" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Contributing - confidant 7.0.0-a38159 documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="DynamoDB Data Schema" href="data_schema.html" /><link rel="prev" title="Threat model" href="threat_model.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Contributing - confidant 7.0.0-536a7a documentation</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="DynamoDB Data Schema" href="data_schema.html" /><link rel="prev" title="Threat model" href="threat_model.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -166,10 +166,17 @@ aliases, so it’s not necessary to learn the details of docker compose.</p>
 <p>To start: <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">up</span></code></p>
 <p>To test code changes:</p>
 <ol class="arabic simple">
-<li><p>Kill docker compose (ctrl-c)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker_build</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">up</span></code></p></li>
+<li><p>Make your change.</p></li>
+<li><p>If you only changed Python or frontend source, keep <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">up</span></code> running. The
+backend uses gunicorn <code class="docutils literal notranslate"><span class="pre">--reload</span></code> and the frontend runs the Vite dev server,
+so no image rebuild is needed.</p></li>
+<li><p>If you changed container dependencies or image build inputs (for example
+<code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code>, <code class="docutils literal notranslate"><span class="pre">Pipfile.lock</span></code>, frontend package metadata, or other files
+copied into the image), run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker_build</span></code> and then restart with
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">up</span></code>.</p></li>
 </ol>
+<p>If you want to force a rebuild before starting the stack, use
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">up_build</span></code>.</p>
 <p>Confidant will be accessible at <code class="docutils literal notranslate"><span class="pre">http://localhost</span></code>. The username is <code class="docutils literal notranslate"><span class="pre">confidant</span></code>
 and the password is <code class="docutils literal notranslate"><span class="pre">confidant</span></code>.</p>
 <p>All configuration settings for this environment are in the <code class="docutils literal notranslate"><span class="pre">config/development</span></code>
@@ -256,7 +263,7 @@ first. To run pre-commit:</p>
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=09ea738d"></script>
+      <script src="_static/documentation_options.js?v=72368ed2"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/shibuya.js?v=cac61aee"></script></body>
