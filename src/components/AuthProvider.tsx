@@ -7,6 +7,10 @@ import { setAccessTokenGetter, setUnauthorizedHandler } from '../api';
 
 const UNAUTHENTICATED_PATHS = ['/auth/callback', '/loggedout'];
 
+function getReturnTo(location: ReturnType<typeof useLocation>): string {
+  return `${location.pathname}${location.search}${location.hash}`;
+}
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -14,6 +18,7 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const { auth_required, userManager } = useContext(AuthConfigContext);
   const location = useLocation();
+  const returnTo = getReturnTo(location);
   const isUnauthenticatedPath = UNAUTHENTICATED_PATHS.includes(location.pathname);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(auth_required && userManager !== null);
@@ -46,7 +51,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           setIsLoading(false);
           return;
         }
-        userManager.signinRedirect();
+        userManager.signinRedirect({ state: { returnTo } });
       })();
     }
 
@@ -54,7 +59,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       userManager.events.removeUserLoaded(onUserLoaded);
       userManager.events.removeUserUnloaded(onUserUnloaded);
     };
-  }, [auth_required, isUnauthenticatedPath, userManager]);
+  }, [auth_required, isUnauthenticatedPath, returnTo, userManager]);
 
   const accessToken = user?.access_token ?? null;
   const shouldHoldProtectedRoutes =
@@ -71,13 +76,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
 
     setAccessTokenGetter(() => accessToken);
-    setUnauthorizedHandler(() => userManager.signinRedirect());
+    setUnauthorizedHandler(() => userManager.signinRedirect({ state: { returnTo } }));
 
     return () => {
       setAccessTokenGetter(() => null);
       setUnauthorizedHandler(null);
     };
-  }, [accessToken, auth_required, userManager]);
+  }, [accessToken, auth_required, returnTo, userManager]);
 
   return (
     <AuthContext.Provider value={{ user, accessToken, isLoading }}>

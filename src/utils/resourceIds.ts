@@ -62,13 +62,19 @@ export function encodeSecretId(id: string): string {
 }
 
 export function secretDetailPath(id: string): string {
-  return `/secrets/${encodeSecretId(id)}`;
+  const searchParams = new URLSearchParams({ id });
+  return `/secrets/view?${searchParams.toString()}`;
 }
 
 export function secretHistoryPath(id: string): string {
-  return `${secretDetailPath(id)}/history`;
+  const searchParams = new URLSearchParams({ id });
+  return `/secrets/history?${searchParams.toString()}`;
 }
 
 export function secretVersionPath(id: string, version: number | string): string {
-  return `${secretDetailPath(id)}/versions/${version}`;
+  const searchParams = new URLSearchParams({
+    id,
+    version: String(version),
+  });
+  return `/secrets/version?${searchParams.toString()}`;
 }

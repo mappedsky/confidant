@@ -18,7 +18,7 @@ import {
   GridRenderCellParams,
   GridToolbar,
 } from '@mui/x-data-grid';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import ActionsMenu from '../components/ActionsMenu';
 import CenteredSpinner from '../components/CenteredSpinner';
 import { baseDataGridSx } from '../components/dataGridStyles';
@@ -28,15 +28,10 @@ import {
   secretDetailPath,
   secretVersionPath,
 } from '../utils/resourceIds';
-import { parseSecretRouteRemainder } from '../utils/secretRouteParams';
-
-type RouteParams = {
-  '*': string;
-};
 
 export default function SecretHistoryPage() {
-  const params = useParams<RouteParams>();
-  const { id } = parseSecretRouteRemainder(params['*']);
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
   const navigate = useNavigate();
   const [versions, setVersions] = useState<SecretSummary[]>([]);
   const [currentSecret, setCurrentSecret] = useState<SecretDetail | null>(null);

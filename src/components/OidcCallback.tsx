@@ -1,6 +1,14 @@
 import { useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { User } from 'oidc-client-ts';
 import { AuthConfigContext } from '../authConfig.context';
+
+function getReturnTo(user: User | undefined): string {
+  const returnTo = (user?.state as { returnTo?: unknown } | undefined)?.returnTo;
+  return typeof returnTo === 'string' && returnTo.startsWith('/')
+    ? returnTo
+    : '/';
+}
 
 export default function OidcCallback() {
   const navigate = useNavigate();
@@ -15,8 +23,8 @@ export default function OidcCallback() {
 
     userManager
       .signinRedirectCallback()
-      .then(() => {
-        navigate('/', { replace: true });
+      .then((user) => {
+        navigate(getReturnTo(user), { replace: true });
       })
       .catch(() => {
         navigate('/', { replace: true });

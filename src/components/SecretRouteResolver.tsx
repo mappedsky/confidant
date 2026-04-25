@@ -1,7 +1,10 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import SecretDetailPage from '../pages/SecretDetailPage';
-import SecretHistoryPage from '../pages/SecretHistoryPage';
+import {
+  secretDetailPath,
+  secretHistoryPath,
+  secretVersionPath,
+} from '../utils/resourceIds';
 import { parseSecretRouteRemainder } from '../utils/secretRouteParams';
 
 type RouteParams = {
@@ -16,7 +19,10 @@ export default function SecretRouteResolver() {
     return <Navigate to="/secrets" replace />;
   }
   if (route.isHistory) {
-    return <SecretHistoryPage />;
+    return <Navigate to={secretHistoryPath(route.id)} replace />;
   }
-  return <SecretDetailPage />;
+  if (route.version !== null) {
+    return <Navigate to={secretVersionPath(route.id, route.version)} replace />;
+  }
+  return <Navigate to={secretDetailPath(route.id)} replace />;
 }

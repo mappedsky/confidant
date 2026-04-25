@@ -33,7 +33,7 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HistoryIcon from '@mui/icons-material/History';
 import RestoreIcon from '@mui/icons-material/Restore';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import KeyValueTable, { KeyValueRow } from '../components/KeyValueTable';
 import CenteredSpinner from '../components/CenteredSpinner';
 import { api } from '../api';
@@ -49,7 +49,6 @@ import {
   secretVersionPath,
   validateSecretId,
 } from '../utils/resourceIds';
-import { parseSecretRouteRemainder } from '../utils/secretRouteParams';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -77,11 +76,11 @@ function ReadOnlyField({ label, value, sx: sxProp, valueSx }: ReadOnlyFieldProps
   );
 }
 
-type SecretDetailParams = { '*': string };
-
 export default function SecretDetailPage() {
-  const params = useParams<SecretDetailParams>();
-  const { id, version } = parseSecretRouteRemainder(params['*']);
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
+  const versionParam = searchParams.get('version');
+  const version = versionParam === null ? null : Number(versionParam);
   const navigate = useNavigate();
   const { clientConfig } = useAppContext();
   const isNew = !id;
@@ -369,7 +368,7 @@ export default function SecretDetailPage() {
         if (!saved.id) {
           throw new Error('Secret was created, but no secret ID was returned.');
         }
-        window.location.replace(secretDetailPath(saved.id));
+        navigate(secretDetailPath(saved.id), { replace: true });
         return;
       } else if (id) {
         saved = await api.updateSecret(id, payload);
