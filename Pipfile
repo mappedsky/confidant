@@ -42,7 +42,7 @@ boto3 = "*"
 cffi = "*"
 flask-sslify = "*"
 requests = "*"
-pyjwt = {extras = ["crypto"], version = "*"}
+pyjwt = {extras = ["crypto"], version = ">= 2.13.0"}
 ndg-httpsclient = "*"
 pyasn1 = "*"
 pyopenssl = "*"
